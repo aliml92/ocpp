@@ -140,10 +140,10 @@ func (cp *ChargePoint) Call(action string, p ReqPayload) (ResPayload, error) {
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	cp.Out <- raw
-	start := time.Now()
+	// start := time.Now()
 	callResult, _, err := cp.WaitForResponse(id)
-	duration := time.Since(start)
-	log.Printf("[INFO] Call %s took %s", action, duration) 
+	// duration := time.Since(start)
+	// log.Printf("[INFO] Call %s took %s", action, duration) 
 	if callResult != nil {
 		resPayload, err := UnmarshalResPayload(action, callResult.Payload)
 		if err != nil {

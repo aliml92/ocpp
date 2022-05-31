@@ -18,6 +18,39 @@ type BootNotificationReq struct {
 }
 
 
+
+
+type DataTransferReq struct {
+	VendorId 				string 	`json:"vendorId" validate:"required,max=255"`
+	MessageId 				string 	`json:"messageId,omitempty" validate:"max=255"`
+	Data 					string 	`json:"data,omitempty"`
+}
+
+
+
+type DiagnosticsStatusNotificationReq struct {
+	Status 					string 	`json:"status" validate:"required,DiagnosticsStatus"`
+}
+
+
+
+type FirmwareStatusNotificationReq struct {
+	Status 					string 	`json:"status" validate:"required,FirmwareStatus"`
+}
+
+
+type HeartbeatReq struct {
+	
+}
+
+
+type MeterValuesReq struct {
+	ConnectorId 			int 	    `json:"connectorId" validate:"required,gte=0"`
+	TransactionId 			int 	    `json:"transactionId"`
+	MeterValue 				MeterValue 	`json:"meterValue" validate:"required,dive,required"`							
+}
+
+
 type StartTransactionReq struct {
 	ConnectorId 			int 	`json:"connectorId" validate:"required,gt=0"`
 	IdTag       			string 	`json:"idTag" validate:"required,max=20"`
@@ -28,15 +61,124 @@ type StartTransactionReq struct {
 
 
 
+type StatusNotificationReq struct {
+	ConnectorId 			int 	`json:"connectorId" validate:"required,gte=0"`
+	ErrorCode 				string 	`json:"errorCode" validate:"required,ErrorCode"`
+	Info 					string 	`json:"info,omitempty" validate:"max=50"`
+	Status 					string 	`json:"status" validate:"required,ChargePointStatus"`
+	Timestamp   			string 	`json:"timestamp,omitempty" validate:"ISO8601date"`
+	VendorId 				string 	`json:"vendorId,omitempty" validate:"max=255"`
+	VendorErrorCode 		string 	`json:"vendorErrorCode,omitempty" validate:"max=50"`
+}
 
 
 
+type StopTransactionReq struct {
+	IdTag 	 			string 		`json:"idTag" validate:"required,max=20"`
+	MeterStop 			int 		`json:"meterStop" validate:"required"`
+	Timestamp 			string 		`json:"timestamp" validate:"required,ISO8601date"`
+	TransactionId 		int 		`json:"transactionId" validate:"required"`
+	Reason 				string 		`json:"reason,omitempty" validate:"Reason"`
+	TransactionData 	MeterValue 	`json:"transactionData,omitempty" validate:"dive,required"`
+}	
 
 
 
+type CancelReservationReq struct {
+	ReservationId 		int 	`json:"reservationId" validate:"required"`
+}
 
 
+// actions by csms
 type ChangeAvailabilityReq struct {
 	ConnectorId 		int 				`json:"connectorId" validate:"required,gte=0"`
-	Type 				string 				`json:"type" validate:"required"`
+	Type 				string 				`json:"type" validate:"required,AvailabilityType"`
 }
+
+type ChangeConfigurationReq struct {
+	Key 				string 				`json:"key" validate:"required,max=50"`
+	Value 				string 				`json:"value" validate:"required,max=50"`
+}
+
+type ClearCacheReq struct {}
+
+
+type ClearChargingProfileReq struct {
+	Id 					string 				`json:"id,omitempty"`
+	ConnectorId 		int 				`json:"connectorId,omitempty" validate:"gte=0"`
+	ChargingProfilePuropse string 			`json:"chargingProfilePurpose,omitempty" validate:"ChargingProfilePurpose"`
+	StackLevel 			int 				`json:"stackLevel,omitempty" validate:"omitempty,gte=0"`
+}
+
+type GetCompositeScheduleReq struct {
+	ConnectorId 		int 				`json:"connectorId,omitempty" validate:"gte=0"`
+	Duration 			int 				`json:"duration" validate:"required,gte=0"`
+	ChargingRateUnit 	string 				`json:"chargingRateUnit,omitempty" validate:"ChargingRateUnit"`
+}
+
+
+type GetConfigurationReq struct {
+	Key 				[]string 				`json:"key,omitempty" validate:"dive,max=50"`
+}
+
+
+type GetDiagnosticsReq struct {
+	Location 			string 				`json:"location" validate:"required"`
+	Retries 			int 				`json:"retries,omitempty" validate:"gte=0"`
+	RetryInterval 		int 				`json:"retryInterval,omitempty" validate:"gte=0"`
+	StartTime 			string 				`json:"startTime,omitempty" validate:"ISO8601date"`
+	StopTime 			string 				`json:"stopTime,omitempty" validate:"ISO8601date"`
+}
+
+type GetLocalListVersionReq struct {}
+
+type RemoteStartTransactionReq struct {
+	ConnectorId 		int 				`json:"connectorId,omitempty" validate:"gte=0"`
+	IdTag 				string 				`json:"idTag" validate:"required,max=20"`
+	ChargingProfile     ChargingProfile 	`json:"chargingProfile,omitempty" validate:"dive,required"`
+}
+
+type RemoteStopTransactionReq struct {
+	TransactionId 		int 				`json:"transactionId" validate:"required"`
+}
+
+type ReserveNowReq struct {
+	ConnectorId 		int 				`json:"connectorId" validate:"required,gte=0"`
+	ExpiryDate 			string 				`json:"expiryDate" validate:"required,ISO8601date"`
+	IdTag 				string 				`json:"idTag" validate:"required,max=20"`
+	ParentIdTag 		string 				`json:"parentIdTag,omitempty" validate:"max=20"`
+	ReservationId 		int 				`json:"reservationId" validate:"required"`
+}
+
+
+type ResetReq struct {
+	Type 				string 				`json:"type" validate:"required,ResetType"`
+}
+
+type SendLocalListReq struct {
+	ListVersion 		int 				`json:"listVersion" validate:"required,gte=0"`
+	LocalAuthorizationList []AuthorizationData 	`json:"localAuthorizationList,omitempty" validate:"dive,required"`
+	UpdateType 			string 				`json:"updateType" validate:"required,UpdateType"`
+}
+
+type SetChargingProfileReq struct {
+	ConnectorId 		int 				`json:"connectorId" validate:"required,gte=0"`
+	ChargingProfile 	ChargingProfile 	`json:"chargingProfile" validate:"required,dive,required"`
+}
+
+type TriggerMessageReq struct {
+	RequestedMessage 	string 				`json:"requestedMessage" validate:"required,MessageTrigger"`
+	ConnectorId 		int 				`json:"connectorId,omitempty" validate:"gte=0"`
+}
+
+type UnlockConnectorReq struct {
+	ConnectorId 		int 				`json:"connectorId" validate:"required,gte=0"`
+}
+
+type UpdateFirmwareReq struct {
+	Location 			string 				`json:"location" validate:"required"`
+	Retries 			int 				`json:"retries,omitempty" validate:"gte=0"`
+	RetrieveDate 		string 				`json:"retrieveDate" validate:"required,ISO8601date"`
+	RetryInterval 		int 				`json:"retryInterval,omitempty" validate:"gte=0"`
+}
+
