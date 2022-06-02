@@ -49,7 +49,7 @@ func (cp *ChargePoint) Reader() {
 		_, message, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[ERROR] %v", err)
+				log.Printf("[WEBSOCKET][ERROR] %v", err)
 			}
 			break
 		}
