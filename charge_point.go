@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	v16 "github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	
 )
 
 var upgrader = websocket.Upgrader{
@@ -182,6 +182,7 @@ func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError
 
 
 func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error) {
+	id := strings.Split(r.URL.Path, "/")[2]
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("[ERROR | SOCKET CONNECT] %v", err)
@@ -189,7 +190,7 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 	}
 	cp := &ChargePoint{
 		Conn:   			conn,
-		Id:     			"hardcodedId",
+		Id:     			id,
 		Out:    			make(chan []byte),
 		In:     			make(chan []byte),
 		MessageHandlers: 	make(map[string]func(ReqPayload) ResPayload),
