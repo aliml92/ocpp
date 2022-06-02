@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var validate = v16.Validate
-
+var ChargePoints = make(map[string]*ChargePoint)
 
 type ReqPayload interface{}
 
@@ -50,6 +50,7 @@ func (cp *ChargePoint) Reader() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("[WEBSOCKET][ERROR] %v", err)
+				delete(ChargePoints, cp.Id)
 			}
 			break
 		}
@@ -201,5 +202,9 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 	}
 	go cp.Reader()
 	go cp.Writer()
+	// add chargepoint to list of chargepoints
+	cp.Mu.Lock()
+	defer cp.Mu.Unlock()
+	ChargePoints[cp.Id] = cp
 	return cp, nil
 }
