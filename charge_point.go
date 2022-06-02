@@ -183,6 +183,7 @@ func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError
 
 func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error) {
 	id := strings.Split(r.URL.Path, "/")[2]
+	log.Printf("[INFO] New connection from %s", id)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("[ERROR | SOCKET CONNECT] %v", err)
