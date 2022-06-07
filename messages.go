@@ -133,7 +133,7 @@ func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
 // This function is used to unmarshal the payload of the message by action name
 // for now this is used only for incoming Call messages
 func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload, error) {
-	var payload interface{}
+	var payload ReqPayload
 	var err error
 	switch mAction {
 	default:
