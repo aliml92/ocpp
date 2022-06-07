@@ -33,6 +33,7 @@ type ChargePoint struct {
 	Out 			chan []byte
 	In 				chan []byte
 	MessageHandlers map[string]func(ReqPayload) ResPayload
+	AfterHandlers   map[string]func(ReqPayload) 	
 	Mu 				sync.Mutex
 	Cr              chan *CallResult
 	Ce              chan *CallError
@@ -63,6 +64,7 @@ func (cp *ChargePoint) Reader() {
 		if call != nil {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
 				responsePayload := handler(call.Payload)
+				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
 					log.Printf("[ERROR | VALIDATION] %v", err)
@@ -79,6 +81,10 @@ func (cp *ChargePoint) Reader() {
 					break
 				}
 				cp.Out <- raw
+				// TODO: check if there is an after handler
+				if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
+					afterHandler(call.Payload)
+				}
 
 			} else {
 				// TODO: send CallError with NotImplemented error
@@ -123,9 +129,15 @@ func (cp *ChargePoint) On(action string, f func(ReqPayload) ResPayload) *ChargeP
 }
 
 
+func (cp *ChargePoint) After(action string, f func(ReqPayload)) *ChargePoint {
+	cp.AfterHandlers[action] = f
+	return cp
+}
+
 
 func (cp *ChargePoint) Call(action string, p ReqPayload) (ResPayload, error) {
-	id := uuid.New().String() 
+	id := uuid.New().String()
+	// TODO: check if validation works as expected / CS -> 
 	call := [4]interface{}{
 		2,
 		id,
@@ -196,6 +208,7 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 		Out:    			make(chan []byte),
 		In:     			make(chan []byte),
 		MessageHandlers: 	make(map[string]func(ReqPayload) ResPayload),
+		AfterHandlers: 		make(map[string]func(ReqPayload)),
 		Cr: 				make(chan *CallResult, 1),
 		Ce: 				make(chan *CallError, 1),
 		Timeout: 			time.Second * 10,

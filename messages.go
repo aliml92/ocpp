@@ -7,6 +7,21 @@ import (
 	v16 "github.com/aliml92/ocpp/v16"
 )
 
+var (
+	invalidation = true
+	// outvalidation = true
+)
+
+type cpAction interface {
+	v16.BootNotificationReq | v16.AuthorizeReq 
+} 
+
+type csAction interface {
+	v16.ChangeAvailabilityConf | v16.ChangeConfigurationConf
+}
+
+
+
 
 type Call struct {
 	MessageTypeId 	uint8
@@ -32,6 +47,13 @@ type CallError struct {
 
 
 
+func DisableInValidaton() {
+	invalidation = false
+}
+
+// func DisableOutValidaton() {
+// 	outvalidation = false
+// }
 
 // converts ocpp bytes to ocpp message struct or error
 // TODO CallResult is implemented later
@@ -118,16 +140,10 @@ func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload
 		err = errors.New("invalid action")
 		return nil, err
 	case "BootNotification":
-		var p * v16.BootNotificationReq
-		err = json.Unmarshal(rawPayload, &p)
+		payload, err = cp_actions_marshaller[v16.BootNotificationReq](rawPayload)
 		if err != nil {
 			return nil, err
-		}
-		err = validate.Struct(p)
-		if err != nil {
-			return nil, err
-		}
-		payload = p	
+		}	
 	case "Authorize":
 		var p * v16.AuthorizeReq
 		err = json.Unmarshal(rawPayload, &p)
@@ -143,6 +159,38 @@ func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload
 	return payload, nil
 }
 
+func cp_actions_marshaller[T cpAction](rawPayload json.RawMessage) (ReqPayload, error){
+	var p *T
+	err := json.Unmarshal(rawPayload, &p)
+	if err != nil {
+		return nil, err
+	}
+	if invalidation {
+		err = validate.Struct(p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
+}
+
+func cs_actions_marshaller[T csAction](rawPayload json.RawMessage) (ReqPayload, error){
+	var p *T
+	err := json.Unmarshal(rawPayload, &p)
+	if err != nil {
+		return nil, err
+	}
+	if invalidation {
+		err = validate.Struct(p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
+}
+
+
+
 func UnmarshalResPayload(mAction string, rawPayload json.RawMessage) (ResPayload, error) {
 	var payload interface{}
 	var err error
@@ -151,16 +199,17 @@ func UnmarshalResPayload(mAction string, rawPayload json.RawMessage) (ResPayload
 		err = errors.New("invalid action")
 		return nil, err
 	case "ChangeAvailability":
-		var p * v16.ChangeAvailabilityConf
-		err = json.Unmarshal(rawPayload, &p)
+		payload, err = cs_actions_marshaller[v16.ChangeAvailabilityConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
-		err = validate.Struct(p)
+	case "ChangeConfiguration":
+		payload, err = cs_actions_marshaller[v16.ChangeConfigurationConf](rawPayload)
 		if err != nil {
 			return nil, err
-		}
-		payload = p	
+		}						
 	}
 	return payload, nil
 }
+
+
