@@ -3,6 +3,8 @@ package ocpp
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 
 	v16 "github.com/aliml92/ocpp/v16"
 )
@@ -13,7 +15,7 @@ var (
 )
 
 type cpAction interface {
-	v16.BootNotificationReq | v16.AuthorizeReq 
+	v16.BootNotificationReq | v16.AuthorizeReq | v16.DataTransferReq | v16.DiagnosticsStatusNotificationReq 
 } 
 
 type csAction interface {
@@ -66,7 +68,11 @@ func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
 
 	err := json.Unmarshal(raw, &mm)
 	if err != nil {
-		// TODO: send a proper CallError 
+		// TODO: send a proper CallError
+		// create a CallError
+		fmt.Println("error unmarshalling")
+		// print error
+		log.Println(err)  
 		return nil, nil, nil,  err
 	}
 	l := len(mm)
@@ -130,8 +136,7 @@ func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
 }
 
 
-// This function is used to unmarshal the payload of the message by action name
-// for now this is used only for incoming Call messages
+
 func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload, error) {
 	var payload ReqPayload
 	var err error
@@ -145,16 +150,20 @@ func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload
 			return nil, err
 		}	
 	case "Authorize":
-		var p * v16.AuthorizeReq
-		err = json.Unmarshal(rawPayload, &p)
+		payload, err = cp_actions_marshaller[v16.AuthorizeReq](rawPayload)
 		if err != nil {
 			return nil, err
 		}
-		err = validate.Struct(p)
+	case "DataTransfer":
+		payload, err = cp_actions_marshaller[v16.DataTransferReq](rawPayload)
 		if err != nil {
 			return nil, err
 		}
-		payload = p
+	case "DiagnosticsStatusNotification":
+		payload, err = cp_actions_marshaller[v16.DiagnosticsStatusNotificationReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}	 	
 	}
 	return payload, nil
 }
