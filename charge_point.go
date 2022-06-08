@@ -2,6 +2,7 @@ package ocpp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,7 +48,7 @@ func (cp *ChargePoint) Reader() {
 		cp.Conn.Close()
 	}()
 	for {
-		_, message, err := cp.Conn.ReadMessage()
+		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("[WEBSOCKET][ERROR] %v", err)
@@ -55,11 +56,11 @@ func (cp *ChargePoint) Reader() {
 			}
 			break
 		}
-		call, callResult, callError, err := UnmarshalOCPPMessage(message)
+		p := &msg
+		call, callResult, callError, err := unpack(p)
 		if err != nil {
-			//TODO send a proper CallError
+			cp.SendCallError(err)
 			log.Printf("[ERROR | MSG] %v", err)
-			break
 		}
 		if call != nil {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
@@ -67,27 +68,16 @@ func (cp *ChargePoint) Reader() {
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
+					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)
-					break
+				} else {
+					cp.Out <- *call.Marshal(&call.UniqueId, &responsePayload)
+					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
+						afterHandler(call.Payload)
+					}
 				}
-				out := [3]interface{}{
-					3, 
-					call.UniqueId,
-					responsePayload,
-				}
-				raw, err := json.Marshal(out)
-				if err != nil {
-					log.Printf("[ERROR | MSG] %v", err)
-					break
-				}
-				cp.Out <- raw
-				// TODO: check if there is an after handler
-				if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
-					afterHandler(call.Payload)
-				}
-
 			} else {
-				// TODO: send CallError with NotImplemented error
+				// TODO: send CallError with NotSupported error
 				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
 			}
 		}
@@ -121,7 +111,41 @@ func (cp *ChargePoint) Writer() {
 }
 
 
-
+func (cp *ChargePoint) SendCallError(err error) {
+	var id string
+	var code string
+	var cause string
+	var ocppErr OCPPError
+	if errors.Is(err, &ocppErr) {
+		id = ocppErr.id
+		code = ocppErr.code
+		cause = ocppErr.cause
+	}
+	if id == "" {
+		id = uuid.New().String()
+	}
+	callError := &CallError{
+			UniqueId: id,
+			ErrorCode: code,
+			ErrorDescription: "",
+			ErrorDetails: cause,
+	}
+	switch code {
+	case "ProtocolError":
+		callError.ErrorDescription = "Payload for Action is incomplete"
+	case "PropertyConstraintViolation":
+		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"
+	case "NotImplemented":
+		callError.ErrorDescription = "Requested Action is not known by receiver"
+	case "TypeConstraintViolationError":
+		callError.ErrorDescription = "Payload for Action is syntactically correct but at least one of the fields violates data type constraints (e.g. “somestring”: 12)"		
+	case "PropertyConstraintViolationError":
+		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"	
+	default:
+		callError.ErrorDescription = "Unknown error"	
+	}
+	cp.Out <- *callError.Marshal()
+}
 
 func (cp *ChargePoint) On(action string, f func(ReqPayload) ResPayload) *ChargePoint {
 	cp.MessageHandlers[action] = f
@@ -144,43 +168,41 @@ func (cp *ChargePoint) Call(action string, p ReqPayload) (ResPayload, error) {
 		action,
 		p,
 	}
-	raw, err := json.Marshal(call)
-	if err != nil {
-		log.Printf("[ERROR | MSG] %v", err)
-		return nil, err
-	}
+	raw, _ := json.Marshal(call)
 	// use a lock to make sure we don't send two messages at the same time
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	cp.Out <- raw
-	// start := time.Now()
-	callResult, _, err := cp.WaitForResponse(id)
-	// duration := time.Since(start)
-	// log.Printf("[INFO] Call %s took %s", action, duration) 
+	callResult, callError, err := cp.WaitForResponse(&id)
 	if callResult != nil {
-		resPayload, err := UnmarshalResPayload(action, callResult.Payload)
+		resPayload, err := unmarshall_call_result_payload_from_cp(&action, callResult.Payload)
+		// TODO just return the error
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
 			return nil, err
 		}
 		return resPayload, nil
 	}
+	if callError != nil {
+		return nil, errors.New("CallError")
+	}
+	// TODO return timeout error
 	return nil, err
 }
 
-func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError, error) {
+func (cp *ChargePoint) WaitForResponse(uniqueId *string) (*CallResult, *CallError, error) {
 	wait_until := time.Now().Add(cp.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
 			fmt.Println("Received CallResult: ", r1)
-			if r1.UniqueId == uniqueId {
+			if r1.UniqueId == *uniqueId {
 				fmt.Println("CallResult matches UniqueId")
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
 			fmt.Println("Received CallError: ", r2)
-			if r2.UniqueId == uniqueId {
+			if r2.UniqueId == *uniqueId {
 				fmt.Println("CallError matches UniqueId")
 				return nil, r2, nil
 			}	
@@ -221,3 +243,4 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 	ChargePoints[cp.Id] = cp
 	return cp, nil
 }
+

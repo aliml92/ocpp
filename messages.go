@@ -9,10 +9,19 @@ import (
 	v16 "github.com/aliml92/ocpp/v16"
 )
 
-var (
-	invalidation = true
-	// outvalidation = true
-)
+
+
+type OCPPError struct {
+	id 		   string
+	code 	   string
+	cause 	   string
+} 
+
+
+func (e *OCPPError) Error() string {
+	return e.code + ": " + e.cause
+}
+
 
 type cpAction interface {
 	v16.BootNotificationReq | v16.AuthorizeReq | v16.DataTransferReq | v16.DiagnosticsStatusNotificationReq 
@@ -24,7 +33,6 @@ type csAction interface {
 
 
 
-
 type Call struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
@@ -32,10 +40,22 @@ type Call struct {
 	Payload 		interface{}
 }
 
+
+func (call *Call) Marshal(id *string, r *ResPayload) ( *[]byte) {
+	out := [3]interface{}{
+		3, 
+		id,
+		r,
+	}
+	raw, _ := json.Marshal(out)
+	return &raw
+}
+
+
 type CallResult struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
-	Payload 		json.RawMessage
+	Payload 		*json.RawMessage
 
 }
 
@@ -47,59 +67,101 @@ type CallError struct {
 	ErrorDetails 		interface{}
 }
 
-
-
-func DisableInValidaton() {
-	invalidation = false
+func (ce *CallError) Marshal() *[]byte {
+	d := ce.ErrorDetails.(string)
+	out := [5]interface{}{
+		5, 
+		ce.UniqueId,
+		ce.ErrorCode,
+		ce.ErrorDescription,
+		`{"errorDetails":` + d + `}`,
+	}
+	raw, _ := json.Marshal(out)
+	return &raw
 }
 
-// func DisableOutValidaton() {
-// 	outvalidation = false
-// }
 
-// converts ocpp bytes to ocpp message struct or error
-// TODO CallResult is implemented later
-func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
-	var mm []json.RawMessage
+
+// This function converts raw byte to one of the ocpp messages
+// There is only one exception where CallResult's payload is returned as json.RawMessage
+// because in this function we don't know the type of the payload for CallResult
+func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
+	var rm []json.RawMessage
 	var call *Call
 	var callResult *CallResult
 	var callError *CallError
-	var payload interface{}
-
-	err := json.Unmarshal(raw, &mm)
-	if err != nil {
-		// TODO: send a proper CallError
-		// create a CallError
-		fmt.Println("error unmarshalling")
-		// print error
-		log.Println(err)  
-		return nil, nil, nil,  err
-	}
-	l := len(mm)
-	if l < 3 || l > 5 {
-		// TODO: send a proper CallError
-		return nil, nil, nil,  errors.New("invalid message")
-	}
-	// unmarshal the first two elements of message, sice they are always the same
+	var payload ReqPayload
 	var mType uint8
 	var mId string
-	err = json.Unmarshal(mm[0], &mType)
+	err := json.Unmarshal(*b, &rm)
 	if err != nil {
-		return nil, nil, nil,  err
+		e := &OCPPError{
+			id:    "",    
+			code: "ProtocolError",
+			cause: "Invalid JSON format",
+		}
+		log.Println(err)  
+		return nil, nil, nil, e
 	}
-	err = json.Unmarshal(mm[1], &mId)
+	
+	err = json.Unmarshal(rm[1], &mId)
 	if err != nil {
-		return nil, nil, nil,  err
+		e := &OCPPError{
+			id:    		"",
+			code:		"ProtocolError",
+			cause:		"Message does not contain UniqueId",
+		}	
+		return nil, nil, nil, e
+	}
+	if 3 > len(rm) || len(rm) > 5 {
+		e := &OCPPError{
+			id:    mId,
+			code: "ProtocolError",
+			cause: "JSON must be an array of range [3,5]",
+		}
+		log.Println(err)  
+		return nil, nil, nil, e
+	}
+	err = json.Unmarshal(rm[0], &mType)
+	if err != nil {
+		e := &OCPPError{
+			id:    mId,
+			code: "PropertyConstraintViolation",
+			cause: fmt.Sprintf("MessageTypeId: %v is not valid", rm[0]),
+		}
+		return nil, nil, nil,  e
+	}
+	if 2 > mType || mType > 4 {
+		e := &OCPPError{
+			id:    mId,
+			code: "ProtocolError",
+			cause: "Message does not contain MessageTypeId",
+		}
+		return nil, nil, nil, e
+	}
+	err = json.Unmarshal(rm[1], &mId)
+	if err != nil {
+		e := &OCPPError{
+			id:    mId,
+			code: "ProtocolError",
+			cause: "Message does not contain UniqueId",
+		}	
+		return nil, nil, nil, e
 	}
 	if mType == 2 {
 		var mAction string
-		err = json.Unmarshal(mm[2], &mAction)
+		err = json.Unmarshal(rm[2], &mAction)
 		if err != nil {
-			return nil, nil, nil,  err
+			e := &OCPPError{
+				id:    mId,
+				code: "ProtocolError",
+				cause: "Message does not contain Action",
+			}
+			return nil, nil, nil, e
 		}
-		payload, err = UnmarshalReqPayload(mAction, mm[3])
+		payload, err = unmarshall_call_payload_from_cp(&mId, &mAction, &rm[3])
 		if err != nil {
-			return nil, nil, nil,  err
+			return nil, nil, nil, err
 		}
 		call = &Call{
 			MessageTypeId: 	mType,
@@ -110,19 +172,16 @@ func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
 
 	}
 	if mType == 3 {
+		p := &rm[2]
 		callResult = &CallResult{
 			MessageTypeId: 	mType,
 			UniqueId: 		mId,
-			Payload: 		mm[2],
+			Payload: 		p,
 		}
 	}
 	if mType == 4 {
 		var me [5]interface{} 
-		err = json.Unmarshal(raw, &me)
-	
-		if err != nil {
-			return nil, nil, nil,  err
-		}
+		_ = json.Unmarshal(*b, &me)
 		callError = &CallError{
 			MessageTypeId: 		mType,
 			UniqueId: 			mId,
@@ -136,31 +195,35 @@ func UnmarshalOCPPMessage(raw []byte) (*Call, *CallResult, *CallError, error) {
 }
 
 
-
-func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload, error) {
+// Unmarshalls Payload of a Call coming from CP 
+func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (ReqPayload, error) {
 	var payload ReqPayload
 	var err error
-	switch mAction {
+	switch *mAction {
 	default:
-		err = errors.New("invalid action")
-		return nil, err
+		e := &OCPPError{
+			id:    *mId,
+			code: "NotImplemented",
+			cause: fmt.Sprintf("Action %v is not implemented", *mAction),
+		}
+		return nil, e
 	case "BootNotification":
-		payload, err = cp_actions_marshaller[v16.BootNotificationReq](rawPayload)
+		payload, err = unmarshall_cp_action[v16.BootNotificationReq](mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}	
 	case "Authorize":
-		payload, err = cp_actions_marshaller[v16.AuthorizeReq](rawPayload)
+		payload, err = unmarshall_cp_action[v16.AuthorizeReq](mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "DataTransfer":
-		payload, err = cp_actions_marshaller[v16.DataTransferReq](rawPayload)
+		payload, err = unmarshall_cp_action[v16.DataTransferReq](mId, rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "DiagnosticsStatusNotification":
-		payload, err = cp_actions_marshaller[v16.DiagnosticsStatusNotificationReq](rawPayload)
+		payload, err = unmarshall_cp_action[v16.DiagnosticsStatusNotificationReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}	 	
@@ -168,52 +231,49 @@ func UnmarshalReqPayload(mAction string, rawPayload json.RawMessage) (ReqPayload
 	return payload, nil
 }
 
-func cp_actions_marshaller[T cpAction](rawPayload json.RawMessage) (ReqPayload, error){
+// Unmarshals Payload to a struct of type T, eg. BootNotificationReq
+func unmarshall_cp_action[T cpAction](mId *string, rawPayload *json.RawMessage) (*T, error){
 	var p *T
-	err := json.Unmarshal(rawPayload, &p)
+	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
-		return nil, err
-	}
-	if invalidation {
-		err = validate.Struct(p)
-		if err != nil {
-			return nil, err
+		e := &OCPPError{
+			id:    *mId,
+			code: "TypeConstraintViolationError",
+			cause: "Call Payload is not valid",
 		}
+		log.Println(err)
+		return nil, e
 	}
-	return p, nil
-}
-
-func cs_actions_marshaller[T csAction](rawPayload json.RawMessage) (ReqPayload, error){
-	var p *T
-	err := json.Unmarshal(rawPayload, &p)
+	err = validate.Struct(p)
 	if err != nil {
-		return nil, err
-	}
-	if invalidation {
-		err = validate.Struct(p)
-		if err != nil {
-			return nil, err
+		e := &OCPPError{
+			id:    *mId,
+			code: "PropertyConstraintViolationError",
+			cause: "Call Payload is not valid",
 		}
+		log.Println(err)
+		return nil, e
 	}
 	return p, nil
 }
 
 
 
-func UnmarshalResPayload(mAction string, rawPayload json.RawMessage) (ResPayload, error) {
-	var payload interface{}
+// Unmarshalls Payload of a CallResult coming from CP 
+func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (ResPayload, error) {
+	var payload ResPayload
 	var err error
-	switch mAction {
+	switch *mAction {
 	default:
 		err = errors.New("invalid action")
 		return nil, err
 	case "ChangeAvailability":
-		payload, err = cs_actions_marshaller[v16.ChangeAvailabilityConf](rawPayload)
+		payload, err = unmarshall_cs_action[v16.ChangeAvailabilityConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "ChangeConfiguration":
-		payload, err = cs_actions_marshaller[v16.ChangeConfigurationConf](rawPayload)
+		payload, err = unmarshall_cs_action[v16.ChangeConfigurationConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}						
@@ -222,3 +282,16 @@ func UnmarshalResPayload(mAction string, rawPayload json.RawMessage) (ResPayload
 }
 
 
+// Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
+func unmarshall_cs_action[T csAction](rawPayload *json.RawMessage) (*T, error){
+	var p *T
+	err := json.Unmarshal(*rawPayload, &p)
+	if err != nil {
+		return nil, err
+	}
+	err = validate.Struct(p)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
