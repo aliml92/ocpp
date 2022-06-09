@@ -22,19 +22,17 @@ var upgrader = websocket.Upgrader{
 var validate = v16.Validate
 var ChargePoints = make(map[string]*ChargePoint)
 
-type ReqPayload interface{}
-
-type ResPayload interface{}
 
 
+type Payload interface{}
 
 type ChargePoint struct {
 	Conn 			*websocket.Conn
 	Id 				string
 	Out 			chan *[]byte
 	In 				chan *[]byte
-	MessageHandlers map[string]func(ReqPayload) ResPayload
-	AfterHandlers   map[string]func(ReqPayload) 	
+	MessageHandlers map[string]func(*Payload) *Payload
+	AfterHandlers   map[string]func(*Payload) 	
 	Mu 				sync.Mutex
 	Cr              chan *CallResult
 	Ce              chan *CallError
@@ -71,7 +69,7 @@ func (cp *ChargePoint) Reader() {
 					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
-					cp.Out <- call.CreateCallResult(&responsePayload)
+					cp.Out <- call.CreateCallResult(responsePayload)
 					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
 						afterHandler(call.Payload)
 					}
@@ -118,19 +116,19 @@ func (cp *ChargePoint) Writer() {
 
 
 
-func (cp *ChargePoint) On(action string, f func(ReqPayload) ResPayload) *ChargePoint {
+func (cp *ChargePoint) On(action string, f func(*Payload) *Payload) *ChargePoint {
 	cp.MessageHandlers[action] = f
 	return cp
 }
 
 
-func (cp *ChargePoint) After(action string, f func(ReqPayload)) *ChargePoint {
+func (cp *ChargePoint) After(action string, f func(*Payload)) *ChargePoint {
 	cp.AfterHandlers[action] = f
 	return cp
 }
 
 
-func (cp *ChargePoint) Call(action string, p ReqPayload) (ResPayload, error) {
+func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	id := uuid.New().String()
 	// TODO: check if validation works as expected / CS -> 
 	call := [4]interface{}{
@@ -200,8 +198,8 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 		Id:     			id,
 		Out:    			make(chan *[]byte),
 		In:     			make(chan *[]byte),
-		MessageHandlers: 	make(map[string]func(ReqPayload) ResPayload),
-		AfterHandlers: 		make(map[string]func(ReqPayload)),
+		MessageHandlers: 	make(map[string]func(*Payload) *Payload),
+		AfterHandlers: 		make(map[string]func(*Payload)),
 		Cr: 				make(chan *CallResult, 1),
 		Ce: 				make(chan *CallError, 1),
 		Timeout: 			time.Second * 10,

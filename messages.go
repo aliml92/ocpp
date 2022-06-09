@@ -38,11 +38,11 @@ type Call struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
 	Action 			string
-	Payload 		interface{}
+	Payload 		*Payload
 }
 
 
-func (call *Call) CreateCallResult(r *ResPayload) ( *[]byte) {
+func (call *Call) CreateCallResult(r *Payload) ( *[]byte) {
 	out := [3]interface{}{
 		3, 
 		call.UniqueId,
@@ -134,7 +134,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 	var call *Call
 	var callResult *CallResult
 	var callError *CallError
-	var payload ReqPayload
+	var payload *Payload
 	var mType uint8
 	var mId string
 	err := json.Unmarshal(*b, &rm)
@@ -240,8 +240,8 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 
 // Unmarshalls Payload of a Call coming from CP 
-func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (ReqPayload, error) {
-	var payload ReqPayload
+func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+	var payload Payload
 	var err error
 	switch *mAction {
 	default:
@@ -272,7 +272,7 @@ func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *j
 			return nil, err
 		}	 	
 	}
-	return payload, nil
+	return &payload, nil
 }
 
 // Unmarshals Payload to a struct of type T, eg. BootNotificationReq
@@ -304,8 +304,8 @@ func unmarshall_cp_action[T cpAction](mId *string, rawPayload *json.RawMessage) 
 
 
 // Unmarshalls Payload of a CallResult coming from CP 
-func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (ResPayload, error) {
-	var payload ResPayload
+func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+	var payload Payload
 	var err error
 	switch *mAction {
 	default:
@@ -322,7 +322,7 @@ func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.Ra
 			return nil, err
 		}						
 	}
-	return payload, nil
+	return &payload, nil
 }
 
 
