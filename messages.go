@@ -55,12 +55,12 @@ func (call *Call) CreateCallResult(r *Payload) ( *[]byte) {
 
 
 
-func (call *Call) CreateCallError(err *error) ( *[]byte) {
+func (call *Call) CreateCallError(err error) ( *[]byte) {
 	var id string
 	var code string
 	var cause string
 	var ocppErr OCPPError
-	if errors.Is(*err, &ocppErr) {
+	if errors.As(err, ocppErr) {
 		id = ocppErr.id
 		code = ocppErr.code
 		cause = ocppErr.cause

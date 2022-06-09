@@ -57,7 +57,7 @@ func (cp *ChargePoint) Reader() {
 		p := &msg
 		call, callResult, callError, err := unpack(p)
 		if err != nil {
-			cp.Out <- call.CreateCallError(&err)
+			cp.Out <- call.CreateCallError(err)
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
@@ -80,7 +80,7 @@ func (cp *ChargePoint) Reader() {
 					code: "NotSupported",
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
-				cp.Out <- call.CreateCallError(&err)
+				cp.Out <- call.CreateCallError(err)
 				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
 			}
 		}
