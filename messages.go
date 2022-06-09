@@ -59,8 +59,8 @@ func (call *Call) CreateCallError(err error) ( *[]byte) {
 	var id string
 	var code string
 	var cause string
-	var ocppErr OCPPError
-	if errors.As(err, ocppErr) {
+	var ocppErr *OCPPError
+	if errors.As(err, &ocppErr) {
 		id = ocppErr.id
 		code = ocppErr.code
 		cause = ocppErr.cause
