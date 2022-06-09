@@ -64,7 +64,7 @@ func (cp *ChargePoint) Reader() {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
 				responsePayload := handler(call.Payload)
 				// TODO check if validation works as expected / CP <-
-				err = validate.Struct(responsePayload)
+				err = validate.Struct(*responsePayload)
 				if err != nil {
 					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)

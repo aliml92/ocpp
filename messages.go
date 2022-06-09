@@ -288,7 +288,7 @@ func unmarshall_cp_action[T cpAction](mId *string, rawPayload *json.RawMessage) 
 		log.Println(err)
 		return nil, e
 	}
-	err = validate.Struct(p)
+	err = validate.Struct(*p)
 	if err != nil {
 		e := &OCPPError{
 			id:    *mId,
@@ -333,7 +333,7 @@ func unmarshall_cs_action[T csAction](rawPayload *json.RawMessage) (*T, error){
 	if err != nil {
 		return nil, err
 	}
-	err = validate.Struct(p)
+	err = validate.Struct(*p)
 	if err != nil {
 		return nil, err
 	}
