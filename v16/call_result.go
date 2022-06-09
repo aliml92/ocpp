@@ -57,6 +57,9 @@ type StopTransactionConf struct {
 }
 
 
+type CancelReservationConf struct {
+	IdTagInfo 	  IdTagInfo 		`json:"idTagInfo" validate:"required,CancelReservationStatus"`
+}
 
 type ChangeAvailabilityConf struct {
 	Status 					string 			`json:"status" validate:"required,AvailabilityStatus"`
@@ -170,10 +173,10 @@ func init(){
 	Validate.RegisterValidation("ChargePointStatus", isValidChargePointStatus)
 	Validate.RegisterValidation("Reason", isValidReason)
 	Validate.RegisterValidation("DataTransferStatus", isValidDataTransferStatus)
-	Validate.RegisterValidation("AvailabilityType", isValidAvailabilityType)
+	Validate.RegisterValidation("AvailabilityType", isValidGenericStatus)
 	Validate.RegisterValidation("AvailabilityStatus", isValidAvailabilityStatus)
 	Validate.RegisterValidation("ConfigurationStatus", isValidConfigurationStatus)
-	Validate.RegisterValidation("ClearCacheStatus", isValidClearCacheStatus)
+	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatus)
 	Validate.RegisterValidation("ChargingProfilePurposeType", isValidChargingProfilePurposeType)
 	Validate.RegisterValidation("ChargingRateUnitType", isValidChargingRateUnitType)
 	Validate.RegisterValidation("ChargingProfileKindType", isValidChargingProfileKindType)
@@ -181,13 +184,14 @@ func init(){
 	Validate.RegisterValidation("ResetType", isValidResetType)
 	Validate.RegisterValidation("MessageTrigger", isValidMessageTrigger)
 	Validate.RegisterValidation("ClearChargingProfileStatus", isValidClearChargingProfileStatus)
-	Validate.RegisterValidation("RemoteStartStopStatus", isValidRemoteStartStopStatus)
+	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatus)
 	Validate.RegisterValidation("ReservationStatus", isValidReservationStatus)
-	Validate.RegisterValidation("ResetStatus", isValidResetStatus)
+	Validate.RegisterValidation("ResetStatus", isValidGenericStatus)
 	Validate.RegisterValidation("UpdateStatus", isValidUpdateStatus)
 	Validate.RegisterValidation("ChargingProfileStatus", isValidChargingProfileStatus)
 	Validate.RegisterValidation("TriggerMessageStatus", isValidTriggerMessageStatus)
 	Validate.RegisterValidation("UnlockStatus", isValidUnlockStatus)
+	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatus)
 }
 
 
@@ -423,18 +427,6 @@ func isValidDataTransferStatus(fl validator.FieldLevel) bool {
 }
 
 
-
-func isValidAvailabilityType(fl validator.FieldLevel) bool {
-	type_ := fl.Field().String()
-	switch type_ {
-	case "Accepted", "Rejected":
-		return true
-	default:	
-		return false
-	}
-
-}
-
 func isValidAvailabilityStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -458,15 +450,7 @@ func isValidConfigurationStatus(fl validator.FieldLevel) bool {
 }
 
 
-func isValidClearCacheStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:	
-		return false
-	}
-}
+
 
 
 func isValidChargingProfilePurposeType(fl validator.FieldLevel) bool {
@@ -547,15 +531,7 @@ func isValidMessageTrigger(fl validator.FieldLevel) bool {
 }
 
 
-func isValidRemoteStartStopStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:
-		return false
-	}
-}
+
 
 
 func isValidReservationStatus(fl validator.FieldLevel) bool {
@@ -569,15 +545,7 @@ func isValidReservationStatus(fl validator.FieldLevel) bool {
 }
 
 
-func isValidResetStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:
-		return false
-	}
-}
+
 
 
 func isValidUpdateStatus(fl validator.FieldLevel) bool {
@@ -622,6 +590,20 @@ func isValidUnlockStatus(fl validator.FieldLevel) bool {
 	}
 }
 
+
+
+
+func isValidGenericStatus(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+
 func contains(elems []string, v string) bool {
     for _, s := range elems {
         if v == s {
@@ -630,3 +612,4 @@ func contains(elems []string, v string) bool {
     }
     return false
 }
+

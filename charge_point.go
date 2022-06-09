@@ -53,8 +53,7 @@ func (cp *ChargePoint) Reader() {
 			}
 			break
 		}
-		p := &msg
-		call, callResult, callError, err := unpack(p)
+		call, callResult, callError, err := unpack(&msg)
 		if err != nil {
 			cp.Out <- call.CreateCallError(err)
 			log.Printf("[ERROR | MSG] %v", err)
