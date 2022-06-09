@@ -7,6 +7,7 @@ import (
 	"log"
 
 	v16 "github.com/aliml92/ocpp/v16"
+	"github.com/google/uuid"
 )
 
 
@@ -41,15 +42,58 @@ type Call struct {
 }
 
 
-func (call *Call) Marshal(id *string, r *ResPayload) ( *[]byte) {
+func (call *Call) CreateCallResult(r *ResPayload) ( *[]byte) {
 	out := [3]interface{}{
 		3, 
-		id,
+		call.UniqueId,
 		r,
 	}
 	raw, _ := json.Marshal(out)
 	return &raw
 }
+
+
+
+
+func (call *Call) CreateCallError(err *error) ( *[]byte) {
+	var id string
+	var code string
+	var cause string
+	var ocppErr OCPPError
+	if errors.Is(*err, &ocppErr) {
+		id = ocppErr.id
+		code = ocppErr.code
+		cause = ocppErr.cause
+	}
+	if id == "" {
+		id = uuid.New().String()
+	}
+	callError := &CallError{
+			UniqueId: id,
+			ErrorCode: code,
+			ErrorDescription: "",
+			ErrorDetails: cause,
+	}
+	switch code {
+	case "ProtocolError":
+		callError.ErrorDescription = "Payload for Action is incomplete"
+	case "PropertyConstraintViolation":
+		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"
+	case "NotImplemented":
+		callError.ErrorDescription = "Requested Action is not known by receiver"
+	case "TypeConstraintViolationError":
+		callError.ErrorDescription = "Payload for Action is syntactically correct but at least one of the fields violates data type constraints (e.g. “somestring”: 12)"		
+	case "PropertyConstraintViolationError":
+		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"	
+	default:
+		callError.ErrorDescription = "Unknown error"	
+	}
+	return callError.Marshal()
+}
+
+
+
+
 
 
 type CallResult struct {

@@ -31,8 +31,8 @@ type ResPayload interface{}
 type ChargePoint struct {
 	Conn 			*websocket.Conn
 	Id 				string
-	Out 			chan []byte
-	In 				chan []byte
+	Out 			chan *[]byte
+	In 				chan *[]byte
 	MessageHandlers map[string]func(ReqPayload) ResPayload
 	AfterHandlers   map[string]func(ReqPayload) 	
 	Mu 				sync.Mutex
@@ -59,7 +59,7 @@ func (cp *ChargePoint) Reader() {
 		p := &msg
 		call, callResult, callError, err := unpack(p)
 		if err != nil {
-			cp.SendCallError(err)
+			cp.Out <- call.CreateCallError(&err)
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
@@ -71,13 +71,18 @@ func (cp *ChargePoint) Reader() {
 					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
-					cp.Out <- *call.Marshal(&call.UniqueId, &responsePayload)
+					cp.Out <- call.CreateCallResult(&responsePayload)
 					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
 						afterHandler(call.Payload)
 					}
 				}
 			} else {
-				// TODO: send CallError with NotSupported error
+				var err error = &OCPPError{
+					id:    call.UniqueId,
+					code: "NotSupported",
+					cause: fmt.Sprintf("Action %s is not supported", call.Action),
+				}
+				cp.Out <- call.CreateCallError(&err)
 				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
 			}
 		}
@@ -105,47 +110,13 @@ func (cp *ChargePoint) Writer() {
 		if err != nil {
 			return
 		}
-		w.Write(message)
+		w.Write(*message)
 		w.Close()
 	}
 }
 
 
-func (cp *ChargePoint) SendCallError(err error) {
-	var id string
-	var code string
-	var cause string
-	var ocppErr OCPPError
-	if errors.Is(err, &ocppErr) {
-		id = ocppErr.id
-		code = ocppErr.code
-		cause = ocppErr.cause
-	}
-	if id == "" {
-		id = uuid.New().String()
-	}
-	callError := &CallError{
-			UniqueId: id,
-			ErrorCode: code,
-			ErrorDescription: "",
-			ErrorDetails: cause,
-	}
-	switch code {
-	case "ProtocolError":
-		callError.ErrorDescription = "Payload for Action is incomplete"
-	case "PropertyConstraintViolation":
-		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"
-	case "NotImplemented":
-		callError.ErrorDescription = "Requested Action is not known by receiver"
-	case "TypeConstraintViolationError":
-		callError.ErrorDescription = "Payload for Action is syntactically correct but at least one of the fields violates data type constraints (e.g. “somestring”: 12)"		
-	case "PropertyConstraintViolationError":
-		callError.ErrorDescription = "Payload is syntactically correct but at least one field contains an invalid value"	
-	default:
-		callError.ErrorDescription = "Unknown error"	
-	}
-	cp.Out <- *callError.Marshal()
-}
+
 
 func (cp *ChargePoint) On(action string, f func(ReqPayload) ResPayload) *ChargePoint {
 	cp.MessageHandlers[action] = f
@@ -172,7 +143,7 @@ func (cp *ChargePoint) Call(action string, p ReqPayload) (ResPayload, error) {
 	// use a lock to make sure we don't send two messages at the same time
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
-	cp.Out <- raw
+	cp.Out <- &raw
 	callResult, callError, err := cp.WaitForResponse(&id)
 	if callResult != nil {
 		resPayload, err := unmarshall_call_result_payload_from_cp(&action, callResult.Payload)
@@ -227,8 +198,8 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request) (*ChargePoint, error
 	cp := &ChargePoint{
 		Conn:   			conn,
 		Id:     			id,
-		Out:    			make(chan []byte),
-		In:     			make(chan []byte),
+		Out:    			make(chan *[]byte),
+		In:     			make(chan *[]byte),
 		MessageHandlers: 	make(map[string]func(ReqPayload) ResPayload),
 		AfterHandlers: 		make(map[string]func(ReqPayload)),
 		Cr: 				make(chan *CallResult, 1),
