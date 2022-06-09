@@ -173,10 +173,10 @@ func init(){
 	Validate.RegisterValidation("ChargePointStatus", isValidChargePointStatus)
 	Validate.RegisterValidation("Reason", isValidReason)
 	Validate.RegisterValidation("DataTransferStatus", isValidDataTransferStatus)
-	Validate.RegisterValidation("AvailabilityType", isValidGenericStatus)
+	Validate.RegisterValidation("AvailabilityType", isValidAvailabilityType)
 	Validate.RegisterValidation("AvailabilityStatus", isValidAvailabilityStatus)
 	Validate.RegisterValidation("ConfigurationStatus", isValidConfigurationStatus)
-	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatus)
+	Validate.RegisterValidation("ClearCacheStatus", isValidClearCacheStatus)
 	Validate.RegisterValidation("ChargingProfilePurposeType", isValidChargingProfilePurposeType)
 	Validate.RegisterValidation("ChargingRateUnitType", isValidChargingRateUnitType)
 	Validate.RegisterValidation("ChargingProfileKindType", isValidChargingProfileKindType)
@@ -184,14 +184,14 @@ func init(){
 	Validate.RegisterValidation("ResetType", isValidResetType)
 	Validate.RegisterValidation("MessageTrigger", isValidMessageTrigger)
 	Validate.RegisterValidation("ClearChargingProfileStatus", isValidClearChargingProfileStatus)
-	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatus)
+	Validate.RegisterValidation("RemoteStartStopStatus", isValidRemoteStartStopStatus)
 	Validate.RegisterValidation("ReservationStatus", isValidReservationStatus)
-	Validate.RegisterValidation("ResetStatus", isValidGenericStatus)
+	Validate.RegisterValidation("ResetStatus", isValidResetStatus)
 	Validate.RegisterValidation("UpdateStatus", isValidUpdateStatus)
 	Validate.RegisterValidation("ChargingProfileStatus", isValidChargingProfileStatus)
 	Validate.RegisterValidation("TriggerMessageStatus", isValidTriggerMessageStatus)
 	Validate.RegisterValidation("UnlockStatus", isValidUnlockStatus)
-	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatus)
+	Validate.RegisterValidation("CancelReservationStatus", isValidCancelReservationStatus)
 }
 
 
@@ -427,6 +427,18 @@ func isValidDataTransferStatus(fl validator.FieldLevel) bool {
 }
 
 
+
+func isValidAvailabilityType(fl validator.FieldLevel) bool {
+	type_ := fl.Field().String()
+	switch type_ {
+	case "Inoperative", "Operative":
+		return true
+	default:	
+		return false
+	}
+
+}
+
 func isValidAvailabilityStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -450,7 +462,15 @@ func isValidConfigurationStatus(fl validator.FieldLevel) bool {
 }
 
 
-
+func isValidClearCacheStatus(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected":
+		return true
+	default:	
+		return false
+	}
+}
 
 
 func isValidChargingProfilePurposeType(fl validator.FieldLevel) bool {
@@ -531,7 +551,15 @@ func isValidMessageTrigger(fl validator.FieldLevel) bool {
 }
 
 
-
+func isValidRemoteStartStopStatus(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
 
 
 func isValidReservationStatus(fl validator.FieldLevel) bool {
@@ -545,7 +573,15 @@ func isValidReservationStatus(fl validator.FieldLevel) bool {
 }
 
 
-
+func isValidResetStatus(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
 
 
 func isValidUpdateStatus(fl validator.FieldLevel) bool {
@@ -591,9 +627,7 @@ func isValidUnlockStatus(fl validator.FieldLevel) bool {
 }
 
 
-
-
-func isValidGenericStatus(fl validator.FieldLevel) bool {
+func isValidCancelReservationStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
 	case "Accepted", "Rejected":
@@ -602,6 +636,10 @@ func isValidGenericStatus(fl validator.FieldLevel) bool {
 		return false
 	}
 }
+
+
+
+
 
 
 func contains(elems []string, v string) bool {
