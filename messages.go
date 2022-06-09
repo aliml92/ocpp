@@ -190,7 +190,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			}
 			return nil, nil, nil, e
 		}
-		payload, err = unmarshall_call_payload_from_cp(&mId, &mAction, &rm[3])
+		payload, err = unmarshal_call_payload_from_cp(&mId, &mAction, &rm[3])
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -227,7 +227,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 
 // Unmarshalls Payload of a Call coming from CP 
-func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshal_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
 	switch *mAction {
@@ -239,52 +239,52 @@ func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *j
 		}
 		return nil, e
 	case "BootNotification":
-		payload, err = unmarshall_cp_action[v16.BootNotificationReq](mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.BootNotificationReq](mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}	
 	case "Authorize":
-		payload, err = unmarshall_cp_action[v16.AuthorizeReq](mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.AuthorizeReq](mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "DataTransfer":
-		payload, err = unmarshall_cp_action[v16.DataTransferReq](mId, rawPayload)
+		payload, err = unmarshal_cp_action[v16.DataTransferReq](mId, rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "DiagnosticsStatusNotification":
-		payload, err = unmarshall_cp_action[v16.DiagnosticsStatusNotificationReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.DiagnosticsStatusNotificationReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "FirmwareStatusNotification":
-		payload, err = unmarshall_cp_action[v16.FirmwareStatusNotificationReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.FirmwareStatusNotificationReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "Heartbeat":
-		payload, err = unmarshall_cp_action[v16.HeartbeatReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.HeartbeatReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "MeterValues":
-		payload, err = unmarshall_cp_action[v16.MeterValuesReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.MeterValuesReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "StartTransaction":
-		payload, err = unmarshall_cp_action[v16.StartTransactionReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.StartTransactionReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "StatusNotification":
-		payload, err = unmarshall_cp_action[v16.StatusNotificationReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.StatusNotificationReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "StopTransaction":
-		payload, err = unmarshall_cp_action[v16.StopTransactionReq]( mId,rawPayload)
+		payload, err = unmarshal_cp_action[v16.StopTransactionReq]( mId,rawPayload)
 		if err != nil {
 			return nil, err
 		}							 	
@@ -293,7 +293,7 @@ func unmarshall_call_payload_from_cp(mId *string, mAction *string, rawPayload *j
 }
 
 // Unmarshals Payload to a struct of type T, eg. BootNotificationReq
-func unmarshall_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, error){
+func unmarshal_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
@@ -322,7 +322,7 @@ func unmarshall_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, 
 
 
 // Unmarshalls Payload of a CallResult coming from CP 
-func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshal_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
 	switch *mAction {
@@ -330,97 +330,97 @@ func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.Ra
 		err = errors.New("invalid action")
 		return nil, err
 	case "CancelReservation":
-		payload, err = unmarshall_cs_action[v16.CancelReservationConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.CancelReservationConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}	
 	case "ChangeAvailability":
-		payload, err = unmarshall_cs_action[v16.ChangeAvailabilityConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ChangeAvailabilityConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "ChangeConfiguration":
-		payload, err = unmarshall_cs_action[v16.ChangeConfigurationConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ChangeConfigurationConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "ClearCache":
-		payload, err = unmarshall_cs_action[v16.ClearCacheConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ClearCacheConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "ClearChargingProfile":
-		payload, err = unmarshall_cs_action[v16.ClearChargingProfileConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ClearChargingProfileConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "DataTransfer":
-		payload, err = unmarshall_cs_action[v16.DataTransferConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.DataTransferConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "GetCompositeSchedule":
-		payload, err = unmarshall_cs_action[v16.GetCompositeScheduleConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.GetCompositeScheduleConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "GetConfiguration":
-		payload, err = unmarshall_cs_action[v16.GetConfigurationConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.GetConfigurationConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "GetDiagnostics":
-		payload, err = unmarshall_cs_action[v16.GetDiagnosticsConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.GetDiagnosticsConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "GetLocalListVersion":
-		payload, err = unmarshall_cs_action[v16.GetLocalListVersionConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.GetLocalListVersionConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "RemoteStartTransaction":
-		payload, err = unmarshall_cs_action[v16.RemoteStartTransactionConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.RemoteStartTransactionConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "RemoteStopTransaction":
-		payload, err = unmarshall_cs_action[v16.RemoteStopTransactionConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.RemoteStopTransactionConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "ReserveNow":
-		payload, err = unmarshall_cs_action[v16.ReserveNowConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ReserveNowConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "Reset":
-		payload, err = unmarshall_cs_action[v16.ResetConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.ResetConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "SendLocalList":
-		payload, err = unmarshall_cs_action[v16.SendLocalListConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.SendLocalListConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "SetChargingProfile":
-		payload, err = unmarshall_cs_action[v16.SetChargingProfileConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.SetChargingProfileConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "TriggerMessage":
-		payload, err = unmarshall_cs_action[v16.TriggerMessageConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.TriggerMessageConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "UnlockConnector":
-		payload, err = unmarshall_cs_action[v16.UnlockConnectorConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.UnlockConnectorConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}
 	case "UpdateFirmware":
-		payload, err = unmarshall_cs_action[v16.UpdateFirmwareConf](rawPayload)
+		payload, err = unmarshal_cs_action[v16.UpdateFirmwareConf](rawPayload)
 		if err != nil {
 			return nil, err
 		}																				
@@ -429,8 +429,115 @@ func unmarshall_call_result_payload_from_cp(mAction *string, rawPayload *json.Ra
 }
 
 
+
+func UnmarshalCallPayloadFromThirdParty(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+	var payload Payload
+	var err error
+	switch *mAction {
+	default:
+		err = errors.New("invalid action")
+		return nil, err
+	case "CancelReservation":
+		payload, err = unmarshal_cs_action[v16.CancelReservationReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}	
+	case "ChangeAvailability":
+		payload, err = unmarshal_cs_action[v16.ChangeAvailabilityReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "ChangeConfiguration":
+		payload, err = unmarshal_cs_action[v16.ChangeConfigurationReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "ClearCache":
+		payload, err = unmarshal_cs_action[v16.ClearCacheReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "ClearChargingProfile":
+		payload, err = unmarshal_cs_action[v16.ClearChargingProfileReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "DataTransfer":
+		payload, err = unmarshal_cs_action[v16.DataTransferReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "GetCompositeSchedule":
+		payload, err = unmarshal_cs_action[v16.GetCompositeScheduleReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "GetConfiguration":
+		payload, err = unmarshal_cs_action[v16.GetConfigurationReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "GetDiagnostics":
+		payload, err = unmarshal_cs_action[v16.GetDiagnosticsReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "GetLocalListVersion":
+		payload, err = unmarshal_cs_action[v16.GetLocalListVersionReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "RemoteStartTransaction":
+		payload, err = unmarshal_cs_action[v16.RemoteStartTransactionReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "RemoteStopTransaction":
+		payload, err = unmarshal_cs_action[v16.RemoteStopTransactionReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "ReserveNow":
+		payload, err = unmarshal_cs_action[v16.ReserveNowReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "Reset":
+		payload, err = unmarshal_cs_action[v16.ResetReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "SendLocalList":
+		payload, err = unmarshal_cs_action[v16.SendLocalListReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "SetChargingProfile":
+		payload, err = unmarshal_cs_action[v16.SetChargingProfileReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "TriggerMessage":
+		payload, err = unmarshal_cs_action[v16.TriggerMessageReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "UnlockConnector":
+		payload, err = unmarshal_cs_action[v16.UnlockConnectorReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}
+	case "UpdateFirmware":
+		payload, err = unmarshal_cs_action[v16.UpdateFirmwareReq](rawPayload)
+		if err != nil {
+			return nil, err
+		}																				
+	}
+	return &payload, nil
+}
+
 // Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
-func unmarshall_cs_action[T any](rawPayload *json.RawMessage) (*T, error){
+func unmarshal_cs_action[T any](rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
