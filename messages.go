@@ -114,11 +114,11 @@ type CallError struct {
 func (ce *CallError) Marshal() *[]byte {
 	d := ce.ErrorDetails.(string)
 	out := [5]interface{}{
-		5, 
+		4, 
 		ce.UniqueId,
 		ce.ErrorCode,
 		ce.ErrorDescription,
-		`{"errorDetails":` + d + `}`,
+		`{"cause":` + d + `}`,
 	}
 	raw, _ := json.Marshal(out)
 	return &raw
