@@ -166,7 +166,7 @@ func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	cp.Out <- &raw
 	callResult, callError, err := cp.WaitForResponse(id)
 	if callResult != nil {
-		resPayload, err := unmarshal_csms_call_result_payload(action, callResult.Payload)
+		resPayload, err := unmarshalCSMSCallResultPayload(action, callResult.Payload)
 		// TODO just return the error
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
