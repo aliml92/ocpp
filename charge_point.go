@@ -17,29 +17,43 @@ import (
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"ocpp1.6"},
 }
-
 var validate = v16.Validate
+
+
+/* 
+map to store websocket connections,
+keys are the chargepoint ids and values are the chargepoint structs which
+contain the websocket connection   
+*/
 var ChargePoints = make(map[string]*ChargePoint)
 
 
-
+/* 
+Used as a container is for both Call and CallResult' Payload
+*/
 type Payload interface{}
 
+
+/* 
+Represents a connected ChargePoint (also known as a Charging Station)
+*/
 type ChargePoint struct {
-	Conn 			*websocket.Conn
-	Id 				string
-	Out 			chan *[]byte
-	In 				chan *[]byte
-	MessageHandlers map[string]func(*Payload) *Payload
-	AfterHandlers   map[string]func(*Payload) 	
-	Mu 				sync.Mutex
-	Cr              chan *CallResult
+	Conn 			*websocket.Conn   // the websocket connection
+	Id 				string            // chargePointId 
+	Out 			chan *[]byte      // channel to send messages to the ChargePoint 
+	In 				chan *[]byte      // channel to receive messages from the ChargePoint 
+	MessageHandlers map[string]func(*Payload) *Payload // map to store CP initiated actions
+	AfterHandlers   map[string]func(*Payload) 	// map to store functions to be called after a CP initiated action
+	Mu 				sync.Mutex        // mutex ensuring that only one message is sent at a time
+	Cr              chan *CallResult  
 	Ce              chan *CallError
-	Timeout 	    time.Duration 
+	Timeout 	    time.Duration     // timeout for waiting for a response
 }
 
 
-
+/* 
+Websocket reader to read messages from ChargePoint
+*/
 func (cp *ChargePoint) Reader() {
 	defer func() {
 		cp.Conn.Close()
@@ -94,7 +108,9 @@ func (cp *ChargePoint) Reader() {
 
 
 
-// 6. ChargePoint.Writer
+/* 
+Websocket writer to send messages to the ChargePoint
+*/
 func (cp *ChargePoint) Writer() {
 	for {
 		message, ok := <-cp.Out
@@ -113,19 +129,27 @@ func (cp *ChargePoint) Writer() {
 
 
 
-
+/* 
+A function to be used by the implementers to register CP initiated actions
+*/
 func (cp *ChargePoint) On(action string, f func(*Payload) *Payload) *ChargePoint {
 	cp.MessageHandlers[action] = f
 	return cp
 }
 
 
+/*
+A function to be used by the implementers to register functions to be called after a CP initiated action
+*/
 func (cp *ChargePoint) After(action string, f func(*Payload)) *ChargePoint {
 	cp.AfterHandlers[action] = f
 	return cp
 }
 
 
+/*
+A function to be used by the implementers to execute a CSMS initiated action
+*/
 func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	id := uuid.New().String()
 	// TODO: check if validation works as expected / CS -> 
@@ -142,7 +166,7 @@ func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	cp.Out <- &raw
 	callResult, callError, err := cp.WaitForResponse(&id)
 	if callResult != nil {
-		resPayload, err := unmarshal_call_result_payload_from_cp(&action, callResult.Payload)
+		resPayload, err := unmarshal_csms_call_result_payload(&action, callResult.Payload)
 		// TODO just return the error
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
@@ -157,6 +181,10 @@ func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	return nil, err
 }
 
+
+/*
+Waites for a response to a certain Call 
+*/
 func (cp *ChargePoint) WaitForResponse(uniqueId *string) (*CallResult, *CallError, error) {
 	wait_until := time.Now().Add(cp.Timeout)
 	for {
@@ -182,7 +210,9 @@ func (cp *ChargePoint) WaitForResponse(uniqueId *string) (*CallResult, *CallErro
 
 
 
-
+/*
+Creates a new ChargePoint 
+*/
 func NewChargePoint(w http.ResponseWriter, r *http.Request, id string) (*ChargePoint, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -202,7 +232,7 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request, id string) (*ChargeP
 	}
 	go cp.Reader()
 	go cp.Writer()
-	// add chargepoint to list of chargepoints
+	// add the ChargePoint to the list of ChargePoints
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	ChargePoints[cp.Id] = cp

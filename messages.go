@@ -98,6 +98,7 @@ type CallError struct {
 	ErrorDetails 		interface{}
 }
 
+
 func (ce *CallError) Marshal() *[]byte {
 	d := ce.ErrorDetails.(string)
 	out := [5]interface{}{
@@ -112,10 +113,9 @@ func (ce *CallError) Marshal() *[]byte {
 }
 
 
-
-// This function converts raw byte to one of the ocpp messages
-// There is only one exception where CallResult's payload is returned as json.RawMessage
-// because in this function we don't know the type of the payload for CallResult
+/*
+Converts raw byte to one of the ocpp messages or an error if the message is not valid
+*/
 func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 	var rm []json.RawMessage
 	var call *Call
@@ -190,7 +190,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			}
 			return nil, nil, nil, e
 		}
-		payload, err = unmarshal_call_payload_from_cp(&mId, &mAction, &rm[3])
+		payload, err = unmarshal_cp_call_payload(&mId, &mAction, &rm[3])
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -226,8 +226,10 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 }
 
 
-// Unmarshalls Payload of a Call coming from CP 
-func unmarshal_call_payload_from_cp(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+/*
+Converts raw CP initiated Call Payload to a corresponding Payload struct
+*/ 
+func unmarshal_cp_call_payload(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
 	switch *mAction {
@@ -292,7 +294,9 @@ func unmarshal_call_payload_from_cp(mId *string, mAction *string, rawPayload *js
 	return &payload, nil
 }
 
-// Unmarshals Payload to a struct of type T, eg. BootNotificationReq
+/*
+Unmarshals Payload to a struct of type T, eg. BootNotificationReq
+*/
 func unmarshal_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
@@ -321,8 +325,12 @@ func unmarshal_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, e
 
 
 
-// Unmarshalls Payload of a CallResult coming from CP 
-func unmarshal_call_result_payload_from_cp(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+/*
+Converts raw CallResult Payload (response to CSMS initiated action) to a corresponding Payload struct
+Flow: CP     <--(Call)--    CSMS 
+      CP  --(CallResult)--> CSMS
+*/ 
+func unmarshal_csms_call_result_payload(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
 	switch *mAction {
@@ -429,7 +437,11 @@ func unmarshal_call_result_payload_from_cp(mAction *string, rawPayload *json.Raw
 }
 
 
-
+/*
+Converts raw Call Payload (CSMS initiated action) to a corresponding Payload struct
+Flow:                       CSMS     <--(Call*)--   ThirdParty      // Call* represents CSMS initiated action, can be delivered via various means 
+      CP     <--(Call)--    CSMS                                    // Eg. via HTTP, MQTT, Websocket, etc.
+*/ 
 func UnmarshalCallPayloadFromThirdParty(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
@@ -536,7 +548,9 @@ func UnmarshalCallPayloadFromThirdParty(mAction *string, rawPayload *json.RawMes
 	return &payload, nil
 }
 
-// Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
+/*
+Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
+*/
 func unmarshal_cs_action[T any](rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
