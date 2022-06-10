@@ -190,7 +190,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			}
 			return nil, nil, nil, e
 		}
-		payload, err = unmarshal_cp_call_payload(&mId, &mAction, &rm[3])
+		payload, err = unmarshal_cp_call_payload(mId, mAction, &rm[3])
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -229,15 +229,15 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 /*
 Converts raw CP initiated Call Payload to a corresponding Payload struct
 */ 
-func unmarshal_cp_call_payload(mId *string, mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshal_cp_call_payload(mId string, mAction string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
-	switch *mAction {
+	switch mAction {
 	default:
 		e := &OCPPError{
-			id:    *mId,
+			id:    mId,
 			code: "NotImplemented",
-			cause: fmt.Sprintf("Action %v is not implemented", *mAction),
+			cause: fmt.Sprintf("Action %v is not implemented", mAction),
 		}
 		return nil, e
 	case "BootNotification":
@@ -297,12 +297,12 @@ func unmarshal_cp_call_payload(mId *string, mAction *string, rawPayload *json.Ra
 /*
 Unmarshals Payload to a struct of type T, eg. BootNotificationReq
 */
-func unmarshal_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, error){
+func unmarshal_cp_action[T any](mId string, rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
 		e := &OCPPError{
-			id:    *mId,
+			id:    mId,
 			code: "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
@@ -313,7 +313,7 @@ func unmarshal_cp_action[T any](mId *string, rawPayload *json.RawMessage) (*T, e
 	if err != nil {
 		// TODO: construct more detailed error
 		e := &OCPPError{
-			id:    *mId,
+			id:    mId,
 			code: "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
@@ -330,10 +330,10 @@ Converts raw CallResult Payload (response to CSMS initiated action) to a corresp
 Flow: CP     <--(Call)--    CSMS 
       CP  --(CallResult)--> CSMS
 */ 
-func unmarshal_csms_call_result_payload(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshal_csms_call_result_payload(mAction string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
-	switch *mAction {
+	switch mAction {
 	default:
 		err = errors.New("invalid action")
 		return nil, err
@@ -442,10 +442,10 @@ Converts raw Call Payload (CSMS initiated action) to a corresponding Payload str
 Flow:                       CSMS     <--(Call*)--   ThirdParty      // Call* represents CSMS initiated action, can be delivered via various means 
       CP     <--(Call)--    CSMS                                    // Eg. via HTTP, MQTT, Websocket, etc.
 */ 
-func UnmarshalCallPayloadFromThirdParty(mAction *string, rawPayload *json.RawMessage) (*Payload, error) {
+func UnmarshalCallPayloadFromThirdParty(mAction string, rawPayload *json.RawMessage) (*Payload, error) {
 	var payload Payload
 	var err error
-	switch *mAction {
+	switch mAction {
 	default:
 		err = errors.New("invalid action")
 		return nil, err

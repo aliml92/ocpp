@@ -164,9 +164,9 @@ func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	cp.Out <- &raw
-	callResult, callError, err := cp.WaitForResponse(&id)
+	callResult, callError, err := cp.WaitForResponse(id)
 	if callResult != nil {
-		resPayload, err := unmarshal_csms_call_result_payload(&action, callResult.Payload)
+		resPayload, err := unmarshal_csms_call_result_payload(action, callResult.Payload)
 		// TODO just return the error
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
@@ -185,19 +185,19 @@ func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
 /*
 Waites for a response to a certain Call 
 */
-func (cp *ChargePoint) WaitForResponse(uniqueId *string) (*CallResult, *CallError, error) {
+func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError, error) {
 	wait_until := time.Now().Add(cp.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
 			fmt.Println("Received CallResult: ", r1)
-			if r1.UniqueId == *uniqueId {
+			if r1.UniqueId == uniqueId {
 				fmt.Println("CallResult matches UniqueId")
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
 			fmt.Println("Received CallError: ", r2)
-			if r2.UniqueId == *uniqueId {
+			if r2.UniqueId == uniqueId {
 				fmt.Println("CallError matches UniqueId")
 				return nil, r2, nil
 			}	
