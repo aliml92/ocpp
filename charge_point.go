@@ -74,7 +74,11 @@ func (cp *ChargePoint) Reader() {
 		}
 		if call != nil {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
+				println(call.Payload)
+				println("charge_point.go: 77")
 				responsePayload := handler(call.Payload)
+				println(responsePayload)
+				println("charge_point.go: 80")
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(*responsePayload)
 				if err != nil {

@@ -191,6 +191,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			return nil, nil, nil, e
 		}
 		p, err = unmarshalCPCallPayload(ui, a, &rm[3])
+		println(p)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -295,6 +296,10 @@ func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMess
 			return nil, err
 		}							 	
 	}
+	println(payload)
+	println("messages.go: 299")
+	println(&payload)
+	println("messages.go: 301")
 	return &payload, nil
 }
 
@@ -324,6 +329,8 @@ func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, erro
 		log.Println(err)
 		return nil, e
 	}
+	println(p)
+	println("messages.go: 332")
 	return p, nil
 }
 
