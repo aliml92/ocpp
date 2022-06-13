@@ -145,6 +145,15 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 		}	
 		return nil, nil, nil, e
 	}
+	err = json.Unmarshal(rm[1], &ui)
+	if err != nil {
+		e := &OCPPError{
+			id:    ui,
+			code: "ProtocolError",
+			cause: "Message does not contain UniqueId",
+		}	
+		return nil, nil, nil, e
+	}
 	if 3 > len(rm) || len(rm) > 5 {
 		e := &OCPPError{
 			id:    ui,
@@ -169,15 +178,6 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			code: "ProtocolError",
 			cause: "Message does not contain MessageTypeId",
 		}
-		return nil, nil, nil, e
-	}
-	err = json.Unmarshal(rm[1], &ui)
-	if err != nil {
-		e := &OCPPError{
-			id:    ui,
-			code: "ProtocolError",
-			cause: "Message does not contain UniqueId",
-		}	
 		return nil, nil, nil, e
 	}
 	if mti == 2 {
