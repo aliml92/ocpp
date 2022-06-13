@@ -235,7 +235,10 @@ func NewChargePoint(w http.ResponseWriter, r *http.Request, id string) (*ChargeP
 	// add the ChargePoint to the list of ChargePoints
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
-	ChargePoints[cp.Id] = cp
+	// add if not already there
+	if _, ok := ChargePoints[cp.Id]; !ok {
+		ChargePoints[cp.Id] = cp
+	}
 	return cp, nil
 }
 
