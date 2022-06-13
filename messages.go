@@ -325,7 +325,7 @@ Converts raw CallResult Payload (response to CSMS initiated action) to a corresp
 Flow: CP     <--(Call)--    CSMS 
       CP  --(CallResult)--> CSMS
 */ 
-func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
 	switch mAction {
@@ -428,7 +428,7 @@ func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage)
 			return nil, err
 		}																				
 	}
-	return &payload, nil
+	return payload, nil
 }
 
 
@@ -437,7 +437,7 @@ Converts raw Call Payload (CSMS initiated action) to a corresponding Payload str
 Flow:                       CSMS     <--(Call*)--   ThirdParty      // Call* represents CSMS initiated action, can be delivered via various means 
       CP     <--(Call)--    CSMS                                    // Eg. via HTTP, MQTT, Websocket, etc.
 */ 
-func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (*Payload, error) {
+func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
 	switch mAction {
@@ -540,7 +540,7 @@ func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (*Pay
 			return nil, err
 		}																				
 	}
-	return &payload, nil
+	return payload, nil
 }
 
 /*

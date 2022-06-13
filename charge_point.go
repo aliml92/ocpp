@@ -74,11 +74,7 @@ func (cp *ChargePoint) Reader() {
 		}
 		if call != nil {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
-				println(call.Payload)
-				println("charge_point.go: 77")
 				responsePayload := handler(call.Payload)
-				println(responsePayload)
-				println("charge_point.go: 80")
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
@@ -154,7 +150,7 @@ func (cp *ChargePoint) After(action string, f func(Payload)) *ChargePoint {
 /*
 A function to be used by the implementers to execute a CSMS initiated action
 */
-func (cp *ChargePoint) Call(action string, p *Payload) (*Payload, error) {
+func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	id := uuid.New().String()
 	// TODO: check if validation works as expected / CS -> 
 	call := [4]interface{}{
