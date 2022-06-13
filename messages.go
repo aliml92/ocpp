@@ -135,16 +135,6 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 		log.Println(err)  
 		return nil, nil, nil, e
 	}
-	
-	err = json.Unmarshal(rm[1], &mti)
-	if err != nil {
-		e := &OCPPError{
-			id:    		"",
-			code:		"ProtocolError",
-			cause:		"Message does not contain UniqueId",
-		}	
-		return nil, nil, nil, e
-	}
 	err = json.Unmarshal(rm[1], &ui)
 	if err != nil {
 		e := &OCPPError{
