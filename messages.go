@@ -28,11 +28,11 @@ type Call struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
 	Action 			string
-	Payload 		*Payload
+	Payload 		Payload
 }
 
 
-func (call *Call) CreateCallResult(r *Payload) ( *[]byte) {
+func (call *Call) CreateCallResult(r Payload) ( *[]byte) {
 	out := [3]interface{}{
 		3, 
 		call.UniqueId,
@@ -121,7 +121,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 	var mti uint8		//  MessageTypeId
 	var ui string		//  UniqueId
 	var a string 		//  Action
-	var p *Payload		//  Payload
+	var p Payload		//  Payload
 	var c *Call         
 	var cr *CallResult
 	var ce *CallError
@@ -224,7 +224,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 /*
 Converts raw CP initiated Call Payload to a corresponding Payload struct
 */ 
-func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMessage) (*Payload, error) {
+func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
 	switch mAction {
@@ -286,11 +286,7 @@ func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMess
 			return nil, err
 		}							 	
 	}
-	println(payload)
-	println("messages.go: 299")
-	println(&payload)
-	println("messages.go: 301")
-	return &payload, nil
+	return payload, nil
 }
 
 /*
@@ -319,8 +315,6 @@ func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, erro
 		log.Println(err)
 		return nil, e
 	}
-	println(p)
-	println("messages.go: 332")
 	return p, nil
 }
 
