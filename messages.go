@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	v16 "github.com/aliml92/ocpp/v16"
+	"github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
 )
 
@@ -41,7 +41,6 @@ func (call *Call) CreateCallResult(r Payload) ( *[]byte) {
 	raw, _ := json.Marshal(out)
 	return &raw
 }
-
 
 
 
@@ -112,6 +111,19 @@ func (ce *CallError) Marshal() *[]byte {
 	return &raw
 }
 
+func (ce *CallError) Error() string {
+	return fmt.Sprintf("CallError: UniqueId=%s, ErrorCode=%s, ErrorDescription=%s, ErrorDetails=%s", 
+									ce.UniqueId, ce.ErrorCode, ce.ErrorDescription, ce.ErrorDetails)
+}
+
+type TimeoutError struct {
+	Message 	string 
+}
+
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("TimeoutError: %s", e.Message)
+}
 
 
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid

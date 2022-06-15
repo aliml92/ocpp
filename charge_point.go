@@ -2,7 +2,6 @@ package ocpp
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -150,6 +149,10 @@ func (cp *ChargePoint) After(action string, f func(Payload)) *ChargePoint {
 /*
 A function to be used by the implementers to execute a CSMS initiated action
 */
+// TODO: return three types of errors: 
+// 1. error when the cp is nil, means cp disconnected
+// 2. error when csms recieves a CallError; actually this is not an error, but from csms' perspective it is
+// 3. error when timeout occurs
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	id := uuid.New().String()
 	// TODO: check if validation works as expected / CS -> 
@@ -175,9 +178,9 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 		return resPayload, nil
 	}
 	if callError != nil {
-		return nil, errors.New("CallError")
+		return nil, callError
 	}
-	// TODO return timeout error
+	// returns timeout error
 	return nil, err
 }
 
@@ -190,20 +193,17 @@ func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError
 	for {
 		select {
 		case r1 := <-cp.Cr:
-			fmt.Println("Received CallResult: ", r1)
 			if r1.UniqueId == uniqueId {
-				fmt.Println("CallResult matches UniqueId")
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
-			fmt.Println("Received CallError: ", r2)
 			if r2.UniqueId == uniqueId {
-				fmt.Println("CallError matches UniqueId")
 				return nil, r2, nil
 			}	
 		case <-time.After(time.Until(wait_until)):
-			fmt.Println("Timed out")
-			return nil,nil, fmt.Errorf("timed out waiting for response")
+			return nil,nil, &TimeoutError{
+				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.Timeout, uniqueId),
+			}
 		}
 	}
 }
