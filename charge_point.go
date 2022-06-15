@@ -154,6 +154,11 @@ A function to be used by the implementers to execute a CSMS initiated action
 // 2. error when csms recieves a CallError; actually this is not an error, but from csms' perspective it is
 // 3. error when timeout occurs
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
+	if cp == nil {
+		return nil, &DisconnectedError{
+			Message: "charge point is disconnected",
+		}
+	}
 	id := uuid.New().String()
 	// TODO: check if validation works as expected / CS -> 
 	call := [4]interface{}{

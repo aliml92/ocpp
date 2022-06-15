@@ -126,6 +126,15 @@ func (e *TimeoutError) Error() string {
 }
 
 
+
+type DisconnectedError struct {
+	Message string
+}
+
+func (e *DisconnectedError) Error() string {
+	return fmt.Sprintf("DisconnectedError: %s", e.Message)
+}
+
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}] 
 func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
