@@ -12,6 +12,8 @@ import (
 
 
 
+// intented to be used as a generic error container
+// internal use only
 type OCPPError struct {
 	id 		   string
 	code 	   string
@@ -23,7 +25,7 @@ func (e *OCPPError) Error() string {
 	return e.code + ": " + e.cause
 }
 
-
+// Represents OCPP Call
 type Call struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
@@ -31,7 +33,7 @@ type Call struct {
 	Payload 		Payload
 }
 
-
+// Create CallResult from a received Call
 func (call *Call) CreateCallResult(r Payload) ( *[]byte) {
 	out := [3]interface{}{
 		3, 
@@ -43,7 +45,8 @@ func (call *Call) CreateCallResult(r Payload) ( *[]byte) {
 }
 
 
-
+// Creates a CallError from a received Call
+// TODO: organize error codes
 func (call *Call) CreateCallError(err error) ( *[]byte) {
 	var id string
 	var code string
@@ -81,7 +84,7 @@ func (call *Call) CreateCallError(err error) ( *[]byte) {
 }
 
 
-
+// Represents OCPP CallResult
 type CallResult struct {
 	MessageTypeId 	uint8
 	UniqueId 		string
@@ -89,6 +92,7 @@ type CallResult struct {
 
 }
 
+// Represents OCPP CallError
 type CallError struct {
 	MessageTypeId 		uint8
 	UniqueId 			string
@@ -111,10 +115,12 @@ func (ce *CallError) Marshal() *[]byte {
 	return &raw
 }
 
+
 func (ce *CallError) Error() string {
 	return fmt.Sprintf("CallError: UniqueId=%s, ErrorCode=%s, ErrorDescription=%s, ErrorDetails=%s", 
 									ce.UniqueId, ce.ErrorCode, ce.ErrorDescription, ce.ErrorDetails)
 }
+
 
 type TimeoutError struct {
 	Message 	string 
@@ -125,11 +131,10 @@ func (e *TimeoutError) Error() string {
 	return fmt.Sprintf("TimeoutError: %s", e.Message)
 }
 
-
-
 type DisconnectedError struct {
 	Message string
 }
+
 
 func (e *DisconnectedError) Error() string {
 	return fmt.Sprintf("DisconnectedError: %s", e.Message)
@@ -238,13 +243,11 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 }
 
 
-// TODO: can be used for charge point implementation
-// func unmarshalCPCallResultPayload
 
 
-/*
-Converts raw CP initiated Call Payload to a corresponding Payload struct
-*/ 
+
+
+// Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
@@ -310,9 +313,8 @@ func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMess
 	return payload, nil
 }
 
-/*
-Unmarshals Payload to a struct of type T, eg. BootNotificationReq
-*/
+
+// Unmarshals Payload to a struct of type T, eg. BootNotificationReq
 func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
@@ -341,11 +343,8 @@ func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, erro
 
 
 
-/*
-Converts raw CallResult Payload (response to CSMS initiated action) to a corresponding Payload struct
-Flow: CP     <--(Call)--    CSMS 
-      CP  --(CallResult)--> CSMS
-*/ 
+
+// Converts raw CallResult Payload (response to CSMS initiated action) to a corresponding Payload struct
 func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
@@ -453,11 +452,8 @@ func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage)
 }
 
 
-/*
-Converts raw Call Payload (CSMS initiated action) to a corresponding Payload struct
-Flow:                       CSMS     <--(Call*)--   ThirdParty      // Call* represents CSMS initiated action, can be delivered via various means 
-      CP     <--(Call)--    CSMS                                    // Eg. via HTTP, MQTT, Websocket, etc.
-*/ 
+
+// Converts raw Call Payload (CSMS initiated action) to a corresponding Payload struct
 func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	var payload Payload
 	var err error
@@ -564,9 +560,8 @@ func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (Payl
 	return payload, nil
 }
 
-/*
-Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
-*/
+
+// Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
 func unmarshalCSMSAction[T any](rawPayload *json.RawMessage) (*T, error){
 	var p *T
 	err := json.Unmarshal(*rawPayload, &p)
