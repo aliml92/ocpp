@@ -173,8 +173,4 @@ Code snippets are in `examples/` folder.
 
 Contributions are always welcome!
 
-See `contributing.md` for ways to get started.
-
-Please adhere to this project's `code of conduct`.
-
-
+See `CONTRIBUTING.md` for ways to get started.
