@@ -97,7 +97,7 @@ func BootNotificationHandler(p ocpp.Payload) ocpp.Payload {
 }
 ```
 `ChargePoint` represents a single Charge Point (CP) connected to Central System
-and after it is created, register CP initiated call handlers using `cp.On` method
+and after it is created, register CP initiated call handlers using `cp.On` method.
 Making Central System initiated call can be created using `cp.Call` method.
 To make a Call to multiple charge points concurrently refer to `examples/` folder.
 
@@ -172,6 +172,6 @@ Making a call to CS is same as the above snippet where just call `cp.Call` metho
 ## Contributing
 
 Contributions are always welcome!
-Implementing higher versions of ocpp is highly appreciated
+Implementing higher versions of ocpp is highly appreciated!
 
 See `CONTRIBUTING.md` for ways to get started.
