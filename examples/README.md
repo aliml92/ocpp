@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 
 =======
 Simple example of sending a Call to multiple Charge Points
