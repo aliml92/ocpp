@@ -131,14 +131,7 @@ func (e *TimeoutError) Error() string {
 	return fmt.Sprintf("TimeoutError: %s", e.Message)
 }
 
-type DisconnectedError struct {
-	Message string
-}
 
-
-func (e *DisconnectedError) Error() string {
-	return fmt.Sprintf("DisconnectedError: %s", e.Message)
-}
 
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}] 
@@ -206,9 +199,13 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			}
 			return nil, nil, nil, e
 		}
-		p, err = unmarshalCPCallPayload(ui, a, &rm[3])
+		p, err = unmarshalReq(a, &rm[3])
 		println(p)
+		var ocppErr *OCPPError
 		if err != nil {
+			if errors.As(err, &ocppErr) {
+				ocppErr.id = ui
+			}
 			return nil, nil, nil, err
 		}
 		c = &Call{
@@ -244,83 +241,61 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 
 
+var reqmap = map[string]func(*json.RawMessage) (Payload, error){
+	"BootNotification": 			ureq[v16.BootNotificationReq],
+	"Authorize":        			ureq[v16.AuthorizeReq],
+	"DataTransfer":     		    ureq[v16.DataTransferReq],
+	"DiagnosticsStatusNotification":ureq[v16.DiagnosticsStatusNotificationReq],
+	"FirmwareStatusNotification": 	ureq[v16.FirmwareStatusNotificationReq],
+	"Heartbeat":					ureq[v16.HeartbeatReq],
+	"MeterValues":      			ureq[v16.MeterValuesReq],
+	"StartTransaction": 			ureq[v16.StartTransactionReq],
+	"StatusNotification": 			ureq[v16.StatusNotificationReq],
+	"StopTransaction":  			ureq[v16.StopTransactionReq],
+	"CanCelReservation": 			ureq[v16.CancelReservationReq],
+	"ChangeAvailability": 			ureq[v16.ChangeAvailabilityReq],
+	"ChangeConfiguration": 			ureq[v16.ChangeConfigurationReq],
+	"ClearCache": 					ureq[v16.ClearCacheReq],
+	"ClearChargingProfile": 		ureq[v16.ClearChargingProfileReq],
+	"GetCompositeSchedule": 		ureq[v16.GetCompositeScheduleReq],
+	"GetConfiguration": 			ureq[v16.GetConfigurationReq],
+	"GetDiagnostics": 				ureq[v16.GetDiagnosticsReq],
+	"GetLocalListVersion": 			ureq[v16.GetLocalListVersionReq],
+	"RemoteStartTransaction": 		ureq[v16.RemoteStartTransactionReq],
+	"RemoteStopTransaction": 		ureq[v16.RemoteStopTransactionReq],
+	"ReserveNow": 					ureq[v16.ReserveNowReq],
+	"Reset": 						ureq[v16.ResetReq],
+	"SendLocalList": 				ureq[v16.SendLocalListReq],
+	"SetChargingProfile": 			ureq[v16.SetChargingProfileReq],
+	"TriggerMessage": 				ureq[v16.TriggerMessageReq],
+	"UnlockConnector": 				ureq[v16.UnlockConnectorReq],
+	"UpdateFirmware": 				ureq[v16.UpdateFirmwareReq],
+
+}
 
 
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
-func unmarshalCPCallPayload(mId string, mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	var payload Payload
-	var err error
-	switch mAction {
-	default:
+func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+	a, ok := reqmap[mAction]
+	if !ok {
 		e := &OCPPError{
-			id:    mId,
 			code: "NotImplemented",
 			cause: fmt.Sprintf("Action %v is not implemented", mAction),
 		}
 		return nil, e
-	case "BootNotification":
-		payload, err = unmarshalCPAction[v16.BootNotificationReq](mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}	
-	case "Authorize":
-		payload, err = unmarshalCPAction[v16.AuthorizeReq](mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "DataTransfer":
-		payload, err = unmarshalCPAction[v16.DataTransferReq](mId, rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "DiagnosticsStatusNotification":
-		payload, err = unmarshalCPAction[v16.DiagnosticsStatusNotificationReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "FirmwareStatusNotification":
-		payload, err = unmarshalCPAction[v16.FirmwareStatusNotificationReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "Heartbeat":
-		payload, err = unmarshalCPAction[v16.HeartbeatReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "MeterValues":
-		payload, err = unmarshalCPAction[v16.MeterValuesReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "StartTransaction":
-		payload, err = unmarshalCPAction[v16.StartTransactionReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "StatusNotification":
-		payload, err = unmarshalCPAction[v16.StatusNotificationReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "StopTransaction":
-		payload, err = unmarshalCPAction[v16.StopTransactionReq]( mId,rawPayload)
-		if err != nil {
-			return nil, err
-		}							 	
 	}
-	return payload, nil
+	return a(rawPayload)
 }
 
 
 // Unmarshals Payload to a struct of type T, eg. BootNotificationReq
-func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, error){
+func ureq[T any](rawPayload *json.RawMessage) (Payload, error){
 	var p *T
+	var payload Payload
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
 		e := &OCPPError{
-			id:    mId,
 			code: "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
@@ -331,239 +306,64 @@ func unmarshalCPAction[T any](mId string, rawPayload *json.RawMessage) (*T, erro
 	if err != nil {
 		// TODO: construct more detailed error
 		e := &OCPPError{
-			id:    mId,
 			code: "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
 		log.Println(err)
 		return nil, e
 	}
-	return p, nil
-}
-
-
-
-
-// Converts raw CallResult Payload (response to CSMS initiated action) to a corresponding Payload struct
-func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	var payload Payload
-	var err error
-	switch mAction {
-	default:
-		err = errors.New("invalid action")
-		return nil, err
-	case "CancelReservation":
-		payload, err = unmarshalCSMSAction[v16.CancelReservationConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}	
-	case "ChangeAvailability":
-		payload, err = unmarshalCSMSAction[v16.ChangeAvailabilityConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ChangeConfiguration":
-		payload, err = unmarshalCSMSAction[v16.ChangeConfigurationConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ClearCache":
-		payload, err = unmarshalCSMSAction[v16.ClearCacheConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ClearChargingProfile":
-		payload, err = unmarshalCSMSAction[v16.ClearChargingProfileConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "DataTransfer":
-		payload, err = unmarshalCSMSAction[v16.DataTransferConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetCompositeSchedule":
-		payload, err = unmarshalCSMSAction[v16.GetCompositeScheduleConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetConfiguration":
-		payload, err = unmarshalCSMSAction[v16.GetConfigurationConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetDiagnostics":
-		payload, err = unmarshalCSMSAction[v16.GetDiagnosticsConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetLocalListVersion":
-		payload, err = unmarshalCSMSAction[v16.GetLocalListVersionConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "RemoteStartTransaction":
-		payload, err = unmarshalCSMSAction[v16.RemoteStartTransactionConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "RemoteStopTransaction":
-		payload, err = unmarshalCSMSAction[v16.RemoteStopTransactionConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ReserveNow":
-		payload, err = unmarshalCSMSAction[v16.ReserveNowConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "Reset":
-		payload, err = unmarshalCSMSAction[v16.ResetConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "SendLocalList":
-		payload, err = unmarshalCSMSAction[v16.SendLocalListConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "SetChargingProfile":
-		payload, err = unmarshalCSMSAction[v16.SetChargingProfileConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "TriggerMessage":
-		payload, err = unmarshalCSMSAction[v16.TriggerMessageConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "UnlockConnector":
-		payload, err = unmarshalCSMSAction[v16.UnlockConnectorConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "UpdateFirmware":
-		payload, err = unmarshalCSMSAction[v16.UpdateFirmwareConf](rawPayload)
-		if err != nil {
-			return nil, err
-		}																				
-	}
+	payload = p
 	return payload, nil
 }
 
+var confmap = map[string]func(*json.RawMessage) (Payload, error){
+	"BootNotification": 			uconf[v16.BootNotificationConf],
+	"Authorize":        			uconf[v16.AuthorizeConf],
+	"DataTransfer":     		    uconf[v16.DataTransferConf],
+	"DiagnosticsStatusNotification":uconf[v16.DiagnosticsStatusNotificationConf],
+	"FirmwareStatusNotification": 	uconf[v16.FirmwareStatusNotificationConf],
+	"Heartbeat":					uconf[v16.HeartbeatConf],
+	"MeterValues":      			uconf[v16.MeterValuesConf],
+	"StartTransaction": 			uconf[v16.StartTransactionConf],
+	"StatusNotification": 			uconf[v16.StatusNotificationConf],
+	"StopTransaction":  			uconf[v16.StopTransactionConf],
+	"CanCelReservation": 			uconf[v16.CancelReservationConf],
+	"ChangeAvailability": 			uconf[v16.ChangeAvailabilityConf],
+	"ChangeConfiguration": 			uconf[v16.ChangeConfigurationConf],
+	"ClearCache": 					uconf[v16.ClearCacheConf],
+	"ClearChargingProfile": 		uconf[v16.ClearChargingProfileConf],
+	"GetCompositeSchedule": 		uconf[v16.GetCompositeScheduleConf],
+	"GetConfiguration": 			uconf[v16.GetConfigurationConf],
+	"GetDiagnostics": 				uconf[v16.GetDiagnosticsConf],
+	"GetLocalListVersion": 			uconf[v16.GetLocalListVersionConf],
+	"RemoteStartTransaction": 		uconf[v16.RemoteStartTransactionConf],
+	"RemoteStopTransaction": 		uconf[v16.RemoteStopTransactionConf],
+	"ReserveNow": 					uconf[v16.ReserveNowConf],
+	"Reset": 						uconf[v16.ResetConf],
+	"SendLocalList": 				uconf[v16.SendLocalListConf],
+	"SetChargingProfile": 			uconf[v16.SetChargingProfileConf],
+	"TriggerMessage": 				uconf[v16.TriggerMessageConf],
+	"UnlockConnector": 				uconf[v16.UnlockConnectorConf],
+	"UpdateFirmware": 				uconf[v16.UpdateFirmwareConf],
 
-
-// Converts raw Call Payload (CSMS initiated action) to a corresponding Payload struct
-func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	var payload Payload
-	var err error
-	switch mAction {
-	default:
-		err = errors.New("invalid action")
-		return nil, err
-	case "CancelReservation":
-		payload, err = unmarshalCSMSAction[v16.CancelReservationReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}	
-	case "ChangeAvailability":
-		payload, err = unmarshalCSMSAction[v16.ChangeAvailabilityReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ChangeConfiguration":
-		payload, err = unmarshalCSMSAction[v16.ChangeConfigurationReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ClearCache":
-		payload, err = unmarshalCSMSAction[v16.ClearCacheReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ClearChargingProfile":
-		payload, err = unmarshalCSMSAction[v16.ClearChargingProfileReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "DataTransfer":
-		payload, err = unmarshalCSMSAction[v16.DataTransferReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetCompositeSchedule":
-		payload, err = unmarshalCSMSAction[v16.GetCompositeScheduleReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetConfiguration":
-		payload, err = unmarshalCSMSAction[v16.GetConfigurationReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetDiagnostics":
-		payload, err = unmarshalCSMSAction[v16.GetDiagnosticsReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "GetLocalListVersion":
-		payload, err = unmarshalCSMSAction[v16.GetLocalListVersionReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "RemoteStartTransaction":
-		payload, err = unmarshalCSMSAction[v16.RemoteStartTransactionReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "RemoteStopTransaction":
-		payload, err = unmarshalCSMSAction[v16.RemoteStopTransactionReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "ReserveNow":
-		payload, err = unmarshalCSMSAction[v16.ReserveNowReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "Reset":
-		payload, err = unmarshalCSMSAction[v16.ResetReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "SendLocalList":
-		payload, err = unmarshalCSMSAction[v16.SendLocalListReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "SetChargingProfile":
-		payload, err = unmarshalCSMSAction[v16.SetChargingProfileReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "TriggerMessage":
-		payload, err = unmarshalCSMSAction[v16.TriggerMessageReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "UnlockConnector":
-		payload, err = unmarshalCSMSAction[v16.UnlockConnectorReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}
-	case "UpdateFirmware":
-		payload, err = unmarshalCSMSAction[v16.UpdateFirmwareReq](rawPayload)
-		if err != nil {
-			return nil, err
-		}																				
-	}
-	return payload, nil
 }
 
 
-// Unmarshals Payload to a struct of type T, eg. ChangeAvailabilityConf
-func unmarshalCSMSAction[T any](rawPayload *json.RawMessage) (*T, error){
+func unmarshalConf(mAction string, rawPayload *json.RawMessage) (Payload, error)  {
+	a, ok := confmap[mAction]
+	if !ok {
+		err := errors.New("invalid action")
+		return nil, err
+	}
+	return a(rawPayload)
+}
+
+
+
+// Unmarshals Raw Payload to a struct of type T, eg. ChangeAvailabilityConf
+func uconf[T any](rawPayload *json.RawMessage) (Payload, error){
 	var p *T
+	var payload Payload
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
 		return nil, err
@@ -572,5 +372,226 @@ func unmarshalCSMSAction[T any](rawPayload *json.RawMessage) (*T, error){
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	payload = p
+	return payload, nil
 }
+
+// Converts raw CallResult Payload (response to CSMS initiated action) to a corresponding Payload struct
+// func unmarshalCSMSCallResultPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+// 	var payload Payload
+// 	var err error
+// 	switch mAction {
+// 	default:
+// 		err = errors.New("invalid action")
+// 		return nil, err
+// 	case "CancelReservation":
+// 		payload, err = unmarshalCSMSAction[v16.CancelReservationConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}	
+// 	case "ChangeAvailability":
+// 		payload, err = unmarshalCSMSAction[v16.ChangeAvailabilityConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ChangeConfiguration":
+// 		payload, err = unmarshalCSMSAction[v16.ChangeConfigurationConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ClearCache":
+// 		payload, err = unmarshalCSMSAction[v16.ClearCacheConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ClearChargingProfile":
+// 		payload, err = unmarshalCSMSAction[v16.ClearChargingProfileConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "DataTransfer":
+// 		payload, err = unmarshalCSMSAction[v16.DataTransferConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetCompositeSchedule":
+// 		payload, err = unmarshalCSMSAction[v16.GetCompositeScheduleConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetConfiguration":
+// 		payload, err = unmarshalCSMSAction[v16.GetConfigurationConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetDiagnostics":
+// 		payload, err = unmarshalCSMSAction[v16.GetDiagnosticsConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetLocalListVersion":
+// 		payload, err = unmarshalCSMSAction[v16.GetLocalListVersionConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "RemoteStartTransaction":
+// 		payload, err = unmarshalCSMSAction[v16.RemoteStartTransactionConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "RemoteStopTransaction":
+// 		payload, err = unmarshalCSMSAction[v16.RemoteStopTransactionConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ReserveNow":
+// 		payload, err = unmarshalCSMSAction[v16.ReserveNowConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "Reset":
+// 		payload, err = unmarshalCSMSAction[v16.ResetConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "SendLocalList":
+// 		payload, err = unmarshalCSMSAction[v16.SendLocalListConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "SetChargingProfile":
+// 		payload, err = unmarshalCSMSAction[v16.SetChargingProfileConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "TriggerMessage":
+// 		payload, err = unmarshalCSMSAction[v16.TriggerMessageConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "UnlockConnector":
+// 		payload, err = unmarshalCSMSAction[v16.UnlockConnectorConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "UpdateFirmware":
+// 		payload, err = unmarshalCSMSAction[v16.UpdateFirmwareConf](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}																				
+// 	}
+// 	return payload, nil
+// }
+
+
+
+// Converts raw Call Payload (CSMS initiated action) to a corresponding Payload struct
+// third party use
+// func UnmarshalCSMSCallPayload(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+// 	var payload Payload
+// 	var err error
+// 	switch mAction {
+// 	default:
+// 		err = errors.New("invalid action")
+// 		return nil, err
+// 	case "CancelReservation":
+// 		payload, err = unmarshalCSMSAction[v16.CancelReservationReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}	
+// 	case "ChangeAvailability":
+// 		payload, err = unmarshalCSMSAction[v16.ChangeAvailabilityReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ChangeConfiguration":
+// 		payload, err = unmarshalCSMSAction[v16.ChangeConfigurationReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ClearCache":
+// 		payload, err = unmarshalCSMSAction[v16.ClearCacheReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ClearChargingProfile":
+// 		payload, err = unmarshalCSMSAction[v16.ClearChargingProfileReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "DataTransfer":
+// 		payload, err = unmarshalCSMSAction[v16.DataTransferReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetCompositeSchedule":
+// 		payload, err = unmarshalCSMSAction[v16.GetCompositeScheduleReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetConfiguration":
+// 		payload, err = unmarshalCSMSAction[v16.GetConfigurationReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetDiagnostics":
+// 		payload, err = unmarshalCSMSAction[v16.GetDiagnosticsReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "GetLocalListVersion":
+// 		payload, err = unmarshalCSMSAction[v16.GetLocalListVersionReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "RemoteStartTransaction":
+// 		payload, err = unmarshalCSMSAction[v16.RemoteStartTransactionReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "RemoteStopTransaction":
+// 		payload, err = unmarshalCSMSAction[v16.RemoteStopTransactionReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "ReserveNow":
+// 		payload, err = unmarshalCSMSAction[v16.ReserveNowReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "Reset":
+// 		payload, err = unmarshalCSMSAction[v16.ResetReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "SendLocalList":
+// 		payload, err = unmarshalCSMSAction[v16.SendLocalListReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "SetChargingProfile":
+// 		payload, err = unmarshalCSMSAction[v16.SetChargingProfileReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "TriggerMessage":
+// 		payload, err = unmarshalCSMSAction[v16.TriggerMessageReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "UnlockConnector":
+// 		payload, err = unmarshalCSMSAction[v16.UnlockConnectorReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	case "UpdateFirmware":
+// 		payload, err = unmarshalCSMSAction[v16.UpdateFirmwareReq](rawPayload)
+// 		if err != nil {
+// 			return nil, err
+// 		}																				
+// 	}
+// 	return payload, nil
+// }
+
+
+

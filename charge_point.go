@@ -140,18 +140,8 @@ func (cp *ChargePoint) After(action string, f func(Payload)) *ChargePoint {
 
 
 // function to be used by the implementers to execute a CSMS initiated action
-// TODO: return three types of errors: 
-// 1. error when the cp is nil, means cp disconnected
-// 2. error when csms recieves a CallError; actually this is not an error, but from csms' perspective it is
-// 3. error when timeout occurs
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
-	if cp == nil {
-		return nil, &DisconnectedError{
-			Message: "charge point is disconnected",
-		}
-	}
 	id := uuid.New().String()
-	// TODO: check if validation works as expected / CS -> 
 	call := [4]interface{}{
 		2,
 		id,
@@ -159,14 +149,12 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 		p,
 	}
 	raw, _ := json.Marshal(call)
-	// use a lock to make sure we don't send two messages at the same time
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	cp.Out <- &raw
 	callResult, callError, err := cp.WaitForResponse(id)
 	if callResult != nil {
-		resPayload, err := unmarshalCSMSCallResultPayload(action, callResult.Payload)
-		// TODO just return the error
+		resPayload, err := unmarshalConf(action, callResult.Payload)
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
 			return nil, err
@@ -176,7 +164,6 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	if callError != nil {
 		return nil, callError
 	}
-	// returns timeout error
 	return nil, err
 }
 
