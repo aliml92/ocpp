@@ -15,7 +15,7 @@ var cp *ocpp.ChargePoint
 
 func main() {
 	
-	chargePointId := "12345"
+	chargePointId := "client_01"
 	url := fmt.Sprintf("ws://localhost:8080/ocpp/v16/%s", chargePointId)
 	header := http.Header{
 		"Sec-WebSocket-Protocol": []string{"ocpp1.6"},
