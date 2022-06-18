@@ -23,10 +23,10 @@ var cp *ocpp.ChargePoint
 
 
 func main(){
+	go callExample()
 	http.HandleFunc("/", wsHandler)
 	http.ListenAndServe("localhost:8080", nil)
 }
-
 
 
 
@@ -38,35 +38,27 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")	
 	if subProtocol== "" {
-		fmt.Println("Client hasn't requested any Subprotocol. Closing Connection")
+		fmt.Println("client hasn't requested any Subprotocol. Closing Connection")
 		c.Close()
 	}
 	if subProtocol != "ocpp1.6" {
-		fmt.Println("Client has requested an unsupported Subprotocol. Closing Connection")
+		fmt.Println("client has requested an unsupported Subprotocol. Closing Connection")
 		c.Close()
 	}
 	chargePointId := strings.Split(r.URL.Path, "/")[3]
-	log.Printf("chargePointId: %s", chargePointId)
-	
+
 	// create a ChargePoint
 	cp = ocpp.NewChargePoint(c, chargePointId)
+	registerHandlers()
 	
+}
 
-	// register handlers for CP initiated calls
+
+
+
+// register handlers for CP initiated calls
+func registerHandlers(){
 	cp.On("BootNotification", BootNotificationHandler)
-
-	// make CSMS initiated calls
-	var req ocpp.Payload = &v16.ChangeAvailabilityReq{
-		ConnectorId: 1,
-		Type: "Operative",
-	}
-	res, err := cp.Call("ChangeAvailability", req)
-	if err != nil {
-		fmt.Printf("error calling: %v", err)
-		return
-	}
-	fmt.Printf("ChangeAvailabilityRes: %v\n", res)
-
 }
 
 
@@ -81,3 +73,35 @@ func BootNotificationHandler(p ocpp.Payload) ocpp.Payload {
 	}
 	return res
 }
+
+
+// make a ChangeAvailability Call to all connected Charge Points
+func callExample(){
+	// sleep for a while to allow both charge points to be connected
+	time.Sleep(time.Second * 15)
+
+	var req ocpp.Payload = &v16.ChangeAvailabilityReq{
+		ConnectorId: 1,
+		Type: "Operative",
+	}
+	cps := ocpp.ChargePoints
+	fmt.Printf("number of connected charge points: %v\n", len(cps))
+
+	ch := make(chan ocpp.Payload, len(cps))
+	for _, cp := range cps {
+		cp := cp
+		go func() {
+			res, err := cp.Call("ChangeAvailability", req)
+			if err != nil {
+				fmt.Printf("error calling: %v", err)
+				return
+			}
+			ch <- res
+		}()
+	}
+	// get all results from channel
+	for c := range ch {
+		fmt.Printf("ChangeAvailabilityRes: %v\n", c)
+	}
+}
+

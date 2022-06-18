@@ -48,7 +48,7 @@ type ChargePoint struct {
 
 
 // Websocket reader to read messages from ChargePoint
-func (cp *ChargePoint) Reader() {
+func (cp *ChargePoint) reader() {
 	defer func() {
 		cp.Conn.Close()
 	}()
@@ -63,7 +63,7 @@ func (cp *ChargePoint) Reader() {
 		}
 		call, callResult, callError, err := unpack(&msg)
 		if err != nil {
-			cp.Out <- call.CreateCallError(err)
+			cp.Out <- call.createCallError(err)
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
@@ -75,7 +75,7 @@ func (cp *ChargePoint) Reader() {
 					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
-					cp.Out <- call.CreateCallResult(responsePayload)
+					cp.Out <- call.createCallResult(responsePayload)
 					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
 						afterHandler(call.Payload)
 					}
@@ -86,7 +86,7 @@ func (cp *ChargePoint) Reader() {
 					code: "NotSupported",
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
-				cp.Out <- call.CreateCallError(err)
+				cp.Out <- call.createCallError(err)
 				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
 			}
 		}
@@ -104,7 +104,7 @@ func (cp *ChargePoint) Reader() {
 
 
 // Websocket writer to send messages to the ChargePoint
-func (cp *ChargePoint) Writer() {
+func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
 		if !ok {
@@ -152,7 +152,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()
 	cp.Out <- &raw
-	callResult, callError, err := cp.WaitForResponse(id)
+	callResult, callError, err := cp.waitForResponse(id)
 	if callResult != nil {
 		resPayload, err := unmarshalConf(action, callResult.Payload)
 		if err != nil {
@@ -170,7 +170,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 
 
 // Waites for a response to a certain Call 
-func (cp *ChargePoint) WaitForResponse(uniqueId string) (*CallResult, *CallError, error) {
+func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
 	wait_until := time.Now().Add(cp.Timeout)
 	for {
 		select {
@@ -206,8 +206,8 @@ func NewChargePoint(conn *websocket.Conn, id string) *ChargePoint {
 		Ce: 				make(chan *CallError, 1),
 		Timeout: 			time.Second * 10,
 	}
-	go cp.Reader()
-	go cp.Writer()
+	go cp.reader()
+	go cp.writer()
 	// add the ChargePoint to the list of ChargePoints
 	cp.Mu.Lock()
 	defer cp.Mu.Unlock()

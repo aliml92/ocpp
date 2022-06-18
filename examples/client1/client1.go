@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/aliml92/ocpp"
 	"github.com/aliml92/ocpp/v16"
@@ -10,29 +11,30 @@ import (
 )
 
 
-var chargePoint *ocpp.ChargePoint
+var cp *ocpp.ChargePoint
 
 func main() {
 	
 	chargePointId := "12345"
 	url := fmt.Sprintf("ws://localhost:8080/ocpp/v16/%s", chargePointId)
-	
-
 	header := http.Header{
 		"Sec-WebSocket-Protocol": []string{"ocpp1.6"},
 	}
-
-	fmt.Printf("connecting to %s", url)
 
 	c, _, err := websocket.DefaultDialer.Dial(url, header)
 	if err != nil {
 		fmt.Printf("error dialing: %v", err)
 		return
 	}
-	fmt.Printf("connected to %s", url)
-	
 	defer c.Close()
-	chargePoint = ocpp.NewChargePoint(c, chargePointId)
+
+
+	// create a ChargePoint
+	cp = ocpp.NewChargePoint(c, chargePointId)
+
+
+	// register handlers for CS initiated calls
+	cp.On("ChangeAvailability", ChangeAvailabilityHandler)
 
 
 	// make a BootNotification Call to Central System
@@ -40,16 +42,17 @@ func main() {
 		ChargePointModel: "ModelX",
 		ChargePointVendor: "VendorX",
 	} 
-	res, err := chargePoint.Call("BootNotification", req)
+	res, err := cp.Call("BootNotification", req)
 	if err != nil {
 		fmt.Printf("error calling: %v", err)
 		return
 	}
 	fmt.Printf("BootNotificationRes: %v\n", res)
-
-
-	// register handlers for CSMS initiated calls
-	chargePoint.On("ChangeAvailability", ChangeAvailabilityHandler)
+	
+	// prevent main() from exiting
+	var wg sync.WaitGroup
+	wg.Add(1)
+	wg.Wait()
 }
 
 
