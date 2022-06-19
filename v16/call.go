@@ -182,3 +182,5 @@ type UpdateFirmwareReq struct {
 	RetryInterval 		int 				`json:"retryInterval,omitempty" validate:"gte=0"`
 }
 
+
+

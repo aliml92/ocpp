@@ -24,7 +24,6 @@ type SampledValue struct {
 }
 
 
-
 type ChargingProfile struct {
 	ChargingProfileId 	  	int     	   `json:"chargingProfileId" validate:"required,gte=0"`
 	TransactionId 		 	int     	   `json:"transactionId,omitempty"`
