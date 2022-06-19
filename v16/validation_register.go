@@ -11,6 +11,9 @@ import (
 
 var Validate = validator.New()
 
+
+
+// TODO: replace some validators with GenericStatusEnumType  
 func init(){
 
 	// register function to get tag name from json tags.
@@ -39,7 +42,7 @@ func init(){
 	Validate.RegisterValidation("AvailabilityType", isValidAvailabilityType)
 	Validate.RegisterValidation("AvailabilityStatus", isValidAvailabilityStatus)
 	Validate.RegisterValidation("ConfigurationStatus", isValidConfigurationStatus)
-	Validate.RegisterValidation("ClearCacheStatus", isValidClearCacheStatus)
+	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatusEnumType)            // generic status enum type
 	Validate.RegisterValidation("ChargingProfilePurposeType", isValidChargingProfilePurposeType)
 	Validate.RegisterValidation("ChargingRateUnitType", isValidChargingRateUnitType)
 	Validate.RegisterValidation("ChargingProfileKindType", isValidChargingProfileKindType)
@@ -47,14 +50,30 @@ func init(){
 	Validate.RegisterValidation("ResetType", isValidResetType)
 	Validate.RegisterValidation("MessageTrigger", isValidMessageTrigger)
 	Validate.RegisterValidation("ClearChargingProfileStatus", isValidClearChargingProfileStatus)
-	Validate.RegisterValidation("RemoteStartStopStatus", isValidRemoteStartStopStatus)
+	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatusEnumType)        // generic status enum type
 	Validate.RegisterValidation("ReservationStatus", isValidReservationStatus)
-	Validate.RegisterValidation("ResetStatus", isValidResetStatus)
+	Validate.RegisterValidation("ResetStatus", isValidGenericStatusEnumType)                 // generic status enum type
 	Validate.RegisterValidation("UpdateStatus", isValidUpdateStatus)
 	Validate.RegisterValidation("ChargingProfileStatus", isValidChargingProfileStatus)
 	Validate.RegisterValidation("TriggerMessageStatus", isValidTriggerMessageStatus)
 	Validate.RegisterValidation("UnlockStatus", isValidUnlockStatus)
-	Validate.RegisterValidation("CancelReservationStatus", isValidCancelReservationStatus)
+	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatusEnumType)         // generic status enum type
+	Validate.RegisterValidation("GetCompositeScheduleStatus", isValidGenericStatusEnumType)      // generic status enum type
+	Validate.RegisterValidation("FirmwareStatus", isValidFirmwareStatusEnumType)
+	Validate.RegisterValidation("CertificateSignedStatusEnumType", isValidGenericStatusEnumType) // generic status enum type
+	Validate.RegisterValidation("CertificateStatusEnumType", isValidCertificateStatusEnumType)
+	Validate.RegisterValidation("CertificateUseTypeEnumType", isValidCertificateUseTypeEnumType)
+	Validate.RegisterValidation("DeleteCertificateStatusEnumType", isValidDeleteCertificateStatusEnumType)
+	Validate.RegisterValidation("FirmwareStatusEnumType", isValidFirmwareStatusEnumType)
+	Validate.RegisterValidation("GenericStatusEnumType", isValidGenericStatusEnumType)
+	Validate.RegisterValidation("GetInstalledCertificateStatusEnumType", isValidGetInstalledCertificateStatusEnumType)
+	Validate.RegisterValidation("HashAlgorithmEnumType", isValidHashAlgorithmEnumType)
+	Validate.RegisterValidation("LogEnumType", isValidLogEnumType)
+	Validate.RegisterValidation("LogStatusEnumType", isValidLogStatusEnumType)
+	Validate.RegisterValidation("MessageTriggerEnumType", isValidMessageTriggerEnumType)
+	Validate.RegisterValidation("TriggerMessageStatusEnumType", isValidTriggerMessageStatusEnumType)
+	Validate.RegisterValidation("UpdateFirmwareStatusEnumType", isValidUpdateFirmwareStatusEnumType)
+	Validate.RegisterValidation("UploadLogStatusEnumType", isValidUploadLogStatusEnumType)
 }
 
 
@@ -324,16 +343,6 @@ func isValidConfigurationStatus(fl validator.FieldLevel) bool {
 }
 
 
-func isValidClearCacheStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:	
-		return false
-	}
-}
-
 
 func isValidChargingProfilePurposeType(fl validator.FieldLevel) bool {
 	purpose := fl.Field().String()
@@ -413,15 +422,6 @@ func isValidMessageTrigger(fl validator.FieldLevel) bool {
 }
 
 
-func isValidRemoteStartStopStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:
-		return false
-	}
-}
 
 
 func isValidReservationStatus(fl validator.FieldLevel) bool {
@@ -435,15 +435,6 @@ func isValidReservationStatus(fl validator.FieldLevel) bool {
 }
 
 
-func isValidResetStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:
-		return false
-	}
-}
 
 
 func isValidUpdateStatus(fl validator.FieldLevel) bool {
@@ -489,16 +480,6 @@ func isValidUnlockStatus(fl validator.FieldLevel) bool {
 }
 
 
-func isValidCancelReservationStatus(fl validator.FieldLevel) bool {
-	status := fl.Field().String()
-	switch status {
-	case "Accepted", "Rejected":
-		return true
-	default:
-		return false
-	}
-}
-
 
 
 func contains(elems []string, v string) bool {
@@ -508,4 +489,151 @@ func contains(elems []string, v string) bool {
         }
     }
     return false
+}
+
+
+
+func isValidCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Failed", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidCertificateUseTypeEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "CentralSystemRootCertificate", "ManufacturerRootCertificate":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidDeleteCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Failed", "NotFound":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	cases := []string{
+		"Downloaded",
+		"DownloadFailed",
+		"Downloading",
+		"DownloadScheduled",
+		"DownloadPaused",
+		"Idle",
+		"InstallationFailed",
+	}
+	return contains(cases, status)
+}
+
+func isValidGenericStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidGetInstalledCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "NotFound":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidHashAlgorithmEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "SHA256", "SHA384", "SHA512":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidLogEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "DiagnosticsLog", "SecurityLog":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidLogStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected", "AcceptedCanceled":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidMessageTriggerEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	cases := []string{
+		"BootNotification",
+		"LogStatusNotification",
+		"FirmwareStatusNotification",
+		"Heartbeat",
+		"MeterValues",
+		"SignChargePointCertificate",
+		"StatusNotification",
+	}
+	return contains(cases, status)
+}
+
+func isValidTriggerMessageStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	switch status {
+	case "Accepted", "Rejected", "NotImplemented":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidUpdateFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"Rejected",
+		"AcceptedCancled",
+		"InvalidCertificate",
+		"RevokedCertificate",
+	}
+	return contains(cases, status)
+}
+
+
+func isValidUploadLogStatusEnumType(fl validator.FieldLevel) bool {
+	status := fl.Field().String()
+	cases := []string{
+		"BadMessage",
+		"Idle",
+		"NotSupportedOperation",
+		"PermissionDenied",
+		"Uploaded",
+		"UploadFailure",
+		"Uploading",
+	}
+	return contains(cases, status)
 }

@@ -184,3 +184,65 @@ type UpdateFirmwareReq struct {
 
 
 
+// OCPP 1.6 security whitepaper edition 2 implementation
+type CertificateSignedReq struct {
+	CertificateChain 	string 				`json:"certificateChain" validate:"required,max=10000"`
+}
+
+
+type DeleteCertificateReq struct {
+	CertificateHashData   CertificateHashDataType  `json:"certificateHashData" validate:"required"`
+}
+
+type ExtendedTriggerMessageReq struct {
+	RequestedMessage 	string 				`json:"requestedMessage" validate:"required,MessageTriggerEnumType"`
+	ConnectorId 		int 				`json:"connectorId,omitempty" validate:"gt=0"`
+}
+
+type GetInstalledCertificateIdsReq struct {
+	CertificateType 	string 				`json:"certificateType" validate:"required,CertificateUseEnumType"`
+}
+
+type GetLogReq struct {
+	LogType 			string 				`json:"logType" validate:"required,LogEnumType"`
+	RequestId 			int 				`json:"requestId" validate:"required"`
+	Retries 			int 				`json:"retries,omitempty" validate:"gte=0"`
+	RetryInterval 		int 				`json:"retryInterval,omitempty" validate:"gte=0"`
+	Log 				string 				`json:"log" validate:"required,LogParametersType"`
+}
+
+
+type InstallCertificateReq struct {
+	CertificateType 	string 				`json:"certificateType" validate:"required,CertificateUseEnumType"`
+	Certificate 		string 				`json:"certificate" validate:"required,max=5500"`
+}
+
+
+type LogStatusNotificationReq struct {
+	Status 				string 				`json:"status" validate:"required,UploadLogStatusEnumType"`
+	RequestId 			int 				`json:"requestId,omitempty"`
+}
+
+type SecurityEventNotificationReq struct {
+	Type 				string 				`json:"type" validate:"required,max=50"`
+	Timestamp 			string 				`json:"timestamp" validate:"required,ISO8601date"`
+	TechInfo 			string 				`json:"techInfo,omitempty" validate:"max=255"`
+}
+
+type SignCertificateReq struct {
+	Csr 				string 				`json:"csr" validate:"required,max=5500"`
+	Status 				string 				`json:"status" validate:"required,CertificateStatusEnumType"`
+}
+
+type SignedFirmwareStatusNotificationReq struct {
+	Status 				string 				`json:"status" validate:"required,FirmwareStatusEnumType"`
+	RequestId 			int 				`json:"requestId,omitempty"`
+}
+
+
+type SignedUpdateFirmwareReq struct {
+	Retries 			int 				`json:"retries,omitempty" validate:"gte=0"`
+	RetryInterval 		int 				`json:"retryInterval,omitempty" validate:"gte=0"`
+	RequestId 			int 				`json:"requestId" validate:"required"`
+	Firmware 			string 				`json:"firmware" validate:"required,FirewareType"`
+}

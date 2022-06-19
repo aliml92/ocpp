@@ -58,7 +58,27 @@ type AuthorizationData struct {
 }
 
 
+// OCPP 1.6 security whitepaper edition 2 implementation
+
+type CertificateHashDataType struct {
+	HashAlgorithm 			string 			`json:"hashAlgorithm" validate:"required,HashAlgorithmEnumType"`
+	IssuerNameHash 			string 			`json:"issuerNameHash" validate:"required,max=128"`
+	IssuerKeyHash 			string 			`json:"issuerKeyHash" validate:"required,max=128"`
+	SerialNumber 			string 			`json:"serialNumber" validate:"required,max=40"`
+}
 
 
 
+type FirmwareType struct {
+	Location 				string 			`json:"location" validate:"required,max=512"`
+	RetrieveDateTime 		string 			`json:"retrieveDate" validate:"required,ISO8601date"`
+	InstallDateTime 		string 			`json:"installDate,omitempty" validate:"ISO8601date"`
+	SigningCertificate 	    string   		`json:"signingCertificate" validate:"required,max=5500"`
+	Signature 				string 			`json:"signature" validate:"required,max=800"`
+}
 
+type LogParametersType struct {
+	RemoteLocation 		string 			`json:"remoteLocation" validate:"required,max=512"`
+	OldestTimestamp 	string 			`json:"oldestTimestamp,omitempty" validate:"ISO8601date"`
+	LatestTimestamp 	string 			`json:"latestTimestamp,omitempty" validate:"ISO8601date"`
+}

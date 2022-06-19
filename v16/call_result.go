@@ -139,5 +139,47 @@ type UpdateFirmwareConf struct {}
 
 
 
+// OCPP 1.6 security whitepaper edition 2 implementation
+type CertificateSignedConf struct {
+	Status 					string 			`json:"status" validate:"required,CertificateSignedStatusEnumType"`
+}
+
+type DeleteCertificateConf struct {
+	Status 					string 			`json:"status" validate:"required,DeleteCertificateStatusEnumType"`
+}
+
+type ExtendedTriggerMessageConf struct {
+	Status 					string 			`json:"status" validate:"required,TriggerMessageStatusEnumType"`
+}
+
+type GetInstalledCertificateIdsConf struct {
+	Status 					string 			          `json:"status" validate:"required,GetInstalledCertificateStatusEnumType"`
+	CertificateHashData 	[]CertificateHashDataType `json:"certificateHashData,omitempty" validate:"dive,required"`
+}
 
 
+type GetLogConf struct {
+	Status 					string 			`json:"status" validate:"required,LogStatusEnumType"`
+	Filename 				string 			`json:"filename,omitempty" validate:"max=255"`
+}
+
+
+type InstallCertificateConf struct {
+	Status 					string 			`json:"status" validate:"required,CertificateStatusEnumType"`
+}
+
+type LogStatusNotificationConf struct {}
+
+
+type SecurityEventNotificationConf struct {}
+
+
+type SignCertificateConf struct {
+	Status 					string 			`json:"status" validate:"required,GenericStatusEnumType"`
+}
+
+type SignedFirmwareStatusNotificationConf struct {}
+
+type SignedUpdateFirmwareConf struct {
+	Status 					string 			`json:"status" validate:"required,UpdateFirmwareStatusEnumType"`
+}
