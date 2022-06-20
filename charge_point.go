@@ -33,6 +33,7 @@ type Payload interface{}
  
 // Represents a connected ChargePoint (also known as a Charging Station)
 type ChargePoint struct {
+	Proto           string
 	Conn 			*websocket.Conn   // the websocket connection
 	Id 				string            // chargePointId 
 	Out 			chan *[]byte      // channel to send messages to the ChargePoint 
@@ -194,8 +195,9 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 
 
 // Creates a new ChargePoint 
-func NewChargePoint(conn *websocket.Conn, id string) *ChargePoint {
+func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint {
 	cp := &ChargePoint{
+		Proto:              proto,
 		Conn:   			conn,
 		Id:     			id,
 		Out:    			make(chan *[]byte),

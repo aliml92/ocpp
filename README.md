@@ -45,25 +45,25 @@ func main(){
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	ssp := "ocpp1.6"          // server subprotocol
+	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")	
+	if subProtocol== "" {
+		fmt.Println("client hasn't requested any Subprotocol. Closing Connection")
+		return
+	}
+	if !strings.Contains(subProtocol, ssp) {
+		fmt.Println("client has requested an unsupported Subprotocol. Closing Connection")
+		return
+	}
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")	
-	if subProtocol== "" {
-		fmt.Println("Client hasn't requested any Subprotocol. Closing Connection")
-		c.Close()
-	}
-	if subProtocol != "ocpp1.6" {
-		fmt.Println("Client has requested an unsupported Subprotocol. Closing Connection")
-		c.Close()
-	}
-	chargePointId := strings.Split(r.URL.Path, "/")[3]
+	id := strings.Split(r.URL.Path, "/")[3]
 
-	
 	// create a ChargePoint
-	cp = ocpp.NewChargePoint(c, chargePointId)
+	cp = ocpp.NewChargePoint(c, id, ssp)
 	
 
 	// register handlers for CP initiated calls
@@ -84,7 +84,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func BootNotificationHandler(p ocpp.Payload) ocpp.Payload {
+func BootNotificationHandler(id string, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.BootNotificationReq)
 	fmt.Printf("BootNotificationReq: %v\n", req)
 
@@ -100,7 +100,9 @@ func BootNotificationHandler(p ocpp.Payload) ocpp.Payload {
 and after it is created, register CP initiated call handlers using `cp.On` method.
 Making Central System initiated call can be created using `cp.Call` method.
 To make a Call to multiple charge points concurrently refer to `examples/` folder.
-
+Note! Making a Call is a bit tricky. `cp` always refers to latest connected Charge Point.  
+For this reason, `ocpp.ChargePoints` map keeps track of currently connected Charge Points,
+Keys are Charge Point Ids and values are pointers to `ChargePoint` instances.  
 ### Charge Point
 ```go
 package main
@@ -119,7 +121,7 @@ var cp *ocpp.ChargePoint
 
 func main() {
 	
-	chargePointId := "client_01"
+	id := "client_01"          // charge point id
 	url := fmt.Sprintf("ws://localhost:8080/ocpp/v16/%s", chargePointId)
 	header := http.Header{
 		"Sec-WebSocket-Protocol": []string{"ocpp1.6"},
@@ -134,7 +136,7 @@ func main() {
 
 
 	// create a ChargePoint
-	cp = ocpp.NewChargePoint(c, chargePointId)
+	cp = ocpp.NewChargePoint(c, id, "ocpp1.6")
 
 
 	// register handlers for CS initiated calls
@@ -156,7 +158,7 @@ func main() {
 }
 
 
-func ChangeAvailabilityHandler(p ocpp.Payload) ocpp.Payload {
+func ChangeAvailabilityHandler(id string, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.ChangeAvailabilityReq)
 	fmt.Printf("ChangeAvailabilityReq: %v\n", req)
 	
