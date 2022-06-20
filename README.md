@@ -103,7 +103,7 @@ To make a Call to multiple charge points concurrently refer to `examples/` folde
 
 
 > **Note**
-> Note! Making a Call is a bit tricky. `cp` always refers to latest connected Charge Point.  
+> Making a Call is a bit tricky. `cp` always refers to latest connected Charge Point.  
 > For this reason, `ocpp.ChargePoints` map keeps track of currently connected Charge Points,
 > Keys are Charge Point Ids and values are pointers to `ChargePoint` instances.
 
