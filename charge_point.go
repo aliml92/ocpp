@@ -37,8 +37,8 @@ type ChargePoint struct {
 	Id 				string            // chargePointId 
 	Out 			chan *[]byte      // channel to send messages to the ChargePoint 
 	In 				chan *[]byte      // channel to receive messages from the ChargePoint 
-	MessageHandlers map[string]func(Payload) Payload // map to store CP initiated actions
-	AfterHandlers   map[string]func(Payload) 	// map to store functions to be called after a CP initiated action
+	MessageHandlers map[string]func(string, Payload) Payload // map to store CP initiated actions
+	AfterHandlers   map[string]func(string, Payload) 	// map to store functions to be called after a CP initiated action
 	Mu 				sync.Mutex        // mutex ensuring that only one message is sent at a time
 	Cr              chan *CallResult  
 	Ce              chan *CallError
@@ -68,7 +68,7 @@ func (cp *ChargePoint) reader() {
 		}
 		if call != nil {
 			if handler, ok := cp.MessageHandlers[call.Action]; ok {
-				responsePayload := handler(call.Payload)
+				responsePayload := handler(cp.Id, call.Payload)
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
@@ -77,7 +77,7 @@ func (cp *ChargePoint) reader() {
 				} else {
 					cp.Out <- call.createCallResult(responsePayload)
 					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
-						afterHandler(call.Payload)
+						afterHandler(cp.Id, call.Payload)
 					}
 				}
 			} else {
@@ -124,7 +124,7 @@ func (cp *ChargePoint) writer() {
 
 
 // The function to be used by the implementers to register CP initiated actions
-func (cp *ChargePoint) On(action string, f func(Payload) Payload) *ChargePoint {
+func (cp *ChargePoint) On(action string, f func(string,Payload) Payload) *ChargePoint {
 	cp.MessageHandlers[action] = f
 	return cp
 }
@@ -132,7 +132,7 @@ func (cp *ChargePoint) On(action string, f func(Payload) Payload) *ChargePoint {
 
 
 // The function to be used by the implementers to register functions to be called after a CP initiated action
-func (cp *ChargePoint) After(action string, f func(Payload)) *ChargePoint {
+func (cp *ChargePoint) After(action string, f func(string,Payload)) *ChargePoint {
 	cp.AfterHandlers[action] = f
 	return cp
 }
@@ -200,8 +200,8 @@ func NewChargePoint(conn *websocket.Conn, id string) *ChargePoint {
 		Id:     			id,
 		Out:    			make(chan *[]byte),
 		In:     			make(chan *[]byte),
-		MessageHandlers: 	make(map[string]func(Payload) Payload),
-		AfterHandlers: 		make(map[string]func(Payload)),
+		MessageHandlers: 	make(map[string]func(string,Payload) Payload),
+		AfterHandlers: 		make(map[string]func(string,Payload)),
 		Cr: 				make(chan *CallResult, 1),
 		Ce: 				make(chan *CallError, 1),
 		Timeout: 			time.Second * 10,
