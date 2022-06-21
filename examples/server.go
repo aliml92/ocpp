@@ -31,24 +31,26 @@ func main(){
 
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	ssp := "ocpp1.6"   // server subprotocol
+	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")	
+	if subProtocol== "" {
+		fmt.Println("client hasn't requested any Subprotocol. Closing Connection")
+		return
+	}
+	if !strings.Contains(subProtocol, ssp) {
+		fmt.Println("client has requested an unsupported Subprotocol. Closing Connection")
+		return
+	}
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")	
-	if subProtocol== "" {
-		fmt.Println("client hasn't requested any Subprotocol. Closing Connection")
-		c.Close()
-	}
-	if subProtocol != "ocpp1.6" {
-		fmt.Println("client has requested an unsupported Subprotocol. Closing Connection")
-		c.Close()
-	}
-	chargePointId := strings.Split(r.URL.Path, "/")[3]
+	id := strings.Split(r.URL.Path, "/")[3]
 
 	// create a ChargePoint
-	cp = ocpp.NewChargePoint(c, chargePointId)
+	cp = ocpp.NewChargePoint(c, id, ssp)
+	log.Printf("[INFO] New connection from %s", id)
 	registerHandlers()
 	
 }
@@ -62,7 +64,7 @@ func registerHandlers(){
 }
 
 
-func BootNotificationHandler(p ocpp.Payload) ocpp.Payload {
+func BootNotificationHandler(id string, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.BootNotificationReq)
 	fmt.Printf("BootNotificationReq: %v\n", req)
 
