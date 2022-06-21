@@ -1,4 +1,4 @@
-Simple example of sending a Call to multiple Charge Points
+Simple example of sending a Call to multiple Charge Points.
 First run server.go
 ```
 go run server.go

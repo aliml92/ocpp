@@ -30,7 +30,7 @@ func main() {
 
 
 	// create a ChargePoint
-	cp = ocpp.NewChargePoint(c, chargePointId)
+	cp = ocpp.NewChargePoint(c, chargePointId, "ocpp1.6")
 
 
 	// register handlers for CS initiated calls
@@ -56,7 +56,7 @@ func main() {
 }
 
 
-func ChangeAvailabilityHandler(p ocpp.Payload) ocpp.Payload {
+func ChangeAvailabilityHandler(id string, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.ChangeAvailabilityReq)
 	fmt.Printf("ChangeAvailabilityReq: %v\n", req)
 	

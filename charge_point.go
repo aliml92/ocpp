@@ -12,41 +12,30 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
-
 var validate = v16.Validate
 
-
-
-// map to store websocket connections,
-// keys are the chargepoint ids and values are the chargepoint structs which
-// contain the websocket connection   
+// ChargePoints map to store websocket connections,
+// keys are the charge point ids and values are the charge point structs which
+// contain the websocket connection
 var ChargePoints = make(map[string]*ChargePoint)
 
-
-/* 
-Used as a container is for both Call and CallResult' Payload
-*/
+// Payload used as a container is for both Call and CallResult' Payload
 type Payload interface{}
 
-
- 
-// Represents a connected ChargePoint (also known as a Charging Station)
+// ChargePoint Represents a connected ChargePoint (also known as a Charging Station)
 type ChargePoint struct {
 	Proto           string
-	Conn 			*websocket.Conn   // the websocket connection
-	Id 				string            // chargePointId 
-	Out 			chan *[]byte      // channel to send messages to the ChargePoint 
-	In 				chan *[]byte      // channel to receive messages from the ChargePoint 
+	Conn            *websocket.Conn                          // the websocket connection
+	Id              string                                   // chargePointId
+	Out             chan *[]byte                             // channel to send messages to the ChargePoint
+	In              chan *[]byte                             // channel to receive messages from the ChargePoint
 	MessageHandlers map[string]func(string, Payload) Payload // map to store CP initiated actions
-	AfterHandlers   map[string]func(string, Payload) 	// map to store functions to be called after a CP initiated action
-	Mu 				sync.Mutex        // mutex ensuring that only one message is sent at a time
-	Cr              chan *CallResult  
+	AfterHandlers   map[string]func(string, Payload)         // map to store functions to be called after a CP initiated action
+	Mu              sync.Mutex                               // mutex ensuring that only one message is sent at a time
+	Cr              chan *CallResult
 	Ce              chan *CallError
-	Timeout 	    time.Duration     // timeout for waiting for a response
+	Timeout         time.Duration // timeout for waiting for a response
 }
-
-
 
 // Websocket reader to read messages from ChargePoint
 func (cp *ChargePoint) reader() {
@@ -84,7 +73,7 @@ func (cp *ChargePoint) reader() {
 			} else {
 				var err error = &OCPPError{
 					id:    call.UniqueId,
-					code: "NotSupported",
+					code:  "NotSupported",
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
 				cp.Out <- call.createCallError(err)
@@ -100,9 +89,6 @@ func (cp *ChargePoint) reader() {
 
 	}
 }
-
-
-
 
 // Websocket writer to send messages to the ChargePoint
 func (cp *ChargePoint) writer() {
@@ -121,26 +107,19 @@ func (cp *ChargePoint) writer() {
 	}
 }
 
-
-
-
-// The function to be used by the implementers to register CP initiated actions
-func (cp *ChargePoint) On(action string, f func(string,Payload) Payload) *ChargePoint {
+// On method used by the implementers to register action handlers
+func (cp *ChargePoint) On(action string, f func(string, Payload) Payload) *ChargePoint {
 	cp.MessageHandlers[action] = f
 	return cp
 }
 
-
-
-// The function to be used by the implementers to register functions to be called after a CP initiated action
-func (cp *ChargePoint) After(action string, f func(string,Payload)) *ChargePoint {
+// After method used by the implementers to register functions to be called after a CP initiated action
+func (cp *ChargePoint) After(action string, f func(string, Payload)) *ChargePoint {
 	cp.AfterHandlers[action] = f
 	return cp
 }
 
-
-
-// function to be used by the implementers to execute a CSMS initiated action
+// Call method   used by the implementers to execute a CSMS initiated action
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	id := uuid.New().String()
 	call := [4]interface{}{
@@ -168,11 +147,9 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	return nil, err
 }
 
-
-
-// Waites for a response to a certain Call 
+// Waits for a response to a certain Call
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
-	wait_until := time.Now().Add(cp.Timeout)
+	waitUntil := time.Now().Add(cp.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
@@ -182,31 +159,28 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 		case r2 := <-cp.Ce:
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
-			}	
-		case <-time.After(time.Until(wait_until)):
-			return nil,nil, &TimeoutError{
+			}
+		case <-time.After(time.Until(waitUntil)):
+			return nil, nil, &TimeoutError{
 				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.Timeout, uniqueId),
 			}
 		}
 	}
 }
 
-
-
-
-// Creates a new ChargePoint 
+// NewChargePoint creates a new ChargePoint
 func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint {
 	cp := &ChargePoint{
-		Proto:              proto,
-		Conn:   			conn,
-		Id:     			id,
-		Out:    			make(chan *[]byte),
-		In:     			make(chan *[]byte),
-		MessageHandlers: 	make(map[string]func(string,Payload) Payload),
-		AfterHandlers: 		make(map[string]func(string,Payload)),
-		Cr: 				make(chan *CallResult, 1),
-		Ce: 				make(chan *CallError, 1),
-		Timeout: 			time.Second * 10,
+		Proto:           proto,
+		Conn:            conn,
+		Id:              id,
+		Out:             make(chan *[]byte),
+		In:              make(chan *[]byte),
+		MessageHandlers: make(map[string]func(string, Payload) Payload),
+		AfterHandlers:   make(map[string]func(string, Payload)),
+		Cr:              make(chan *CallResult, 1),
+		Ce:              make(chan *CallError, 1),
+		Timeout:         time.Second * 10,
 	}
 	go cp.reader()
 	go cp.writer()
@@ -219,4 +193,3 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 	}
 	return cp
 }
-
