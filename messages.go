@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"unsafe"
+	"sync"
 
 	"github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
 )
+
+
+var lock sync.Mutex
 
 type OCPPError struct {
 	id    string
@@ -258,8 +261,9 @@ var reqmap = map[string]func(*json.RawMessage) (Payload, error){
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	//  get memory size of reqmap
-	fmt.Println("Size of reqmap:", unsafe.Sizeof(reqmap))
+	// lock the map to prevent concurrent reads
+	lock.Lock()
+	defer lock.Unlock()
 	a, ok := reqmap[mAction]
 	if !ok {
 		e := &OCPPError{
