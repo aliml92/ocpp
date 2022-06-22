@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"unsafe"
 
 	"github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
@@ -257,6 +258,8 @@ var reqmap = map[string]func(*json.RawMessage) (Payload, error){
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+	//  get memory size of reqmap
+	fmt.Println("Size of reqmap:", unsafe.Sizeof(reqmap))
 	a, ok := reqmap[mAction]
 	if !ok {
 		e := &OCPPError{
