@@ -12,7 +12,71 @@ import (
 )
 
 
-var lock sync.Mutex
+var reqmap = map[string]func(*json.RawMessage) (Payload, error){
+	"BootNotification":              ureq[v16.BootNotificationReq],
+	"Authorize":                     ureq[v16.AuthorizeReq],
+	"DataTransfer":                  ureq[v16.DataTransferReq],
+	"DiagnosticsStatusNotification": ureq[v16.DiagnosticsStatusNotificationReq],
+	"FirmwareStatusNotification":    ureq[v16.FirmwareStatusNotificationReq],
+	"Heartbeat":                     ureq[v16.HeartbeatReq],
+	"MeterValues":                   ureq[v16.MeterValuesReq],
+	"StartTransaction":              ureq[v16.StartTransactionReq],
+	"StatusNotification":            ureq[v16.StatusNotificationReq],
+	"StopTransaction":               ureq[v16.StopTransactionReq],
+	"CanCelReservation":             ureq[v16.CancelReservationReq],
+	"ChangeAvailability":            ureq[v16.ChangeAvailabilityReq],
+	"ChangeConfiguration":           ureq[v16.ChangeConfigurationReq],
+	"ClearCache":                    ureq[v16.ClearCacheReq],
+	"ClearChargingProfile":          ureq[v16.ClearChargingProfileReq],
+	"GetCompositeSchedule":          ureq[v16.GetCompositeScheduleReq],
+	"GetConfiguration":              ureq[v16.GetConfigurationReq],
+	"GetDiagnostics":                ureq[v16.GetDiagnosticsReq],
+	"GetLocalListVersion":           ureq[v16.GetLocalListVersionReq],
+	"RemoteStartTransaction":        ureq[v16.RemoteStartTransactionReq],
+	"RemoteStopTransaction":         ureq[v16.RemoteStopTransactionReq],
+	"ReserveNow":                    ureq[v16.ReserveNowReq],
+	"Reset":                         ureq[v16.ResetReq],
+	"SendLocalList":                 ureq[v16.SendLocalListReq],
+	"SetChargingProfile":            ureq[v16.SetChargingProfileReq],
+	"TriggerMessage":                ureq[v16.TriggerMessageReq],
+	"UnlockConnector":               ureq[v16.UnlockConnectorReq],
+	"UpdateFirmware":                ureq[v16.UpdateFirmwareReq],
+}
+
+
+
+var confmap = map[string]func(*json.RawMessage) (Payload, error){
+	"BootNotification":              uconf[v16.BootNotificationConf],
+	"Authorize":                     uconf[v16.AuthorizeConf],
+	"DataTransfer":                  uconf[v16.DataTransferConf],
+	"DiagnosticsStatusNotification": uconf[v16.DiagnosticsStatusNotificationConf],
+	"FirmwareStatusNotification":    uconf[v16.FirmwareStatusNotificationConf],
+	"Heartbeat":                     uconf[v16.HeartbeatConf],
+	"MeterValues":                   uconf[v16.MeterValuesConf],
+	"StartTransaction":              uconf[v16.StartTransactionConf],
+	"StatusNotification":            uconf[v16.StatusNotificationConf],
+	"StopTransaction":               uconf[v16.StopTransactionConf],
+	"CanCelReservation":             uconf[v16.CancelReservationConf],
+	"ChangeAvailability":            uconf[v16.ChangeAvailabilityConf],
+	"ChangeConfiguration":           uconf[v16.ChangeConfigurationConf],
+	"ClearCache":                    uconf[v16.ClearCacheConf],
+	"ClearChargingProfile":          uconf[v16.ClearChargingProfileConf],
+	"GetCompositeSchedule":          uconf[v16.GetCompositeScheduleConf],
+	"GetConfiguration":              uconf[v16.GetConfigurationConf],
+	"GetDiagnostics":                uconf[v16.GetDiagnosticsConf],
+	"GetLocalListVersion":           uconf[v16.GetLocalListVersionConf],
+	"RemoteStartTransaction":        uconf[v16.RemoteStartTransactionConf],
+	"RemoteStopTransaction":         uconf[v16.RemoteStopTransactionConf],
+	"ReserveNow":                    uconf[v16.ReserveNowConf],
+	"Reset":                         uconf[v16.ResetConf],
+	"SendLocalList":                 uconf[v16.SendLocalListConf],
+	"SetChargingProfile":            uconf[v16.SetChargingProfileConf],
+	"TriggerMessage":                uconf[v16.TriggerMessageConf],
+	"UnlockConnector":               uconf[v16.UnlockConnectorConf],
+	"UpdateFirmware":                uconf[v16.UpdateFirmwareConf],
+}
+
+var lock sync.RWMutex
 
 type OCPPError struct {
 	id    string
@@ -228,39 +292,12 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 }
 
-var reqmap = map[string]func(*json.RawMessage) (Payload, error){
-	"BootNotification":              ureq[v16.BootNotificationReq],
-	"Authorize":                     ureq[v16.AuthorizeReq],
-	"DataTransfer":                  ureq[v16.DataTransferReq],
-	"DiagnosticsStatusNotification": ureq[v16.DiagnosticsStatusNotificationReq],
-	"FirmwareStatusNotification":    ureq[v16.FirmwareStatusNotificationReq],
-	"Heartbeat":                     ureq[v16.HeartbeatReq],
-	"MeterValues":                   ureq[v16.MeterValuesReq],
-	"StartTransaction":              ureq[v16.StartTransactionReq],
-	"StatusNotification":            ureq[v16.StatusNotificationReq],
-	"StopTransaction":               ureq[v16.StopTransactionReq],
-	"CanCelReservation":             ureq[v16.CancelReservationReq],
-	"ChangeAvailability":            ureq[v16.ChangeAvailabilityReq],
-	"ChangeConfiguration":           ureq[v16.ChangeConfigurationReq],
-	"ClearCache":                    ureq[v16.ClearCacheReq],
-	"ClearChargingProfile":          ureq[v16.ClearChargingProfileReq],
-	"GetCompositeSchedule":          ureq[v16.GetCompositeScheduleReq],
-	"GetConfiguration":              ureq[v16.GetConfigurationReq],
-	"GetDiagnostics":                ureq[v16.GetDiagnosticsReq],
-	"GetLocalListVersion":           ureq[v16.GetLocalListVersionReq],
-	"RemoteStartTransaction":        ureq[v16.RemoteStartTransactionReq],
-	"RemoteStopTransaction":         ureq[v16.RemoteStopTransactionReq],
-	"ReserveNow":                    ureq[v16.ReserveNowReq],
-	"Reset":                         ureq[v16.ResetReq],
-	"SendLocalList":                 ureq[v16.SendLocalListReq],
-	"SetChargingProfile":            ureq[v16.SetChargingProfileReq],
-	"TriggerMessage":                ureq[v16.TriggerMessageReq],
-	"UnlockConnector":               ureq[v16.UnlockConnectorReq],
-	"UpdateFirmware":                ureq[v16.UpdateFirmwareReq],
-}
+
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+	lock.RLock()
+	defer lock.RUnlock()
 	a, ok := reqmap[mAction]
 	if !ok {
 		e := &OCPPError{
@@ -299,36 +336,7 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 	return payload, nil
 }
 
-var confmap = map[string]func(*json.RawMessage) (Payload, error){
-	"BootNotification":              uconf[v16.BootNotificationConf],
-	"Authorize":                     uconf[v16.AuthorizeConf],
-	"DataTransfer":                  uconf[v16.DataTransferConf],
-	"DiagnosticsStatusNotification": uconf[v16.DiagnosticsStatusNotificationConf],
-	"FirmwareStatusNotification":    uconf[v16.FirmwareStatusNotificationConf],
-	"Heartbeat":                     uconf[v16.HeartbeatConf],
-	"MeterValues":                   uconf[v16.MeterValuesConf],
-	"StartTransaction":              uconf[v16.StartTransactionConf],
-	"StatusNotification":            uconf[v16.StatusNotificationConf],
-	"StopTransaction":               uconf[v16.StopTransactionConf],
-	"CanCelReservation":             uconf[v16.CancelReservationConf],
-	"ChangeAvailability":            uconf[v16.ChangeAvailabilityConf],
-	"ChangeConfiguration":           uconf[v16.ChangeConfigurationConf],
-	"ClearCache":                    uconf[v16.ClearCacheConf],
-	"ClearChargingProfile":          uconf[v16.ClearChargingProfileConf],
-	"GetCompositeSchedule":          uconf[v16.GetCompositeScheduleConf],
-	"GetConfiguration":              uconf[v16.GetConfigurationConf],
-	"GetDiagnostics":                uconf[v16.GetDiagnosticsConf],
-	"GetLocalListVersion":           uconf[v16.GetLocalListVersionConf],
-	"RemoteStartTransaction":        uconf[v16.RemoteStartTransactionConf],
-	"RemoteStopTransaction":         uconf[v16.RemoteStopTransactionConf],
-	"ReserveNow":                    uconf[v16.ReserveNowConf],
-	"Reset":                         uconf[v16.ResetConf],
-	"SendLocalList":                 uconf[v16.SendLocalListConf],
-	"SetChargingProfile":            uconf[v16.SetChargingProfileConf],
-	"TriggerMessage":                uconf[v16.TriggerMessageConf],
-	"UnlockConnector":               uconf[v16.UnlockConnectorConf],
-	"UpdateFirmware":                uconf[v16.UpdateFirmwareConf],
-}
+
 
 func unmarshalConf(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	a, ok := confmap[mAction]
