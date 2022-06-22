@@ -261,9 +261,6 @@ var reqmap = map[string]func(*json.RawMessage) (Payload, error){
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	// lock the map to prevent concurrent reads
-	lock.Lock()
-	defer lock.Unlock()
 	a, ok := reqmap[mAction]
 	if !ok {
 		e := &OCPPError{
