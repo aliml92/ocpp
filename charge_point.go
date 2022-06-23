@@ -114,6 +114,14 @@ func (cp *ChargePoint) writer() {
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
 			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
+			cp, ok := ChargePoints[cp.Id]
+			if !ok {
+				log.Printf("[WEBSOCKET][ERROR][WRITER5] ChargePoint %s not found", cp.Id)
+			}
+			// check if chargeponnt is not nil
+			if cp != nil {
+				cp.Conn.Close()
+			}
 			return
 		}
 	}
