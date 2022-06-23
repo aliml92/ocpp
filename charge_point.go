@@ -57,7 +57,9 @@ func (cp *ChargePoint) reader() {
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
-			if handler, ok := cp.MessageHandlers[call.Action]; ok {
+			// TODO: check if this is causing a deadlock
+			handler, ok := cp.MessageHandlers[call.Action]
+			if ok {
 				responsePayload := handler(cp.Id, call.Payload)
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
@@ -95,15 +97,25 @@ func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
 		if !ok {
+			log.Printf("[WEBSOCKET][ERROR] Channel closed")
 			cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
 		w, err := cp.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
+			log.Printf("[WEBSOCKET][ERROR] %v", err)
 			return
 		}
-		w.Write(*message)
-		w.Close()
+		i, err := w.Write(*message)
+		if err != nil {
+			log.Printf("[WEBSOCKET][ERROR] %v", err)
+			return
+		}
+		log.Printf("[WEBSOCKET][SENT] %v", i)
+		if err := w.Close(); err != nil {
+			log.Printf("[WEBSOCKET][ERROR] %v", err)
+			return
+		}
 	}
 }
 
