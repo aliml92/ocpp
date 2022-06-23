@@ -53,12 +53,12 @@ func (csms *CSMS) After(action string, f func(string, Payload)) *CSMS {
 	return csms
 }
 
-func NewCSMS(t int) *CSMS {
+func NewCSMS(timeout int) *CSMS {
 	csms = &CSMS{
 		ChargePoints: sync.Map{},
 		ActionHandlers: make(map[string]func(string, Payload) Payload),
 		AfterHandlers: make(map[string]func(string, Payload)),
-		Timeout: time.Duration(t) * time.Second,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 	return csms
 }
@@ -75,9 +75,7 @@ func (cp *ChargePoint) reader() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("[WEBSOCKET][ERROR][READER] %v", err)
 				// delete charge point from ChargePoints map
-				if csms != nil {
-					csms.ChargePoints.Delete(cp.Id)
-				}
+				csms.ChargePoints.Delete(cp.Id)
 			}
 			break
 		}
@@ -143,9 +141,7 @@ func (cp *ChargePoint) writer() {
 		}
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
-			if csms != nil {
-				csms.ChargePoints.Delete(cp.Id)
-			}
+			csms.ChargePoints.Delete(cp.Id)
 			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
 			return
 		}
@@ -229,8 +225,6 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 	}
 	go cp.reader()
 	go cp.writer()
-	if csms != nil {
-		csms.ChargePoints.Store(id, cp)
-	}
+	csms.ChargePoints.Store(id, cp)
 	return cp
 }
