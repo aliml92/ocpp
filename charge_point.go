@@ -13,7 +13,7 @@ import (
 )
 
 var validate = v16.Validate
-
+var csms *CSMS
 // ChargePoints map to store websocket connections,
 // keys are the charge point ids and values are the charge point structs which
 // contain the websocket connection
@@ -37,6 +37,36 @@ type ChargePoint struct {
 	Timeout         time.Duration // timeout for waiting for a response
 }
 
+
+// DRAFTING CSMS
+type CSMS struct {
+	ChargePoints sync.Map
+	ActionHandlers map[string]func(string, Payload) Payload
+	AfterHandlers map[string]func(string, Payload)
+	Timeout time.Duration
+}
+
+func (csms *CSMS) On(action string, f func(string, Payload) Payload) *CSMS {
+	csms.ActionHandlers[action] = f
+	return csms
+}
+
+func (csms *CSMS) After(action string, f func(string, Payload)) *CSMS {
+	csms.AfterHandlers[action] = f
+	return csms
+}
+
+func NewCSMS(t int) *CSMS {
+	csms := &CSMS{
+		ChargePoints: sync.Map{},
+		ActionHandlers: make(map[string]func(string, Payload) Payload),
+		AfterHandlers: make(map[string]func(string, Payload)),
+		Timeout: time.Duration(t) * time.Second,
+	}
+	return csms
+}
+
+
 // Websocket reader to read messages from ChargePoint
 func (cp *ChargePoint) reader() {
 	defer func() {
@@ -47,7 +77,8 @@ func (cp *ChargePoint) reader() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("[WEBSOCKET][ERROR][READER] %v", err)
-				delete(ChargePoints, cp.Id)
+				// delete charge point from ChargePoints map
+				csms.ChargePoints.Delete(cp.Id)
 			}
 			break
 		}
@@ -58,7 +89,7 @@ func (cp *ChargePoint) reader() {
 		}
 		if call != nil {
 			// TODO: check if this is causing a deadlock
-			handler, ok := cp.MessageHandlers[call.Action]
+			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp.Id, call.Payload)
 				// TODO check if validation works as expected / CP <-
@@ -113,13 +144,8 @@ func (cp *ChargePoint) writer() {
 		}
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
+			csms.ChargePoints.Delete(cp.Id)
 			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
-			cp, ok := ChargePoints[cp.Id]
-			if !ok {
-				log.Printf("[WEBSOCKET][ERROR][WRITER5] ChargePoint %s not found", cp.Id)
-			}
-			// print charge point
-			log.Printf("[WEBSOCKET][CP] %v", cp)
 			return
 		}
 	}
@@ -167,7 +193,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 
 // Waits for a response to a certain Call
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
-	waitUntil := time.Now().Add(cp.Timeout)
+	deadline := time.Now().Add(csms.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
@@ -178,9 +204,9 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
 			}
-		case <-time.After(time.Until(waitUntil)):
+		case <-time.After(time.Until(deadline)):
 			return nil, nil, &TimeoutError{
-				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.Timeout, uniqueId),
+				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", csms.Timeout, uniqueId),
 			}
 		}
 	}
@@ -202,12 +228,7 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 	}
 	go cp.reader()
 	go cp.writer()
-	// add the ChargePoint to the list of ChargePoints
-	cp.Mu.Lock()
-	defer cp.Mu.Unlock()
-	// add if not already there
-	if _, ok := ChargePoints[cp.Id]; !ok {
-		ChargePoints[cp.Id] = cp
-	}
+	// add charge point to CSMS map
+	csms.ChargePoints.Store(id, cp)
 	return cp
 }
