@@ -46,7 +46,7 @@ func (cp *ChargePoint) reader() {
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[WEBSOCKET][ERROR] %v", err)
+				log.Printf("[WEBSOCKET][ERROR][READER] %v", err)
 				delete(ChargePoints, cp.Id)
 			}
 			break
@@ -97,23 +97,23 @@ func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
 		if !ok {
-			log.Printf("[WEBSOCKET][ERROR] Channel closed")
+			log.Printf("[WEBSOCKET][ERROR][WRITER] Channel closed")
 			cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
 		w, err := cp.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
 			return
 		}
 		i, err := w.Write(*message)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
 			return
 		}
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
-			log.Printf("[WEBSOCKET][ERROR] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
 			return
 		}
 	}
