@@ -14,10 +14,7 @@ import (
 
 var validate = v16.Validate
 var csms *CSMS
-// ChargePoints map to store websocket connections,
-// keys are the charge point ids and values are the charge point structs which
-// contain the websocket connection
-var ChargePoints = make(map[string]*ChargePoint)
+
 
 // Payload used as a container is for both Call and CallResult' Payload
 type Payload interface{}
@@ -57,7 +54,7 @@ func (csms *CSMS) After(action string, f func(string, Payload)) *CSMS {
 }
 
 func NewCSMS(t int) *CSMS {
-	csms := &CSMS{
+	csms = &CSMS{
 		ChargePoints: sync.Map{},
 		ActionHandlers: make(map[string]func(string, Payload) Payload),
 		AfterHandlers: make(map[string]func(string, Payload)),
@@ -78,7 +75,9 @@ func (cp *ChargePoint) reader() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("[WEBSOCKET][ERROR][READER] %v", err)
 				// delete charge point from ChargePoints map
-				csms.ChargePoints.Delete(cp.Id)
+				if csms != nil {
+					csms.ChargePoints.Delete(cp.Id)
+				}
 			}
 			break
 		}
@@ -144,7 +143,9 @@ func (cp *ChargePoint) writer() {
 		}
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
-			csms.ChargePoints.Delete(cp.Id)
+			if csms != nil {
+				csms.ChargePoints.Delete(cp.Id)
+			}
 			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
 			return
 		}
@@ -228,7 +229,8 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 	}
 	go cp.reader()
 	go cp.writer()
-	// add charge point to CSMS map
-	csms.ChargePoints.Store(id, cp)
+	if csms != nil {
+		csms.ChargePoints.Store(id, cp)
+	}
 	return cp
 }
