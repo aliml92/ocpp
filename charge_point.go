@@ -97,23 +97,23 @@ func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
 		if !ok {
-			log.Printf("[WEBSOCKET][ERROR][WRITER] Channel closed")
+			log.Printf("[WEBSOCKET][ERROR][WRITER1] Channel closed")
 			cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
 		w, err := cp.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER2] %v", err)
 			return
 		}
 		i, err := w.Write(*message)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER3] %v", err)
 			return
 		}
 		log.Printf("[WEBSOCKET][SENT] %v", i)
 		if err := w.Close(); err != nil {
-			log.Printf("[WEBSOCKET][ERROR][WRITER] %v", err)
+			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
 			return
 		}
 	}
