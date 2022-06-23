@@ -118,10 +118,8 @@ func (cp *ChargePoint) writer() {
 			if !ok {
 				log.Printf("[WEBSOCKET][ERROR][WRITER5] ChargePoint %s not found", cp.Id)
 			}
-			// check if chargeponnt is not nil
-			if cp != nil {
-				cp.Conn.Close()
-			}
+			// print charge point
+			log.Printf("[WEBSOCKET][CP] %v", cp)
 			return
 		}
 	}
