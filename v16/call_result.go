@@ -1,7 +1,7 @@
 package v16
 
 type AuthorizeConf struct {
-	IdTagInfo *IdTagInfo `json:"idTagInfo" validate:"required"`
+	IdTagInfo IdTagInfo `json:"idTagInfo" validate:"required"`
 }
 
 type BootNotificationConf struct {
