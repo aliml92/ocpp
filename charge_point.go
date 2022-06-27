@@ -97,9 +97,7 @@ func (cp *ChargePoint) reader() {
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
 					// lock to ensure that only one message is sent at a time
-					cp.Mu.Lock()
 					cp.Out <- call.createCallResult(responsePayload)
-					cp.Mu.Unlock()
 					// sleep for a bit to make sure the message is sent
 					time.Sleep(time.Second)
 					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
@@ -225,8 +223,8 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		Id:              id,
 		Out:             make(chan *[]byte),
 		In:              make(chan *[]byte),
-		Cr:              make(chan *CallResult, 1),
-		Ce:              make(chan *CallError, 1),
+		Cr:              make(chan *CallResult),
+		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
 		Timeout:         time.Second * 10,
 	}
