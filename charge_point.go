@@ -189,20 +189,22 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 
 // Waits for a response to a certain Call
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
-	deadline := time.Now().Add(csms.Timeout)
+	deadline := time.Now().Add(cp.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
+			log.Printf("[WEBSOCKET][RECEIVED] %v", r1.UniqueId)
 			if r1.UniqueId == uniqueId {
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
+			log.Printf("[WEBSOCKET][RECEIVED] %v", r2.UniqueId)
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
 			}
 		case <-time.After(time.Until(deadline)):
 			return nil, nil, &TimeoutError{
-				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", csms.Timeout, uniqueId),
+				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.Timeout, uniqueId),
 			}
 		}
 	}
