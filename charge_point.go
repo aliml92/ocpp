@@ -96,7 +96,7 @@ func (cp *ChargePoint) reader() {
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
 					cp.Out <- call.createCallResult(responsePayload)
-					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
+					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
 						afterHandler(cp.Id, call.Payload)
 					}
 				}
