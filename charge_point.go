@@ -88,6 +88,8 @@ func (cp *ChargePoint) reader() {
 			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
+				// log response
+				log.Printf("[WEBSOCKET][RESPONSE] %v", responsePayload)
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
