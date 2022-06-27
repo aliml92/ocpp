@@ -36,14 +36,13 @@ type ChargePoint struct {
 }
 
 
-// DRAFTING CSMS
+// CSMS acts as a central hub for all ChargePoints for now
 type CSMS struct {
 	ChargePoints sync.Map
 }
 
 
-
-func NewCSMS(timeout int) *CSMS {
+func NewCSMS() *CSMS {
 	csms = &CSMS{
 		ChargePoints: sync.Map{},
 	}
