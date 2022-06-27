@@ -26,25 +26,38 @@ type ChargePoint struct {
 	Id              string                                   // chargePointId
 	Out             chan *[]byte                             // channel to send messages to the ChargePoint
 	In              chan *[]byte                             // channel to receive messages from the ChargePoint
-	MessageHandlers map[string]func(Payload) Payload 		 // map to store CP initiated actions
-	AfterHandlers   map[string]func(Payload)                 // map to store functions to be called after a CP initiated action
 	Mu              sync.Mutex                               // mutex ensuring that only one message is sent at a time
 	Cr              chan *CallResult
 	Ce              chan *CallError
-	Timeout         time.Duration 							 // timeout for waiting for a response
-	Extras		    interface{}
+	Extras          interface{}
+	Timeout 	    time.Duration
 }
 
 
-// CSMS acts as a central hub for all ChargePoints for now
+// DRAFTING CSMS
 type CSMS struct {
 	ChargePoints sync.Map
+	ActionHandlers map[string]func(*ChargePoint, Payload) Payload
+	AfterHandlers map[string]func(*ChargePoint, Payload)
+	Timeout time.Duration
 }
 
+func (csms *CSMS) On(action string, f func(*ChargePoint, Payload) Payload) *CSMS {
+	csms.ActionHandlers[action] = f
+	return csms
+}
 
-func NewCSMS() *CSMS {
+func (csms *CSMS) After(action string, f func(*ChargePoint,  Payload)) *CSMS {
+	csms.AfterHandlers[action] = f
+	return csms
+}
+
+func NewCSMS(timeout int) *CSMS {
 	csms = &CSMS{
 		ChargePoints: sync.Map{},
+		ActionHandlers: make(map[string]func(*ChargePoint, Payload) Payload),
+		AfterHandlers: make(map[string]func(*ChargePoint, Payload)),
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 	return csms
 }
@@ -72,9 +85,9 @@ func (cp *ChargePoint) reader() {
 		}
 		if call != nil {
 			// TODO: check if this is causing a deadlock
-			handler, ok := cp.MessageHandlers[call.Action]
+			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
-				responsePayload := handler(call.Payload)
+				responsePayload := handler(cp, call.Payload)
 				// TODO check if validation works as expected / CP <-
 				err = validate.Struct(responsePayload)
 				if err != nil {
@@ -82,8 +95,8 @@ func (cp *ChargePoint) reader() {
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
 					cp.Out <- call.createCallResult(responsePayload)
-					if afterHandler, ok := cp.AfterHandlers[call.Action]; ok {
-						afterHandler(call.Payload)
+					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
+						afterHandler(cp, call.Payload)
 					}
 				}
 			} else {
@@ -134,17 +147,17 @@ func (cp *ChargePoint) writer() {
 	}
 }
 
-// On method used by the implementers to register action handlers
-func (cp *ChargePoint) On(action string, f func(Payload) Payload) *ChargePoint {
-	cp.MessageHandlers[action] = f
-	return cp
-}
+// // On method used by the implementers to register action handlers
+// func (cp *ChargePoint) On(action string, f func(string, Payload) Payload) *ChargePoint {
+// 	cp.MessageHandlers[action] = f
+// 	return cp
+// }
 
-// After method used by the implementers to register functions to be called after a CP initiated action
-func (cp *ChargePoint) After(action string, f func(Payload)) *ChargePoint {
-	cp.AfterHandlers[action] = f
-	return cp
-}
+// // After method used by the implementers to register functions to be called after a CP initiated action
+// func (cp *ChargePoint) After(action string, f func(string, Payload)) *ChargePoint {
+// 	cp.AfterHandlers[action] = f
+// 	return cp
+// }
 
 // Call method   used by the implementers to execute a CSMS initiated action
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
@@ -176,7 +189,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 
 // Waits for a response to a certain Call
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
-	deadline := time.Now().Add(cp.Timeout)
+	deadline := time.Now().Add(csms.Timeout)
 	for {
 		select {
 		case r1 := <-cp.Cr:
@@ -189,7 +202,7 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 			}
 		case <-time.After(time.Until(deadline)):
 			return nil, nil, &TimeoutError{
-				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.Timeout, uniqueId),
+				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", csms.Timeout, uniqueId),
 			}
 		}
 	}
@@ -203,8 +216,6 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		Id:              id,
 		Out:             make(chan *[]byte),
 		In:              make(chan *[]byte),
-		MessageHandlers: make(map[string]func(Payload) Payload),
-		AfterHandlers:   make(map[string]func(Payload)),
 		Cr:              make(chan *CallResult, 1),
 		Ce:              make(chan *CallError, 1),
 		Timeout:         time.Second * 10,
