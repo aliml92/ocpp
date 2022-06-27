@@ -29,7 +29,7 @@ type ChargePoint struct {
 	Mu              sync.Mutex                               // mutex ensuring that only one message is sent at a time
 	Cr              chan *CallResult
 	Ce              chan *CallError
-	Extras          interface{}
+	Extras          map[string]interface{}
 	Timeout 	    time.Duration
 }
 
@@ -218,6 +218,7 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		In:              make(chan *[]byte),
 		Cr:              make(chan *CallResult, 1),
 		Ce:              make(chan *CallError, 1),
+		Extras: 		 make(map[string]interface{}),
 		Timeout:         time.Second * 10,
 	}
 	go cp.reader()
