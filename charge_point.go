@@ -96,7 +96,12 @@ func (cp *ChargePoint) reader() {
 					// TODO simply log the error
 					log.Printf("[ERROR | VALIDATION] %v", err)
 				} else {
+					// lock to ensure that only one message is sent at a time
+					cp.Mu.Lock()
 					cp.Out <- call.createCallResult(responsePayload)
+					cp.Mu.Unlock()
+					// sleep for a bit to make sure the message is sent
+					time.Sleep(time.Second)
 					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
 						afterHandler(cp, call.Payload)
 					}
