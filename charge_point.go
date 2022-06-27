@@ -223,8 +223,8 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		Id:              id,
 		Out:             make(chan *[]byte),
 		In:              make(chan *[]byte),
-		Cr:              make(chan *CallResult,2),
-		Ce:              make(chan *CallError,2),
+		Cr:              make(chan *CallResult),
+		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
 		Timeout:         time.Second * 10,
 	}
