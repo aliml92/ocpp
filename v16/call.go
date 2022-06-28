@@ -49,7 +49,7 @@ type StartTransactionReq struct {
 
 type StatusNotificationReq struct {
 	ConnectorId     int    `json:"connectorId" validate:"required,gte=0"`
-	ErrorCode       string `json:"errorCode" validate:"required,ErrorCode"`
+	ErrorCode       string `json:"errorCode" validate:"required,ChargePointErrorCode"`
 	Info            string `json:"info,omitempty" validate:"max=50"`
 	Status          string `json:"status" validate:"required,ChargePointStatus"`
 	Timestamp       string `json:"timestamp,omitempty" validate:"ISO8601date"`
