@@ -156,6 +156,9 @@ func isValidValueFormat(fl validator.FieldLevel) bool {
 func isValidMeasurand(fl validator.FieldLevel) bool {
 	measurand := fl.Field().String()
 	cases := []string{
+		"Current.Export",
+		"Current.Import",
+		"Current.Offered",
 		"Energy.Active.Import.Register",
 		"Energy.Active.Export.Register",
 		"Energy.Reactive.Import.Register",
