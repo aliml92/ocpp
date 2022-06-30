@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
@@ -76,7 +75,7 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 	"UpdateFirmware":                uconf[v16.UpdateFirmwareConf],
 }
 
-var lock sync.RWMutex
+
 
 type OCPPError struct {
 	id    string
@@ -253,6 +252,8 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			}
 			return nil, nil, nil, e
 		}
+		// print the rm
+		fmt.Println(rm)
 		p, err = unmarshalReq(a, &rm[3])
 		var ocppErr *OCPPError
 		if err != nil {
@@ -296,8 +297,6 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	lock.RLock()
-	defer lock.RUnlock()
 	a, ok := reqmap[mAction]
 	if !ok {
 		e := &OCPPError{
