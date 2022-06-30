@@ -1,6 +1,12 @@
 module github.com/aliml92/ocpp
 
 go 1.18
+retract ( 
+	v0.1.0
+	v0.2.0
+	v1.0.0
+	v1.0.1
+)	
 
 require (
 	github.com/google/uuid v1.3.0
@@ -15,8 +21,3 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
 
-retract (
-    v0.2.0 // Published accidentally.
-    v0.1.0 // Contains retractions only.
-	v1.0.0 // Contains retractions only.
-)
