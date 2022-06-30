@@ -15,12 +15,12 @@ type MeterValue struct {
 
 type SampledValue struct {
 	Value  	    string 			`json:"value" validate:"required"`
-	Context 	string 			`json:"context,omitempty" validate:"ReadingContext"`
-	Format 	    string 			`json:"format,omitempty" validate:"ValueFormat"`
-	Measurand   string 			`json:"measurand,omitempty" validate:"Measurand"`
-	Phase     	string 			`json:"phase,omitempty" validate:"Phase"`
-	Location    string 			`json:"location,omitempty" validate:"Location"`
-	Unit 	    string 			`json:"unit,omitempty" validate:"UnitOfMeasure"`
+	Context 	string 			`json:"context,omitempty" validate:"omitempty,ReadingContext"`
+	Format 	    string 			`json:"format,omitempty" validate:"omitempty,ValueFormat"`
+	Measurand   string 			`json:"measurand,omitempty" validate:"omitempty,Measurand"`
+	Phase     	string 			`json:"phase,omitempty" validate:"omitempty,Phase"`
+	Location    string 			`json:"location,omitempty" validate:"omitempty,Location"`
+	Unit 	    string 			`json:"unit,omitempty" validate:"omitempty,UnitOfMeasure"`
 }
 
 
@@ -30,16 +30,17 @@ type ChargingProfile struct {
 	StackLevel 			  	int     	   `json:"stackLevel" validate:"required,gte=0"`
 	ChargingProfilePurpose 	string         `json:"chargingProfilePurpose" validate:"required,ChargingProfilePurposeType"`
 	ChargingProfileKind 	string         `json:"chargingProfileKind" validate:"required,ChargingProfileKindType"`
-	RecurrencyKind 			string         `json:"recurrencyKind,omitempty" validate:"RecurrencyKindType"`
-	ValidFrom 				string         `json:"validFrom,omitempty" validate:"ISO8601date"`
-	ValidTo 				string         `json:"validTo,omitempty" validate:"ISO8601date"`
+	Context 	string 			`json:"context,omitempty" validate:"omitempty,ReadingContext"`
+	RecurrencyKind 			string         `json:"recurrencyKind,omitempty" validate:"omitempty,RecurrencyKindType"`
+	ValidFrom 				string         `json:"validFrom,omitempty" validate:"omitempty,ISO8601date"`
+	ValidTo 				string         `json:"validTo,omitempty" validate:"omitempty,ISO8601date"`
 	ChargingSchedule 		ChargingSchedule `json:"chargingSchedule" validate:"required,dive,required"`   
 }
 
 
 type ChargingSchedule struct {
 	Duration 				int 			`json:"duration,omitempty"`
-	StartSchedule 			string 			`json:"startSchedule,omitempty" validate:"ISO8601date"`
+	StartSchedule 			string 			`json:"startSchedule,omitempty" validate:"omitempty,ISO8601date"`
 	ChargingRateUnit 		string 			`json:"chargingRateUnit" validate:"required,ChargingRateUnitType"`
 	ChargingSchedulePeriod  []ChargingSchedulePeriod `json:"chargingSchedulePeriod" validate:"required,dive,required"`
 	MinChargingRate 		float32 		 `json:"minChargingRate,omitempty"`
@@ -72,7 +73,7 @@ type CertificateHashDataType struct {
 type FirmwareType struct {
 	Location 				string 			`json:"location" validate:"required,max=512"`
 	RetrieveDateTime 		string 			`json:"retrieveDate" validate:"required,ISO8601date"`
-	InstallDateTime 		string 			`json:"installDate,omitempty" validate:"ISO8601date"`
+	InstallDateTime 		string 			`json:"installDate,omitempty" validate:"omitempty,ISO8601date"`
 	SigningCertificate 	    string   		`json:"signingCertificate" validate:"required,max=5500"`
 	Signature 				string 			`json:"signature" validate:"required,max=800"`
 }
