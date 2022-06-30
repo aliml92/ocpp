@@ -59,7 +59,7 @@ type ClearChargingProfileConf struct {
 type GetCompositeScheduleConf struct {
 	Status           string           `json:"status" validate:"required,GetCompositeScheduleStatus"`
 	ConnectorId      int              `json:"connectorId" validate:"required,gte=0"`
-	ScheduleStart    string           `json:"scheduleStart,omitempty" validate:"ISO8601date"`
+	ScheduleStart    string           `json:"scheduleStart,omitempty" validate:"omitempty,ISO8601date"`
 	ChargingSchedule ChargingSchedule `json:"chargingSchedule,omitempty"`
 }
 
