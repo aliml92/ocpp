@@ -36,7 +36,7 @@ type HeartbeatReq struct {
 type MeterValuesReq struct {
 	ConnectorId   *int        `json:"connectorId" validate:"required,gte=0"`
 	TransactionId int        `json:"transactionId"`
-	MeterValue    MeterValue `json:"meterValue" validate:"required,dive,required"`
+	MeterValue    []MeterValue `json:"meterValue" validate:"required,dive,required"`
 }
 
 type StartTransactionReq struct {
@@ -63,7 +63,7 @@ type StopTransactionReq struct {
 	Timestamp       string     `json:"timestamp" validate:"required,ISO8601date"`
 	TransactionId   int        `json:"transactionId" validate:"required"`
 	Reason          string     `json:"reason,omitempty" validate:"Reason"`
-	TransactionData MeterValue `json:"transactionData,omitempty" validate:"dive,required"`
+	TransactionData []MeterValue `json:"transactionData,omitempty" validate:"dive,required"`
 }
 
 type CancelReservationReq struct {

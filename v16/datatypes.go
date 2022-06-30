@@ -10,7 +10,7 @@ type IdTagInfo struct {
 
 type MeterValue struct {
 	Timestamp       string              `json:"timestamp" validate:"required,ISO8601date"`
-	SampledValue    SampledValue        `json:"sampledValue" validate:"required,dive,required"`
+	SampledValue    []SampledValue        `json:"sampledValue" validate:"required,dive,required"`
 }
 
 type SampledValue struct {
