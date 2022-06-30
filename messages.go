@@ -253,7 +253,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			return nil, nil, nil, e
 		}
 		// print the rm
-		fmt.Println(rm)
+		// fmt.Println(rm)
 		p, err = unmarshalReq(a, &rm[3])
 		var ocppErr *OCPPError
 		if err != nil {
