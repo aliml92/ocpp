@@ -14,3 +14,9 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
+
+retract (
+    v0.2.0 // Published accidentally.
+    v0.1.0 // Contains retractions only.
+	v1.0.0 // Contains retractions only.
+)
