@@ -115,6 +115,7 @@ func (cp *ChargePoint) reader() {
 			}
 		}
 		if callResult != nil {
+			log.Printf("[WEBSOCKET][CALL_RESULT] %v", callResult)
 			cp.Cr <- callResult
 		}
 		if callError != nil {
