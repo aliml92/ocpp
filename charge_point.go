@@ -227,7 +227,7 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		Cr:              make(chan *CallResult),
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
-		Timeout:         time.Second * 10,
+		Timeout:         time.Second * 30,
 	}
 	go cp.reader()
 	go cp.writer()
