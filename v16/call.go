@@ -106,8 +106,8 @@ type GetDiagnosticsReq struct {
 	Location      string `json:"location" validate:"required"`
 	Retries       *int    `json:"retries,omitempty" validate:"gte=0"`
 	RetryInterval *int    `json:"retryInterval,omitempty" validate:"gte=0"`
-	StartTime     string `json:"startTime,omitempty" validate:"omitempty,ISO8601date"`
-	StopTime      string `json:"stopTime,omitempty" validate:"omitempty,ISO8601date"`
+	StartTime     string  `json:"startTime,omitempty" validate:"omitempty,ISO8601date"`
+	StopTime      string  `json:"stopTime,omitempty" validate:"omitempty,ISO8601date"`
 }
 
 type GetLocalListVersionReq struct{}
