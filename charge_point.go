@@ -101,7 +101,7 @@ func (cp *ChargePoint) reader() {
 					// sleep for a bit to make sure the message is sent
 					time.Sleep(time.Second)
 					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
-						afterHandler(cp, call.Payload)
+						go afterHandler(cp, call.Payload)
 					}
 				}
 			} else {
