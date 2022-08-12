@@ -90,3 +90,61 @@ type GetCertificateStatusResponse struct {
 type GetChargingProfilesResponse struct {
 	
 }
+
+
+
+
+
+//////////////
+
+package temp
+
+
+type GetCompositeScheduleRe struct {
+	Status       string          			`json:"status" validate:"required,GenericStatusEnumType"`
+	Schedule     CompositeScheduleType		`json:"schedule,omitempty"`
+	StatusInfo   StatusInfoType				`json:"statusInfo,omitempty"`
+}
+
+type GetDisplayMessagesRes struct {
+	Status       string          			`json:"status" validate:"required,GetDisplayMessagesStatusEnumType"`
+	StatusInfo   StatusInfoType				`json:"statusInfo,omitempty"`
+}
+
+type GetInstalledCertificateIdsRes struct {
+	Status       				string          						`json:"status" validate:"required,GetInstalledCertificateIdsStatusEnumType"`
+	CertificateHashDataChain 	[]CertificateHashDataChainType			`json:"certificateHashDataChain,omitempty"`
+	StatusInfo   				StatusInfoType							`json:"statusInfo,omitempty"`
+}
+
+type GetLocalListVersionRes struct {
+	VersionNumber                *int                                    `json:"versionNumber" validate:"required"`
+}
+
+type GetLogRes struct {
+	Status       string          			`json:"status" validate:"required,LogStatusEnumType"`
+	Filename     string                     `json:"filename,omitempty"`
+	StatusInfo   StatusInfoType				`json:"statusInfo,omitempty"`   
+}
+
+
+type GetMonitoringReportRes struct {
+	Status       string          			`json:"status" validate:"required,GenericDeviceModelStatusEnumType"`
+	StatusInfo   StatusInfoType				`json:"statusInfo,omitempty"`  
+}
+
+
+type GetReportRes struct {
+	Status       string          			`json:"status" validate:"required,GenericDeviceModelStatusEnumType"`
+	StatusInfo   StatusInfoType				`json:"statusInfo,omitempty"`
+}
+
+
+type GetTransactionStatusRes struct {
+	OngoingIndicator       bool 			`json:"ongoingIndicator,omitempty"`
+	MessagesInQueue        bool 			`json:"messagesInQueue" validate:"required"`
+}
+
+type GetVariablesRes struct {
+	GetVariableResult      []GetVariableResultType  `json:"getVariableResult" validate:"required,dive,required"`  
+}

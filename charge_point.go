@@ -72,7 +72,7 @@ func (cp *ChargePoint) reader() {
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[WEBSOCKET][ERROR][READER] %v", err)
+				log.Printf("[WEBSOCKET | ERROR] %v", err)
 				// delete charge point from ChargePoints map
 				csms.ChargePoints.Delete(cp.Id)
 			}
@@ -84,13 +84,10 @@ func (cp *ChargePoint) reader() {
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
-			// TODO: check if this is causing a deadlock
 			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				// log response
-				log.Printf("[WEBSOCKET][RESPONSE] %v", responsePayload)
-				// TODO check if validation works as expected / CP <-
+				log.Printf("[WEBSOCKET | ERROR] %v", responsePayload)
 				err = validate.Struct(responsePayload)
 				if err != nil {
 					// TODO simply log the error
@@ -115,7 +112,6 @@ func (cp *ChargePoint) reader() {
 			}
 		}
 		if callResult != nil {
-			log.Printf("[WEBSOCKET][CALL_RESULT] %v", callResult)
 			cp.Cr <- callResult
 		}
 		if callError != nil {
@@ -130,24 +126,21 @@ func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
 		if !ok {
-			log.Printf("[WEBSOCKET][ERROR][WRITER1] Channel closed")
 			cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
 		w, err := cp.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR][WRITER2] %v", err)
+			log.Printf("[WEBSOCKET | ERROR] %v", err)
 			return
 		}
 		i, err := w.Write(*message)
 		if err != nil {
-			log.Printf("[WEBSOCKET][ERROR][WRITER3] %v", err)
 			return
 		}
-		log.Printf("[WEBSOCKET][SENT] %v", i)
+		log.Printf("[WEBSOCKET | SENT] %v", i)
 		if err := w.Close(); err != nil {
 			csms.ChargePoints.Delete(cp.Id)
-			log.Printf("[WEBSOCKET][ERROR][WRITER4] %v", err)
 			return
 		}
 	}
@@ -199,12 +192,12 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 	for {
 		select {
 		case r1 := <-cp.Cr:
-			log.Printf("[WEBSOCKET][RECEIVED] %v", r1.UniqueId)
+			log.Printf("[WEBSOCKET | RECEIVED] %v", r1.UniqueId)
 			if r1.UniqueId == uniqueId {
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
-			log.Printf("[WEBSOCKET][RECEIVED] %v", r2.UniqueId)
+			log.Printf("[WEBSOCKET | RECEIVED] %v", r2.UniqueId)
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
 			}
@@ -227,7 +220,7 @@ func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint 
 		Cr:              make(chan *CallResult),
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
-		Timeout:         time.Second * 10,
+		Timeout:         csms.Timeout,
 	}
 	go cp.reader()
 	go cp.writer()
