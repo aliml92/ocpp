@@ -116,9 +116,10 @@ func init(){
 	Validate.RegisterValidation("TriggerReasonEnumType",  isTriggerReasonEnumType)
 	Validate.RegisterValidation("UnlockStatusEnumType",  isUnlockStatusEnumType)
 	Validate.RegisterValidation("UnpublishFirmwareStatusEnumType",  isUnpublishFirmwareStatusEnumType)
-	Validate.RegisterValidation("UpdateEnumType",  UpdateEnumType)
+	Validate.RegisterValidation("UpdateEnumType",  isUpdateEnumType)
 	Validate.RegisterValidation("UpdateFirmwareStatusEnumType",  isUpdateFirmwareStatusEnumType)
 	Validate.RegisterValidation("UpdateFirmwareStatusEnumType",  isUpdateFirmwareStatusEnumType)
+	Validate.RegisterValidation("UploadLogStatusEnumType",  isUploadLogStatusEnumType)
 	Validate.RegisterValidation("VPNEnumType",  isVPNEnumType)				
 
 }
@@ -457,3 +458,781 @@ func isDataTransferStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
+func isDeleteCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Failed", "NotFound":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isDisplayMessageStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"NotSupportedMessageFormat",
+		"Rejected",
+		"NotSupportedPriority",
+		"NotSupportedState",
+		"UnknownTransaction",
+	}
+	return contains(cases, enum)
+}
+
+func isEnergyTransferModeEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "DC", "AC_single_phase", "AC_two_phase", "AC_three_phase":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isEventNotificationEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "HardWiredNotification", "HardWiredMonitor", "PreconfiguredMonitor", "CustomMonitor":
+		return true
+	default:
+		return false
+	}
+}
+
+func isEventTriggerEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Alerting", "Delta", "Periodic":
+		return true
+	default:
+		return false
+	}
+}
+
+func isFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Downloaded",
+		"DownloadFailed",
+		"Downloading",
+		"DownloadScheduled",
+		"DownloadPaused",
+		"Idle",
+		"InstallationFailed",
+		"Installing",
+		"Installed",
+		"Installed",
+		"InstallRebooting",
+		"InstallScheduled",
+		"InstallVerificationFailed",
+		"InvalidSignature",
+		"SignatureVerified",
+	}
+	return contains(cases, enum)
+}
+
+func isGenericDeviceModelStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "NotSupported", "EmptyResultSet":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isGenericStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+func isGetCertificateIdUseEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"V2GRootCertificate",
+		"MORootCertificate",
+		"CSMSRootCertificate",
+		"V2GCertificateChain",
+		"ManufacturerRootCertificate",
+	}
+	return contains(cases, enum)
+}
+
+func isGetCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Failed":
+		return true
+	default:
+		return false
+	}
+}
+
+func isGetChargingProfileStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "NoProfiles":
+		return true
+	default:
+		return false
+	}
+}
+
+func isGetDisplayMessagesStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Unknown":
+		return true
+	default:
+		return false
+	}
+}
+
+func isGetInstalledCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "NotFound":
+		return true
+	default:
+		return false
+	}
+}
+
+func isGetVariableStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"Rejected",
+		"UnknownComponent",
+		"UnknownVariable",
+		"NotSupportedAttributeType",
+	}
+	return contains(cases, enum)
+}
+
+
+func isHashAlgorithmEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "SHA256", "SHA384", "SHA512":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isIdTokenEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Central",
+		"eMAID",
+		"ISO14443",
+		"ISO15693",
+		"KeyCode",
+		"Local",
+		"MacAddress",
+		"NoAuthorization",
+	}
+	return contains(cases, enum)
+}
+
+func isInstallCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "Failed":
+		return true
+	default:
+		return false
+	}
+}
+
+func isInstallCertificateUseEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "V2GRootCertificate", "MORootCertificate", "CSMSRootCertificate", "ManufacturerRootCertificate":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isIso15118EVCertificateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Failed":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isLocationEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Body",
+		"Cable",
+		"EV",
+		"Inlet",
+		"Outlet",
+	}
+	return contains(cases, enum)
+}
+
+
+func isLogEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "DiagnosticsLog", "SecurityLog":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isLogStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "AcceptedCancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func isMeasurandEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Current.Export",
+		"Current.Import",
+		"Current.Offered",
+		"Energy.Active.Export.Register",
+		"Energy.Active.Import.Register",
+		"Enerfy.Reactive.Export.Register",
+		"Energy.Reactive.Import.Register",
+		"Energy.Active.Export.Interval",
+		"Energy.Active.Import.Interval",
+		"Energy.Active.Net",
+		"Energy.Reactive.Export.Interval",
+		"Energy.Reactive.Import.Interval",
+		"Energy.Reactive.Net",
+		"Energy.Apparent.Net",
+		"Energy.Apparent.Import",
+		"Energy.Apparent.Export",
+		"Frequncy",
+		"Power.Active.Export",
+		"Power.Active.Import",
+		"Power.Factor",
+		"Power.Offered",
+		"Power.Reactive.Export",
+		"Power.Reactive.Import",
+		"SoC",
+		"Voltage",
+	}
+	return contains(cases, enum)
+}
+
+func isMessageFormatEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "ASCII", "HTML", "URI", "UTF8":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isMessagePriorityEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "AlwaysFront", "InFront", "NormalCycle":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isMessageStateEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Charging", "Faulted", "Idle", "Unavailable":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isMessageTriggerEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"BootNotification",
+		"LogStatusNotification",
+		"FirmawareStatusNotification",
+		"Heartbeat",
+		"MeterValues",
+		"SignChargingStationCertificate",
+		"SignV2GCertificate",
+		"StatusNotification",
+		"TransactionEvent",
+		"SignCombinedCertificate",
+		"PublishFirmwareStatusNotification",
+	}
+	return contains(cases, enum)
+}
+
+func isMonitorEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"UpperThreshold",
+		"LowerThreshold",
+		"Delta",
+		"Periodic",
+		"PeriodicClockAligned",
+	}
+	return contains(cases, enum)
+}
+
+func isMonitoringBaseEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "All", "FactoryDefault", "HardWiredOnly":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isMonitoringCriterionEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "ThresholdMonitoring", "DeltaMonitoring", "PeriodicMonitoring":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isMutabilityEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "ReadOnly", "WriteOnly", "ReadWrite":
+		return true
+	default:
+		return false
+	}
+}
+
+func isNotifyEVChargingNeedsStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "Processing":
+		return true
+	default:
+		return false
+	}
+}
+
+func isOCPPInterfaceEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Wired0",
+		"Wired1",
+		"Wired2",
+		"Wired3",
+		"Wireless0",
+		"Wireless1",
+		"Wireless2",
+		"Wireless3",
+	}
+	return contains(cases, enum)
+}
+
+
+
+func isOCPPTransportEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "JSON", "SOAP":
+		return true
+	default:
+		return false
+	}
+}
+
+
+
+func isOCPPVersionEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "OCPP12", "OCPP15", "OCPP16", "OCPP20":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isOperationalStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "InOperative", "Operative":
+		return true
+	default:
+		return false
+	}
+}
+
+func isPhaseEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"L1",
+		"L2",
+		"L3",
+		"N",
+		"L1-N",
+		"L2-N",
+		"L3-N",
+		"L1-L2",
+		"L2-L3",
+		"L3-L1",
+	}
+	return contains(cases, enum)
+}
+
+func isPublishFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Idle",
+		"DownloadScheduled",
+		"Downloading",
+		"Downloaded",
+		"Published",
+		"DownloadFailed",
+		"DownloadPaused",
+		"InvalidChecksum",
+		"ChecksumVerified",
+		"PublishFailed",
+	}
+	return contains(cases, enum)
+}
+
+
+func isReadingContextEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Interruption.Begin",
+		"Interruption.End",
+		"Other",
+		"Sample.Clock",
+		"Sample.Periodic",
+		"Transaction.Begin",
+		"Transaction.End",
+		"Trigger",
+	}
+	return contains(cases, enum)
+}
+
+func isReasonEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"DeAuthorized",
+		"EmergencyStop",
+		"EnergyLimitReached",
+		"EVDisconnected",
+		"GroundFault",
+		"ImmediateReset",
+		"Local",
+		"LocalOutOfCredit",
+		"MeterPass",
+		"Other",
+		"OvercurrentFault",
+		"PowerLoss",
+		"PowerQuality",
+		"Reboot",
+		"Remote",
+		"SOCLimitReached",
+		"StoppedByEV",
+		"TimeLimitReached",
+		"Timeout",
+	}
+	return contains(cases, enum)
+}
+
+
+func isRecurrencyKindEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Daily", "Weekly":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isRegistrationStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Pending", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isReportBaseEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "ConfigurationInventory", "FullInventory", "SummaryInventory":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isRequestStartStopStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isReservationUpdateStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Expired", "Removed":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isReserveNowStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"Faulted",
+		"Occupied",
+		"Rejected",
+		"Unavailable",
+	}
+	return contains(cases, enum)
+}
+
+
+func isResetEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Immediate", "OnIdle":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isResetStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "Scheduled":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isSendLocalListStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "VersionMismatch":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isSetMonitoringStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"UnkownComponent",
+		"UnkownVariable",
+		"UnsupportedMonitorType",
+		"Rejected",
+		"Duplicate",
+	}
+	return contains(cases, enum)
+}
+
+
+func isSetNetworkProfileStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "Failed":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isSetVariableStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"Rejected",
+		"UnkownComponent",
+		"UnkownVariable",
+		"NotSupportedAttributeType",
+		"RebootRequired",
+	}
+	return contains(cases, enum)
+}
+
+
+func isTransactionEventEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Ended", "Started", "Updated":
+		return true
+	default:
+		return false
+	}
+}
+
+func isTriggerMessageStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Accepted", "Rejected", "NotImplemented":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isTriggerReasonEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Authorized",
+		"CablePluggedIn",
+		"ChargingRateChanged",
+		"ChargingStateChanged",
+		"Deauthorized",
+		"EnergyLimitReached",
+		"EVCommunicationLost",
+		"EVConnectTimeout",
+		"MeterValueClock",
+		"MeterValuePeriodic",
+		"TimeLimitReached",
+		"Trigger",
+		"UnlockCommand",
+		"StopAuthorized",
+		"EVDeparted",
+		"EVDetected",
+		"RemoteStop",
+		"RemoteStart",
+		"AbnormalCondition",
+		"SignedDataReceived",
+		"ResetCommand",
+	}
+	return contains(cases, enum)
+}
+
+
+
+func isUnlockStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Unlocked", "UnlockFailed", "OngoingAuthorizedTransaction", "UnkwownConnector":
+		return true
+	default:
+		return false
+	}
+}	
+
+func isUnpublishFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "DownloadOngoing", "NoFirmware", "Unpublished":
+		return true
+	default:
+		return false
+	}
+}
+
+
+func isUpdateEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "Differential", "Full":
+		return true
+	default:
+		return false
+	}
+}
+
+func isUpdateFirmwareStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"Accepted",
+		"Rejected",
+		"AcceptedCancelled",
+		"InvalidCertificate",
+		"RevokedCertificate",
+	}
+	return contains(cases, enum)
+}
+
+
+func isUploadLogStatusEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	cases := []string{
+		"BadMessage",
+		"Idle",
+		"NotSupportedOperation",
+		"PermissionDenied",
+		"Uploaded",
+		"UploadFailure",
+		"Uploading",
+		"AcceptedCancelled",
+	}
+	return contains(cases, enum)
+}
+
+func isVPNEnumType(fl validator.FieldLevel) bool {
+	enum := fl.Field().String()
+	switch enum {
+	case "IKEv2", "IPSec", "L2TP", "PPTP":
+		return true
+	default:
+		return false
+	}
+}
