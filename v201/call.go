@@ -4,7 +4,7 @@ package v201
 type AuthorizeReq struct {
 	Certificate 				string 				  `json:"certificate,omitempty" validate:"omitempty,max=5500"`
 	IdToken     				IdTokenType 		  `json:"idTokenType" validate:"required"`
-	Iso15118CertificateHashData []OCSPRequestDataType `json:"iso15118CertificateHashData,omitempty" validate:"omitempty,dive,required"`
+	Iso15118CertificateHashData []OCSPRequestDataType `json:"iso15118CertificateHashData,omitempty" validate:"omitempty,max=4,dive,required"`
 }
 
 
@@ -150,7 +150,7 @@ type GetLogReq struct {
 
 type GetMonitoringReportReq struct {
 	RequestId           *int        				`json:"requestId" validate:"required"`
-	MonitoringCriteria  []string    				`json:"monitoringCriteria,omitempty" validate:"omitempty,dive,required,MonitoringCriteriaEnumType"`
+	MonitoringCriteria  []string    				`json:"monitoringCriteria,omitempty" validate:"omitempty,max=3,dive,required,MonitoringCriteriaEnumType"`
 	ComponentVariable   []ComponentVariableType    	`json:"componentVariable,omitempty" validate:"omitempty,dive,required"`
 }
 
@@ -158,7 +158,7 @@ type GetMonitoringReportReq struct {
 
 type GetReportReq struct {
 	RequestId           *int        				`json:"requestId" validate:"required"`
-	ComponentCriteria   []string                    `json:"componentCriteria,omitempty" validate:"omitempty,dive,required,ComponentCriteriaEnumType"`
+	ComponentCriteria   []string                    `json:"componentCriteria,omitempty" validate:"omitempty,max=4,dive,required,ComponentCriteriaEnumType"`
 	ComponentVariable   []ComponentVariableType     `json:"componentVariable,omitempty" validate:"omitempty,dive,required"`  
 }
 
@@ -177,7 +177,7 @@ type HeartbeatReq struct {}
 
 
 type InstallCertificateReq struct {
-	CertificateType		string		`json:"certificate" validate:"required,InstallCertificateUseEnumType"` // todo: enum
+	CertificateType		string		`json:"certificateType" validate:"required,InstallCertificateUseEnumType"` // todo: enum
 	Certificate			string		`json:"certificate" validate:"required,max=5500"`
 }
 
@@ -195,7 +195,7 @@ type MeterValuesReq struct {
 
 
 type NotifyChargingLimitReq struct {
-	EvseId 				*int 			 		`json:"evseId,omitempty" validate:"omitempty,gt=0"`
+	EvseId 				int 			 		`json:"evseId,omitempty" validate:"omitempty,gt=0"`
 	ChargingLimit       ChargingLimitType 		`json:"chargingLimit" validate:"required"`
 	ChargingSchedule    []ChargingScheduleType 	`json:"chargingSchedule,omitempty" validate:"omitempty,dive,required"`
 }
@@ -244,7 +244,7 @@ type NotifyMonitoringReportReq struct {
 	Tbc		            bool					`json:"tbc,omitempty"`
 	SeqNo				*int					`json:"seqNo" validate:"gte=0"`
 	GeneratedAt			string					`json:"generatedAt" validate:"required,ISO8601date"`
-	Monitor             []MonitorDataType       `json:"monitor,omitempty" validate:"omitempty,dive,required"`
+	Monitor             []MonitoringDataType    `json:"monitor,omitempty" validate:"omitempty,dive,required"`
 
 }
 
@@ -269,7 +269,7 @@ type PublishFirmwareReq struct {
 type PublishFirmwareStatusNotificationReq struct {
 	Status				string					`json:"status" validate:"required,PublishFirmwareStatusEnumType"` // todo: enum
 	Location            []string                `json:"location,omitempty" validate:"omitempty,dive,required,max=512"`
-	RequestId           *int                    `json:"requestId,omiempty"`
+	RequestId           *int                    `json:"requestId,omitempty"`
 }
 
 
@@ -285,7 +285,7 @@ type ReportChargingProfilesReq struct {
 type RequestStartTransactionReq struct {
 	EvseId                  int                     `json:"evseId,omitempty" validate:"omitempty,gt=0"`
 	RemoteStartId           *int                    `json:"remoteStartId" validate:"required"`
-	idToken                 IdTokenType             `json:"idToken" validate:"required"`
+	IdToken                 IdTokenType             `json:"idToken" validate:"required"`
 	ChargingProfile         ChargingProfileType     `json:"chargingProfile,omitempty"`
 	GroupIdToken            IdTokenType             `json:"groupIdToken,omitempty"`
 }
@@ -347,7 +347,7 @@ type SetMonitoringBaseReq struct {
 
 
 type SetMonitoringLevelReq struct {
-	Severity                *int					`json:"severity" validate:"required,gte=0"` 
+	Severity                *int					`json:"severity" validate:"required,gte=0,lte=9"` 
 }
 
 type SetNetworkProfileReq struct {

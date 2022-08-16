@@ -11,6 +11,14 @@ import (
 
 var Validate = validator.New()
 
+func contains(elems []string, v string) bool {
+    for _, s := range elems {
+        if v == s {
+            return true
+        }
+    }
+    return false
+}
 
 
 // TODO: replace some validators with GenericStatusEnumType  
@@ -484,18 +492,6 @@ func isValidUnlockStatus(fl validator.FieldLevel) bool {
 
 
 
-
-func contains(elems []string, v string) bool {
-    for _, s := range elems {
-        if v == s {
-            return true
-        }
-    }
-    return false
-}
-
-
-
 func isValidCertificateStatusEnumType(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -640,3 +636,6 @@ func isValidUploadLogStatusEnumType(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, status)
 }
+
+
+

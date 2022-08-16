@@ -287,8 +287,8 @@ type StatusNotificationRes struct {}
 
 type TransactionEventRes struct {
 	TotalCost        			float32 			`json:"totalCost,omitempty" validate:"omitempty,min=0"`
-	ChargingPriority 			*int 				`json:"chargingPriority,omitempty" validate:"omitempty,min=0"`
-	IdTokenInfo	  	    		TokenInfoType 		`json:"idTokenInfo,omitempty"`
+	ChargingPriority 			*int 				`json:"chargingPriority,omitempty" validate:"omitempty,gte=-9,lte=9"`
+	IdTokenInfo	  	    		IdTokenInfoType 	`json:"idTokenInfo,omitempty"`
 	UpdatedPersonalMessage 		MessageContentType 	`json:"updatedPersonalMessage,omitempty"` 
 }
 
