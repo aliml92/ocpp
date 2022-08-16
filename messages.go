@@ -77,6 +77,12 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 
 
 
+
+// var reqmapv201 = map[string]func(*json.RawMessage) (Payload, error){
+
+// }
+
+
 type OCPPError struct {
 	id    string
 	code  string

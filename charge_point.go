@@ -21,37 +21,41 @@ type Payload interface{}
 
 // ChargePoint Represents a connected ChargePoint (also known as a Charging Station)
 type ChargePoint struct {
-	Proto           string
+	Proto           string                                   // OCPP protocol version
 	Conn            *websocket.Conn                          // the websocket connection
 	Id              string                                   // chargePointId
-	Out             chan *[]byte                             // channel to send messages to the ChargePoint
-	In              chan *[]byte                             // channel to receive messages from the ChargePoint
-	Mu              sync.Mutex                               // mutex ensuring that only one message is sent at a time
+	Out             chan *[]byte                             // outgoing message channel
+	In              chan *[]byte                             // incoming message channel
+	Mu              sync.Mutex                               // mutex ensures that only one message is sent at a time
 	Cr              chan *CallResult
 	Ce              chan *CallError
 	Extras          map[string]interface{}
-	Timeout 	    time.Duration
+	Timeout 	    time.Duration                            // timeout when waiting for a response from other party 
 }
 
 
-// DRAFTING CSMS
+// CSMS acts as main handler for ChargePoints
 type CSMS struct {
-	ChargePoints sync.Map
-	ActionHandlers map[string]func(*ChargePoint, Payload) Payload
-	AfterHandlers map[string]func(*ChargePoint, Payload)
-	Timeout time.Duration
+	ChargePoints sync.Map                               			// keeps track of all connected ChargePoints
+	ActionHandlers map[string]func(*ChargePoint, Payload) Payload   // register implemented action handler functions
+ 	AfterHandlers map[string]func(*ChargePoint, Payload)            // register after-action habdler functions 
+	Timeout time.Duration                                           // timeout when waiting for a response from other party
 }
 
+// register action handler function
 func (csms *CSMS) On(action string, f func(*ChargePoint, Payload) Payload) *CSMS {
 	csms.ActionHandlers[action] = f
 	return csms
 }
 
+// register after-action handler function
 func (csms *CSMS) After(action string, f func(*ChargePoint,  Payload)) *CSMS {
 	csms.AfterHandlers[action] = f
 	return csms
 }
 
+
+// create new CSMS instance acting as main handler for ChargePoints
 func NewCSMS(timeout int) *CSMS {
 	csms = &CSMS{
 		ChargePoints: sync.Map{},
@@ -63,7 +67,7 @@ func NewCSMS(timeout int) *CSMS {
 }
 
 
-// Websocket reader to read messages from ChargePoint
+// websocket reader to receive messages
 func (cp *ChargePoint) reader() {
 	defer func() {
 		cp.Conn.Close()
@@ -121,7 +125,7 @@ func (cp *ChargePoint) reader() {
 	}
 }
 
-// Websocket writer to send messages to the ChargePoint
+// websocket writer to send messages
 func (cp *ChargePoint) writer() {
 	for {
 		message, ok := <-cp.Out
@@ -146,19 +150,9 @@ func (cp *ChargePoint) writer() {
 	}
 }
 
-// // On method used by the implementers to register action handlers
-// func (cp *ChargePoint) On(action string, f func(string, Payload) Payload) *ChargePoint {
-// 	cp.MessageHandlers[action] = f
-// 	return cp
-// }
 
-// // After method used by the implementers to register functions to be called after a CP initiated action
-// func (cp *ChargePoint) After(action string, f func(string, Payload)) *ChargePoint {
-// 	cp.AfterHandlers[action] = f
-// 	return cp
-// }
 
-// Call method   used by the implementers to execute a CSMS initiated action
+// Call sends a message to other party (eg., ChargePoint, Central System)
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	id := uuid.New().String()
 	call := [4]interface{}{
@@ -186,7 +180,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	return nil, err
 }
 
-// Waits for a response to a certain Call
+// waitForResponse waits for a response to a Call with id
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
 	deadline := time.Now().Add(cp.Timeout)
 	for {
@@ -209,7 +203,7 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 	}
 }
 
-// NewChargePoint creates a new ChargePoint
+// NewChargepoint creates a new ChargePoint
 func NewChargePoint(conn *websocket.Conn, id string, proto string) *ChargePoint {
 	cp := &ChargePoint{
 		Proto:           proto,
