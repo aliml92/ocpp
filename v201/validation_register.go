@@ -456,3 +456,4 @@ func isDataTransferStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
+
