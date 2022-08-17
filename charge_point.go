@@ -138,6 +138,10 @@ func NewClient() *Client {
 	return client
 }
 
+// convert time.Duration to time.Time
+func (c *ChargePoint) Time(d time.Duration) time.Time {
+	return time.Now().Add(d)
+}
 
 
 // websocket reader to receive messages
@@ -147,7 +151,7 @@ func (cp *ChargePoint) reader() {
 	}()
 	_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PongWait))
 	cp.Conn.SetPongHandler(func(string) error {
-		log.Printf("[WEBSOCKET | PONG]")
+		log.Printf("[WEBSOCKET | PONG ]")
 		return cp.Conn.SetReadDeadline(time.Now().Add(cp.PongWait))
 	})
 	for {
@@ -233,7 +237,7 @@ func (cp *ChargePoint) writer() {
 			}
 		case <-ticker.C:
 			cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
-			if err := cp.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				log.Printf("[WEBSOCKET | PING | ERROR. ] %v", err)
 				return
 			}	
@@ -253,7 +257,7 @@ func (cp *ChargePoint) readerCsms() {
 		err := cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))
 		return err
 	})
-		
+	_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))	
 	for {
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
@@ -314,6 +318,7 @@ func (cp *ChargePoint) writerCsms() {
 	for {
 		select {
 		case message, ok := <-cp.Out:
+			_ = cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
 			if !ok {
 				cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
