@@ -167,7 +167,7 @@ func (cp *ChargePoint) reader() {
 			handler, ok := client.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				log.Printf("[WEBSOCKET | ERROR] %v", responsePayload)
+				log.Printf("[WEBSOCKET | PAYLOAD] %v", responsePayload)
 				err = validate.Struct(responsePayload)
 				if err != nil {
 					// TODO simply log the error
@@ -274,7 +274,7 @@ func (cp *ChargePoint) readerCsms() {
 			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				log.Printf("[WEBSOCKET | ERROR] %v", responsePayload)
+				log.Printf("[WEBSOCKET | PAYLOAD] %v", responsePayload)
 				err = validate.Struct(responsePayload)
 				if err != nil {
 					// TODO simply log the error
