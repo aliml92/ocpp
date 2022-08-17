@@ -205,7 +205,7 @@ func (cp *ChargePoint) reader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) writer() {
-	ticker := time.NewTicker(client.PingPeriod)
+	ticker := time.NewTicker(cp.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		cp.Conn.Close()
@@ -213,7 +213,7 @@ func (cp *ChargePoint) writer() {
 	for {
 		select {
 		case message, ok := <-cp.Out:
-			_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))			
+			_ = cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))			
 			if !ok {
 				cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -229,12 +229,12 @@ func (cp *ChargePoint) writer() {
 			}
 			log.Printf("[WEBSOCKET | SENT] %v", i)
 			if err := w.Close(); err != nil {
-				csms.ChargePoints.Delete(cp.Id)
 				return
 			}
 		case <-ticker.C:
-			cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
+			cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
 			if err := cp.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("[WEBSOCKET | PING | ERROR] %v", err)
 				return
 			}	
 		}
@@ -336,7 +336,7 @@ func (cp *ChargePoint) writerCsms() {
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
 			err := cp.Conn.WriteMessage(websocket.PingMessage, ping)
 			if err != nil {
-				log.Printf("[WEBSOCKET | ERROR] %v", err)
+				log.Printf("[WEBSOCKET | PING | ERROR] %v", err)
 				return
 			}		
 		}
