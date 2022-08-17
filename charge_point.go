@@ -41,7 +41,6 @@ type ChargePoint struct {
 	PongWait        time.Duration                            // pong wait in seconds         #client specific
 	PingPeriod      time.Duration                            // ping period in seconds       #client specific
 	PingIn          chan []byte                              // ping in channel              #server specific
-	IsClient        bool								     // chargePoint type 
 }
 
 
@@ -146,15 +145,15 @@ func (cp *ChargePoint) reader() {
 	defer func() {
 		cp.Conn.Close()
 	}()
-	_ = cp.Conn.SetReadDeadline(time.Now().Add(client.PongWait))
+	_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PongWait))
 	cp.Conn.SetPongHandler(func(string) error {
 		log.Printf("[WEBSOCKET | PONG]")
-		return cp.Conn.SetReadDeadline(time.Now().Add(client.PongWait))
+		return cp.Conn.SetReadDeadline(time.Now().Add(cp.PongWait))
 	})
 	for {
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.Printf("[WEBSOCKET | ERROR] %v", err)
 			}
 			break
@@ -165,7 +164,7 @@ func (cp *ChargePoint) reader() {
 			log.Printf("[ERROR | MSG] %v", err)
 		}
 		if call != nil {
-			handler, ok := csms.ActionHandlers[call.Action]
+			handler, ok := client.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
 				log.Printf("[WEBSOCKET | ERROR] %v", responsePayload)
@@ -178,7 +177,7 @@ func (cp *ChargePoint) reader() {
 					cp.Out <- call.createCallResult(responsePayload)
 					// sleep for a bit to make sure the message is sent
 					time.Sleep(time.Second)
-					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
+					if afterHandler, ok := client.AfterHandlers[call.Action]; ok {
 						go afterHandler(cp, call.Payload)
 					}
 				}
