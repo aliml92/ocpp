@@ -195,11 +195,11 @@ func (e *TimeoutError) Error() string {
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}]
 func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
-	var rm []json.RawMessage
-	var mti uint8 //  MessageTypeId
-	var ui string //  UniqueId
-	var a string  //  Action
-	var p Payload //  Payload
+	var rm []json.RawMessage   	//  raw message
+	var mti uint8 				//  MessageTypeId
+	var ui string 				//  UniqueId
+	var a string  				//  Action
+	var p Payload 				//  Payload
 	var c *Call
 	var cr *CallResult
 	var ce *CallError
