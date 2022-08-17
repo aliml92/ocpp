@@ -234,7 +234,7 @@ func (cp *ChargePoint) writer() {
 		case <-ticker.C:
 			cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
 			if err := cp.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Printf("[WEBSOCKET | PING | ERROR] %v", err)
+				log.Printf("[WEBSOCKET | PING | ERROR. ] %v", err)
 				return
 			}	
 		}
@@ -247,15 +247,14 @@ func (cp *ChargePoint) readerCsms() {
 	defer func() {
 		cp.Conn.Close()
 	}()
-	cp.Conn.SetPingHandler(func(msg string) error {
-		log.Printf("[WEBSOCKET | PING] %v", msg)
-		cp.PingIn <- []byte(msg)
+	cp.Conn.SetPingHandler(func(appData string) error {
+		log.Printf("[WEBSOCKET | PING] %v", appData)
+		cp.PingIn <- []byte(appData)
 		err := cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))
 		return err
 	})
-	_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))	
+		
 	for {
-		_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))	
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -304,6 +303,7 @@ func (cp *ChargePoint) readerCsms() {
 		if callError != nil {
 			cp.Ce <- callError
 		}
+		_ = cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))
 	}
 }
 
@@ -334,9 +334,9 @@ func (cp *ChargePoint) writerCsms() {
 			}
 		case ping := <-cp.PingIn:
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
-			err := cp.Conn.WriteMessage(websocket.PingMessage, ping)
+			err := cp.Conn.WriteMessage(websocket.PongMessage, ping)
 			if err != nil {
-				log.Printf("[WEBSOCKET | PING | ERROR] %v", err)
+				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
 				return
 			}		
 		}
