@@ -98,18 +98,18 @@ type Get15118EVCertificateReq struct {
 }
 
 
-type GetBaseReportRequest struct {
+type GetBaseReportReq struct {
 	RequestId 					int 					`json:"requestId"`
 	ReportBase					string 					`json:"reportBase" validate:"required,ReportBaseEnumType"`  // todo
 }
 
 
-type GetCertificateStatusRequest struct {
+type GetCertificateStatusReq struct {
 	OcspRequestData 	OCSPRequestDataType 			`json:"ocspRequestData" validate:"required"`
 }
 
 
-type GetChargingProfilesRequest struct {
+type GetChargingProfilesReq struct {
 	RequestId 					int 						 `json:"requestId" validate:"required"`
 	EvseId 						int 						 `json:"evseId,omitempty"`
 	ChargingProfile 			ChargingProfileCriterionType `json:"chargingProfile" validate:"required"`

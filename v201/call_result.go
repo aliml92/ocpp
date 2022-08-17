@@ -82,7 +82,7 @@ type Get15118EVCertificateRes struct {
 }
 
 
-type GetReportBaseRes struct {
+type GetBaseReportRes struct {
 	Status 		string 			`json:"status" validate:"required,GenericDeviceModelStatusEnumType"`  // todo
 	StatusInfo  StatusInfoType 	`json:"statusInfo,omitempty"`
 }
@@ -173,7 +173,7 @@ type NotifyChargingLimitRes struct {}
 type NotifyCustomerInformationRes struct {}
 
 
-type NotifyDisplayMessageRes struct {}
+type NotifyDisplayMessagesRes struct {}
 
 
 type NotifyEVChargingNeedsRes struct {
@@ -255,7 +255,7 @@ type SetMonitoringBaseRes struct {
 	StatusInfo   StatusInfoType 	`json:"statusInfo,omitempty" `
 }
 
-type SetMonigoringLevelRes struct {
+type SetMonitoringLevelRes struct {
 	Status 		 string        		`json:"status" validate:"required,GenericStatusEnumType"` // todo: validation register required
 	StatusInfo   StatusInfoType 	`json:"statusInfo,omitempty" `
 }
@@ -271,7 +271,7 @@ type SetVariableMonitoringRes struct {
 }
 
 
-type SetVariableRes struct {
+type SetVariablesRes struct {
 	SetVariableResult []SetVariableResultType `json:"setVariableResult" validate:"required,dive,required"`
 }
 
