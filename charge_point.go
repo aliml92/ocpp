@@ -398,7 +398,7 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 }
 
 // NewChargepoint creates a new ChargePoint
-func NewClientChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *ChargePoint {
+func NewChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *ChargePoint {
 	cp := &ChargePoint{
 		Proto:           proto,
 		Conn:            conn,
