@@ -13,4 +13,5 @@ The project is inspired by [mobility/ocpp](https://github.com/mobilityhouse/ocpp
 - [ ] implement `WebSocketPingInterval` configuration
 - [ ] add logging functonality
 - [ ] add validation disabling feature
+- [ ] add tests 
 - [ ] add documentation
