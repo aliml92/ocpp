@@ -240,7 +240,7 @@ func (cp *ChargePoint) writer() {
 		case message, ok := <-cp.Out:
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))			
 			if !ok {
-				cp.Conn.WriteMessage(websocket.CloseMessage, []byte("falcon"))
+				cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			w, err := cp.Conn.NextWriter(websocket.TextMessage)
@@ -259,7 +259,7 @@ func (cp *ChargePoint) writer() {
 		case <-ticker.C:
 			log.Printf("[WEBSOCKET | TICK | CLIENT ]")
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
-			if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
 				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
 				return
 			}	
@@ -365,7 +365,7 @@ func (cp *ChargePoint) writerCsms() {
 		case ping := <-cp.PingIn:
 			fmt.Println(ping)
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(csms.WriteWait))
-			err := cp.Conn.WriteMessage(websocket.PongMessage, ping)
+			err := cp.Conn.WriteMessage(websocket.PongMessage, []byte("o"))
 			if err != nil {
 				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
 				return
