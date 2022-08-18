@@ -165,11 +165,11 @@ func (cp *ChargePoint) reader() {
 	defer func() {
 		cp.Conn.Close()
 	}()
-	_ = cp.Conn.SetReadDeadline(client.getReadTimeout())
+	_ = cp.Conn.SetReadDeadline(time.Time{})
 	cp.Conn.SetPongHandler(func(appData string) error {
 		// print appData
 		log.Printf("Pong received: %v", appData)
-		return cp.Conn.SetReadDeadline(client.getReadTimeout())
+		return cp.Conn.SetReadDeadline(time.Time{})
 	})
 	for {
 		log.Printf("Waiting for message[client side]")
@@ -276,10 +276,11 @@ func (cp *ChargePoint) readerCsms() {
 	cp.Conn.SetPingHandler(func(appData string) error {
 		log.Printf("Ping received:  %v", appData)
 		cp.PingIn <- []byte(appData)
-		return cp.Conn.SetReadDeadline(csms.getReadTimeout())
+		return cp.Conn.SetReadDeadline(time.Time{})
 	})
-	_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())	
+	_ = cp.Conn.SetReadDeadline(time.Time{})	
 	for {
+		_ = cp.Conn.SetReadDeadline(time.Time{})
 		log.Printf("Waiting for message[server side]")
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
@@ -332,7 +333,6 @@ func (cp *ChargePoint) readerCsms() {
 			log.Printf("[WEBSOCKET | CALL_ERROR | SERVER ] %v", callError)
 			cp.Ce <- callError
 		}
-		_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	}
 }
 
