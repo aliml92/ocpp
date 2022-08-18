@@ -153,6 +153,7 @@ func (cp *ChargePoint) reader() {
 	cp.Conn.SetPongHandler(func(appData string) error {
 		// print appData
 		log.Printf("Pong received: %v", appData)
+		log.Println(appData)
 		return cp.Conn.SetReadDeadline(time.Now().Add(cp.PongWait))
 	})
 	for {
@@ -254,6 +255,7 @@ func (cp *ChargePoint) readerCsms() {
 	}()
 	cp.Conn.SetPingHandler(func(appData string) error {
 		log.Printf("Ping received:  %v", appData)
+		log.Println(appData)
 		cp.PingIn <- []byte(appData)
 		err := cp.Conn.SetReadDeadline(time.Now().Add(cp.PingWait))
 		return err
@@ -339,6 +341,7 @@ func (cp *ChargePoint) writerCsms() {
 				return
 			}
 		case ping := <-cp.PingIn:
+			fmt.Println(ping)
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(cp.WriteWait))
 			err := cp.Conn.WriteMessage(websocket.PongMessage, ping)
 			if err != nil {
