@@ -10,7 +10,7 @@ The project is inspired by [mobility/ocpp](https://github.com/mobilityhouse/ocpp
 ## TODOs
 
 - [ ] implement ocpp v2.0.1
-- [ ] implement `WebSocketPingInterval` configuration
+- [x] implement `WebSocketPingInterval` configuration #code refactoring need 
 - [ ] add logging functonality
 - [ ] add validation disabling feature
 - [ ] add tests 
