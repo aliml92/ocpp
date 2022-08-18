@@ -225,9 +225,14 @@ func (cp *ChargePoint) reader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) writer() {
+	if client.PingPeriod != 0 {
+		ticker := time.NewTicker(client.PingPeriod)
+		defer func() {
+			ticker.Stop()
+		}()
+	}
 	ticker := time.NewTicker(client.PingPeriod)
 	defer func() {
-		ticker.Stop()
 		cp.Conn.Close()
 	}()
 	for {
