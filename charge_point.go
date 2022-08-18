@@ -118,9 +118,9 @@ func NewCSMS() *CSMS {
 		ChargePoints: 	sync.Map{},
 		ActionHandlers: make(map[string]func(*ChargePoint, Payload) Payload),
 		AfterHandlers: 	make(map[string]func(*ChargePoint, Payload)),
-		ResTimeout: 	time.Second * 30,
-		WriteWait:    	time.Second * 10,
-		PingWait:     	time.Second * 60,
+		ResTimeout: 	30 * time.Second ,
+		WriteWait:    	10 * time.Second ,
+		PingWait:     	60 * time.Second ,
 	}
 	return csms
 }
@@ -146,26 +146,21 @@ func NewClient() *Client {
 	client = &Client{
 		ActionHandlers: make(map[string]func(*ChargePoint, Payload) Payload),
 		AfterHandlers: 	make(map[string]func(*ChargePoint, Payload)),
-		ResTimeout: 	time.Second * 30,
-		WriteWait:    	time.Second * 10,
-		PongWait:     	time.Second * 60,
-		PingPeriod:   	time.Second * 54,
+		ResTimeout: 	30 * time.Second ,
+		WriteWait:    	10 * time.Second ,
+		PongWait:     	60 * time.Second ,
+		PingPeriod:   	54 * time.Second ,
 	}
 	return client
-}
-
-// convert time.Duration to time.Time
-func (c *ChargePoint) Time(d time.Duration) time.Time {
-	return time.Now().Add(d)
 }
 
 
 // websocket reader to receive messages
 func (cp *ChargePoint) reader() {
+	_ = cp.Conn.SetReadDeadline(client.getReadTimeout())
 	defer func() {
 		cp.Conn.Close()
 	}()
-	_ = cp.Conn.SetReadDeadline(client.getReadTimeout())
 	cp.Conn.SetPongHandler(func(appData string) error {
 		// print appData
 		log.Printf("Pong received: %v", appData)
@@ -230,9 +225,9 @@ func (cp *ChargePoint) reader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) writer() {
-	// ticker := time.NewTicker(client.PingPeriod)
+	ticker := time.NewTicker(client.PingPeriod)
 	defer func() {
-		// ticker.Stop()
+		ticker.Stop()
 		cp.Conn.Close()
 	}()
 	for {
@@ -256,13 +251,13 @@ func (cp *ChargePoint) writer() {
 			if err := w.Close(); err != nil {
 				return
 			}
-		// case <-ticker.C:
-		// 	log.Printf("[WEBSOCKET | TICK | CLIENT ]")
-		// 	_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
-		// 	if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
-		// 		log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
-		// 		return
-		// 	}	
+		case <-ticker.C:
+			log.Printf("[WEBSOCKET | TICK | CLIENT ]")
+			_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
+			if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
+				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
+				return
+			}	
 		}
 	}
 }
@@ -270,16 +265,17 @@ func (cp *ChargePoint) writer() {
 
 
 func (cp *ChargePoint) readerCsms() {
-	defer func() {
-		cp.Conn.Close()
-	}()
+	_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	cp.Conn.SetPingHandler(func(appData string) error {
 		log.Printf("Ping received:  %v", appData)
 		cp.PingIn <- []byte(appData)
 		return cp.Conn.SetReadDeadline(csms.getReadTimeout())
-	})
-	_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())	
+	})	
+	defer func() {
+		cp.Conn.Close()
+	}()
 	for {
+		_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 		log.Printf("Waiting for message[server side]")
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
@@ -332,7 +328,6 @@ func (cp *ChargePoint) readerCsms() {
 			log.Printf("[WEBSOCKET | CALL_ERROR | SERVER ] %v", callError)
 			cp.Ce <- callError
 		}
-		_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	}
 }
 
