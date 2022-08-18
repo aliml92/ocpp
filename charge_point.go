@@ -65,6 +65,7 @@ func (c *CSMS) SetTimeoutConfig(resTimeout, writeWait, pingWait time.Duration) {
 
 func (c *CSMS) getReadTimeout() time.Time {
 	if c.PingWait == 0 {
+		log.Println("PingWait is 0")
 		return time.Time{}
 	}
 	return time.Now().Add(c.PingWait)
@@ -90,6 +91,7 @@ func (c *Client) SetTimeoutConfig(resTimeout, writeWait, pongWait, pingPeriod ti
 
 func (c *Client) getReadTimeout() time.Time {
 	if c.PongWait == 0 {
+		log.Println("PongWait is 0")
 		return time.Time{}
 	}
 	return time.Now().Add(c.PongWait)
