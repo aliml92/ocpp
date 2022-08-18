@@ -230,9 +230,9 @@ func (cp *ChargePoint) reader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) writer() {
-	ticker := time.NewTicker(client.PingPeriod)
+	// ticker := time.NewTicker(client.PingPeriod)
 	defer func() {
-		ticker.Stop()
+		// ticker.Stop()
 		cp.Conn.Close()
 	}()
 	for {
@@ -256,13 +256,13 @@ func (cp *ChargePoint) writer() {
 			if err := w.Close(); err != nil {
 				return
 			}
-		case <-ticker.C:
-			log.Printf("[WEBSOCKET | TICK | CLIENT ]")
-			_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
-			if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
-				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
-				return
-			}	
+		// case <-ticker.C:
+		// 	log.Printf("[WEBSOCKET | TICK | CLIENT ]")
+		// 	_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
+		// 	if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
+		// 		log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
+		// 		return
+		// 	}	
 		}
 	}
 }
