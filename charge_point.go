@@ -231,7 +231,6 @@ func (cp *ChargePoint) writer() {
 			ticker.Stop()
 		}()
 	}
-	ticker := time.NewTicker(client.PingPeriod)
 	defer func() {
 		cp.Conn.Close()
 	}()
