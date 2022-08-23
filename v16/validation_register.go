@@ -21,7 +21,7 @@ func contains(elems []string, v string) bool {
 }
 
 
-// TODO: replace some validators with GenericStatusEnumType  
+// replaces some validators with GenericStatusEnumType  
 func init(){
 
 	// register function to get tag name from json tags.
@@ -50,7 +50,7 @@ func init(){
 	Validate.RegisterValidation("AvailabilityType", isValidAvailabilityType)
 	Validate.RegisterValidation("AvailabilityStatus", isValidAvailabilityStatus)
 	Validate.RegisterValidation("ConfigurationStatus", isValidConfigurationStatus)
-	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatusEnumType)            // generic status enum type
+	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatusEnumType)            		// generic status enum type
 	Validate.RegisterValidation("ChargingProfilePurposeType", isValidChargingProfilePurposeType)
 	Validate.RegisterValidation("ChargingRateUnitType", isValidChargingRateUnitType)
 	Validate.RegisterValidation("ChargingProfileKindType", isValidChargingProfileKindType)
@@ -58,17 +58,17 @@ func init(){
 	Validate.RegisterValidation("ResetType", isValidResetType)
 	Validate.RegisterValidation("MessageTrigger", isValidMessageTrigger)
 	Validate.RegisterValidation("ClearChargingProfileStatus", isValidClearChargingProfileStatus)
-	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatusEnumType)        // generic status enum type
+	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatusEnumType)        		// generic status enum type
 	Validate.RegisterValidation("ReservationStatus", isValidReservationStatus)
-	Validate.RegisterValidation("ResetStatus", isValidGenericStatusEnumType)                 // generic status enum type
+	Validate.RegisterValidation("ResetStatus", isValidGenericStatusEnumType)                 		// generic status enum type
 	Validate.RegisterValidation("UpdateStatus", isValidUpdateStatus)
 	Validate.RegisterValidation("ChargingProfileStatus", isValidChargingProfileStatus)
 	Validate.RegisterValidation("TriggerMessageStatus", isValidTriggerMessageStatus)
 	Validate.RegisterValidation("UnlockStatus", isValidUnlockStatus)
-	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatusEnumType)         // generic status enum type
-	Validate.RegisterValidation("GetCompositeScheduleStatus", isValidGenericStatusEnumType)      // generic status enum type
+	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatusEnumType)        	// generic status enum type
+	Validate.RegisterValidation("GetCompositeScheduleStatus", isValidGenericStatusEnumType)      	// generic status enum type
 	Validate.RegisterValidation("FirmwareStatus", isValidFirmwareStatusEnumType)
-	Validate.RegisterValidation("CertificateSignedStatusEnumType", isValidGenericStatusEnumType) // generic status enum type
+	Validate.RegisterValidation("CertificateSignedStatusEnumType", isValidGenericStatusEnumType) 	// generic status enum type
 	Validate.RegisterValidation("CertificateStatusEnumType", isValidCertificateStatusEnumType)
 	Validate.RegisterValidation("CertificateUseTypeEnumType", isValidCertificateUseTypeEnumType)
 	Validate.RegisterValidation("DeleteCertificateStatusEnumType", isValidDeleteCertificateStatusEnumType)

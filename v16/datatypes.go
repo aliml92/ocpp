@@ -4,7 +4,7 @@ package v16
 
 type IdTagInfo struct {
 	ExpiryDate   string              `json:"expiryDate,omitempty" validate:"omitempty,ISO8601date"`
-	ParentIdTag  string              `json:"parentIdTag,omitempty" validate:"max=20"`
+	ParentIdTag  string              `json:"parentIdTag,omitempty" validate:"omitempty,max=20"`
 	Status       string              `json:"status" validate:"required,AuthorizationStatus"`
 }
 
@@ -25,15 +25,15 @@ type SampledValue struct {
 
 
 type ChargingProfile struct {
-	ChargingProfileId 	  	int     	   `json:"chargingProfileId" validate:"required,gte=0"`
-	TransactionId 		 	int     	   `json:"transactionId,omitempty"`
-	StackLevel 			  	int     	   `json:"stackLevel" validate:"required,gte=0"`
-	ChargingProfilePurpose 	string         `json:"chargingProfilePurpose" validate:"required,ChargingProfilePurposeType"`
-	ChargingProfileKind 	string         `json:"chargingProfileKind" validate:"required,ChargingProfileKindType"`
-	Context 	string 			`json:"context,omitempty" validate:"omitempty,ReadingContext"`
-	RecurrencyKind 			string         `json:"recurrencyKind,omitempty" validate:"omitempty,RecurrencyKindType"`
-	ValidFrom 				string         `json:"validFrom,omitempty" validate:"omitempty,ISO8601date"`
-	ValidTo 				string         `json:"validTo,omitempty" validate:"omitempty,ISO8601date"`
+	ChargingProfileId 	  	int     	   	`json:"chargingProfileId" validate:"required,gte=0"`
+	TransactionId 		 	int     	   	`json:"transactionId,omitempty"`
+	StackLevel 			  	int     	   	`json:"stackLevel" validate:"required,gte=0"`
+	ChargingProfilePurpose 	string         	`json:"chargingProfilePurpose" validate:"required,ChargingProfilePurposeType"`
+	ChargingProfileKind 	string         	`json:"chargingProfileKind" validate:"required,ChargingProfileKindType"`
+	Context 				string 			`json:"context,omitempty" validate:"omitempty,ReadingContext"`
+	RecurrencyKind 			string         	`json:"recurrencyKind,omitempty" validate:"omitempty,RecurrencyKindType"`
+	ValidFrom 				string         	`json:"validFrom,omitempty" validate:"omitempty,ISO8601date"`
+	ValidTo 				string         	`json:"validTo,omitempty" validate:"omitempty,ISO8601date"`
 	ChargingSchedule 		ChargingSchedule `json:"chargingSchedule" validate:"required,dive,required"`   
 }
 
@@ -80,6 +80,6 @@ type FirmwareType struct {
 
 type LogParametersType struct {
 	RemoteLocation 		string 			`json:"remoteLocation" validate:"required,max=512"`
-	OldestTimestamp 	string 			`json:"oldestTimestamp,omitempty" validate:"ISO8601date"`
-	LatestTimestamp 	string 			`json:"latestTimestamp,omitempty" validate:"ISO8601date"`
+	OldestTimestamp 	string 			`json:"oldestTimestamp,omitempty" validate:"omitempty,ISO8601date"`
+	LatestTimestamp 	string 			`json:"latestTimestamp,omitempty" validate:"omitempty,ISO8601date"`
 }
