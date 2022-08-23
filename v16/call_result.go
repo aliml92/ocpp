@@ -37,7 +37,7 @@ type StopTransactionConf struct {
 }
 
 type CancelReservationConf struct {
-	IdTagInfo 	IdTagInfo 	`json:"idTagInfo" validate:"required,CancelReservationStatus"`
+	Status 	string 	`json:"status" validate:"required,CancelReservationStatus"`
 }
 
 type ChangeAvailabilityConf struct {
