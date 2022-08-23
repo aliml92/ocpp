@@ -114,7 +114,7 @@ type GetLocalListVersionReq struct{}
 type RemoteStartTransactionReq struct {
 	ConnectorId     	*int             	`json:"connectorId,omitempty" validate:"omitempty,gte=0"`
 	IdTag           	string          	`json:"idTag" validate:"required,max=20"`
-	ChargingProfile 	ChargingProfile 	`json:"chargingProfile,omitempty" validate:"omitempty"`
+	ChargingProfile 	*ChargingProfile 	`json:"chargingProfile,omitempty" validate:"omitempty"`
 }
 
 type RemoteStopTransactionReq struct {
