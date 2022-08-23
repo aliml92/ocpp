@@ -56,7 +56,7 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 	"StartTransaction":              uconf[v16.StartTransactionConf],
 	"StatusNotification":            uconf[v16.StatusNotificationConf],
 	"StopTransaction":               uconf[v16.StopTransactionConf],
-	"CanCelReservation":             uconf[v16.CancelReservationConf],
+	"CancelReservation":             uconf[v16.CancelReservationConf],
 	"ChangeAvailability":            uconf[v16.ChangeAvailabilityConf],
 	"ChangeConfiguration":           uconf[v16.ChangeConfigurationConf],
 	"ClearCache":                    uconf[v16.ClearCacheConf],
