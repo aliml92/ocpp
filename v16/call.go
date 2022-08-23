@@ -147,7 +147,7 @@ type SetChargingProfileReq struct {
 
 type TriggerMessageReq struct {
 	RequestedMessage string `json:"requestedMessage" validate:"required,MessageTrigger"`
-	ConnectorId      *int    `json:"connectorId,omitempty" validate:"gte=0"`
+	ConnectorId      *int    `json:"connectorId,omitempty" validate:"omitempty,gte=0"`
 }
 
 type UnlockConnectorReq struct {
