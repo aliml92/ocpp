@@ -409,6 +409,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	cp.Out <- &raw
 	callResult, callError, err := cp.waitForResponse(id)
 	if callResult != nil {
+		log.Println("Action name:", action)
 		resPayload, err := unmarshalConf(action, callResult.Payload)
 		if err != nil {
 			log.Printf("[ERROR | MSG] %v", err)
