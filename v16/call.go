@@ -141,7 +141,7 @@ type SendLocalListReq struct {
 
 type SetChargingProfileReq struct {
 	ConnectorId     	*int             	`json:"connectorId" validate:"required,gte=0"`
-	ChargingProfile 	ChargingProfile 	`json:"chargingProfile" validate:"required,dive,required"`
+	CsChargingProfiles 	ChargingProfile 	`json:"csChargingProfiles" validate:"required"`
 }
 
 type TriggerMessageReq struct {
