@@ -281,7 +281,6 @@ func (cp *ChargePoint) writer() {
 func (cp *ChargePoint) readerCsms() {
 	_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	cp.Conn.SetPingHandler(func(appData string) error {
-		log.L.Debugf("Ping received:  %v", appData)
 		cp.PingIn <- []byte(appData)
 		return cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	})	
