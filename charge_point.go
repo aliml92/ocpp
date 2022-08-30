@@ -3,11 +3,12 @@ package ocpp
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	// "log"
 	"sync"
 	"time"
 
 	"github.com/aliml92/ocpp/v16"
+	log "github.com/aliml92/ocpp/log"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -16,7 +17,9 @@ import (
 var validate = v16.Validate
 var csms *CSMS
 var client *Client
+
 // add more
+
 
 
 // Payload used as a container is for both Call and CallResult' Payload
@@ -65,7 +68,6 @@ func (c *CSMS) SetTimeoutConfig(resTimeout, writeWait, pingWait time.Duration) {
 
 func (c *CSMS) getReadTimeout() time.Time {
 	if c.PingWait == 0 {
-		log.Println("PingWait is 0")
 		return time.Time{}
 	}
 	return time.Now().Add(c.PingWait)
@@ -91,7 +93,6 @@ func (c *Client) SetTimeoutConfig(resTimeout, writeWait, pongWait, pingPeriod ti
 
 func (c *Client) getReadTimeout() time.Time {
 	if c.PongWait == 0 {
-		log.Println("PongWait is 0")
 		return time.Time{}
 	}
 	return time.Now().Add(c.PongWait)
@@ -162,38 +163,32 @@ func (cp *ChargePoint) reader() {
 		cp.Conn.Close()
 	}()
 	cp.Conn.SetPongHandler(func(appData string) error {
-		// print appData
-		log.Printf("Pong received: %v", appData)
+		log.L.Debugf("[ocpp] Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
 	for {
-		log.Printf("Waiting for message[client side]")
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-				log.Printf("[WEBSOCKET | ERROR] %v", err)
+				log.L.Errorf("[ocpp] %v", err)
 			}
 			break
 		}
-		log.Printf("[WEBSOCKET | RECEIVED | CLIENT ] %v", msg)
 		call, callResult, callError, err := unpack(&msg)
 		if err != nil {
 			cp.Out <- call.createCallError(err)
-			log.Printf("[ERROR | MSG] %v", err)
+			log.L.Errorf("[ocpp] %v", err)
 		}
 		if call != nil {
 			handler, ok := client.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				log.Printf("[WEBSOCKET | PAYLOAD | CLIENT ] %v", responsePayload)
+				log.L.Debugf("[ocpp] %v", responsePayload)
 				err = validate.Struct(responsePayload)
 				if err != nil {
-					// TODO simply log the error
-					log.Printf("[ERROR | VALIDATION] %v", err)
+					log.L.Errorf("[ocpp] %v", err)
 				} else {
-					// lock to ensure that only one message is sent at a time
 					cp.Out <- call.createCallResult(responsePayload)
-					// sleep for a bit to make sure the message is sent
 					time.Sleep(time.Second)
 					if afterHandler, ok := client.AfterHandlers[call.Action]; ok {
 						go afterHandler(cp, call.Payload)
@@ -206,15 +201,15 @@ func (cp *ChargePoint) reader() {
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
 				cp.Out <- call.createCallError(err)
-				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
+				log.L.Errorf("[ocpp] No handler for action %s", call.Action)
 			}
 		}
 		if callResult != nil {
-			log.Printf("[WEBSOCKET | CALL_RESULT | CLIENT] %v", callResult)
+			log.L.Debugf("[ocpp] %v", callResult)
 			cp.Cr <- callResult
 		}
 		if callError != nil {
-			log.Printf("[WEBSOCKET | CALL_ERROR | CLIENT ] %v", callError)
+			log.L.Debugf("[ocpp] %v", callError)
 			cp.Ce <- callError
 		}
 
@@ -235,14 +230,13 @@ func (cp *ChargePoint) writer() {
 			}
 			w, err := cp.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.Printf("[WEBSOCKET | ERROR] %v", err)
+				log.L.Errorf("[ocpp] %v", err)
 				return
 			}
-			i, err := w.Write(*message)
+			_, err = w.Write(*message)
 			if err != nil {
 				return
 			}
-			log.Printf("[WEBSOCKET | SENT | CLIENT ] %v", i)
 			if err := w.Close(); err != nil {
 				return
 			}	
@@ -261,22 +255,20 @@ func (cp *ChargePoint) writer() {
 				}
 				w, err := cp.Conn.NextWriter(websocket.TextMessage)
 				if err != nil {
-					log.Printf("[WEBSOCKET | ERROR] %v", err)
+					log.L.Errorf("[ocpp] %v", err)
 					return
 				}
-				i, err := w.Write(*message)
+				_, err = w.Write(*message)
 				if err != nil {
 					return
 				}
-				log.Printf("[WEBSOCKET | SENT | CLIENT ] %v", i)
 				if err := w.Close(); err != nil {
 					return
 				}
 			case <-ticker.C:
-				log.Printf("[WEBSOCKET | TICK | CLIENT ]")
 				_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.WriteWait))
-				if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte("i")); err != nil {
-					log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
+				if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+					log.L.Errorf("[ocpp] %v", err)
 					return
 				}	
 			}
@@ -289,7 +281,7 @@ func (cp *ChargePoint) writer() {
 func (cp *ChargePoint) readerCsms() {
 	_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	cp.Conn.SetPingHandler(func(appData string) error {
-		log.Printf("Ping received:  %v", appData)
+		log.L.Debugf("Ping received:  %v", appData)
 		cp.PingIn <- []byte(appData)
 		return cp.Conn.SetReadDeadline(csms.getReadTimeout())
 	})	
@@ -298,35 +290,29 @@ func (cp *ChargePoint) readerCsms() {
 	}()
 	for {
 		_ = cp.Conn.SetReadDeadline(csms.getReadTimeout())
-		log.Printf("Waiting for message[server side]")
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[WEBSOCKET | ERROR] %v", err)
-				// delete charge point from ChargePoints map
+				log.L.Errorf("[ocpp] %v", err)
 				csms.ChargePoints.Delete(cp.Id)
 			}
 			break
 		}
-		log.Printf("[WEBSOCKET | RECEIVED | SERVER ] %v", msg)
 		call, callResult, callError, err := unpack(&msg)
 		if err != nil {
 			cp.Out <- call.createCallError(err)
-			log.Printf("[ERROR | MSG] %v", err)
+			log.L.Errorf("[ocpp] %v", err)
 		}
 		if call != nil {
 			handler, ok := csms.ActionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				log.Printf("[WEBSOCKET | PAYLOAD | SERVER ] %v", responsePayload)
+				log.L.Debugf("[ocpp] %v", responsePayload)
 				err = validate.Struct(responsePayload)
 				if err != nil {
-					// TODO simply log the error
-					log.Printf("[ERROR | VALIDATION] %v", err)
+					log.L.Errorf("[ocpp] %v", err)
 				} else {
-					// lock to ensure that only one message is sent at a time
 					cp.Out <- call.createCallResult(responsePayload)
-					// sleep for a bit to make sure the message is sent
 					time.Sleep(time.Second)
 					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
 						go afterHandler(cp, call.Payload)
@@ -339,15 +325,15 @@ func (cp *ChargePoint) readerCsms() {
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
 				cp.Out <- call.createCallError(err)
-				log.Printf("[ERROR | MSG] No handler for action %s", call.Action)
+				log.L.Errorf("[ocpp] No handler for action %s", call.Action)
 			}
 		}
 		if callResult != nil {
-			log.Printf("[WEBSOCKET | CALL_RESULT | SERVER] %v", callResult)
+			log.L.Debugf("[ocpp] %v", callResult)
 			cp.Cr <- callResult
 		}
 		if callError != nil {
-			log.Printf("[WEBSOCKET | CALL_ERROR | SERVER ] %v", callError)
+			log.L.Debugf("[ocpp] %v", callError)
 			cp.Ce <- callError
 		}
 	}
@@ -367,14 +353,13 @@ func (cp *ChargePoint) writerCsms() {
 			}
 			w, err := cp.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.Printf("[WEBSOCKET | ERROR] %v", err)
+				log.L.Errorf("[ocpp] %v", err)
 				return
 			}
-			i, err := w.Write(*message)
+			_, err = w.Write(*message)
 			if err != nil {
 				return
 			}
-			log.Printf("[WEBSOCKET | SENT] %v", i)
 			if err := w.Close(); err != nil {
 				csms.ChargePoints.Delete(cp.Id)
 				return
@@ -384,10 +369,9 @@ func (cp *ChargePoint) writerCsms() {
 			_ = cp.Conn.SetWriteDeadline(time.Now().Add(csms.WriteWait))
 			err := cp.Conn.WriteMessage(websocket.PongMessage, []byte("o"))
 			if err != nil {
-				log.Printf("[WEBSOCKET | PING | ERROR ] %v", err)
+				log.L.Errorf("[ocpp] %v", err)
 				return
-			}
-			log.Printf("[WEBSOCKET | PONG_SEND | SERVER ]")		
+			}	
 		}
 
 	}
@@ -409,10 +393,9 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	cp.Out <- &raw
 	callResult, callError, err := cp.waitForResponse(id)
 	if callResult != nil {
-		log.Println("Action name:", action)
 		resPayload, err := unmarshalConf(action, callResult.Payload)
 		if err != nil {
-			log.Printf("[ERROR | MSG] %v", err)
+			log.L.Errorf("[ocpp] %v", err)
 			return nil, err
 		}
 		return resPayload, nil
@@ -429,12 +412,10 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 	for {
 		select {
 		case r1 := <-cp.Cr:
-			log.Printf("[WEBSOCKET | RECEIVED] %v", r1.UniqueId)
 			if r1.UniqueId == uniqueId {
 				return r1, nil, nil
 			}
 		case r2 := <-cp.Ce:
-			log.Printf("[WEBSOCKET | RECEIVED] %v", r2.UniqueId)
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
 			}

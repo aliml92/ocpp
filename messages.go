@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	
 
 	"github.com/aliml92/ocpp/v16"
+	log "github.com/aliml92/ocpp/log"
 	// "github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 )
@@ -342,7 +343,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "Invalid JSON format",
 		}
-		log.Println(err)
+		
 		return nil, nil, nil, e
 	}
 	err = json.Unmarshal(rm[1], &ui)
@@ -360,7 +361,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "JSON must be an array of range [3,5]",
 		}
-		log.Println(err)
+		log.L.Error(err)
 		return nil, nil, nil, e
 	}
 	err = json.Unmarshal(rm[0], &mti)
@@ -456,7 +457,7 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.Println(err)
+		log.L.Error(err)
 		return nil, e
 	}
 	err = validate.Struct(*p)
@@ -466,7 +467,7 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.Println(err)
+		log.L.Error(err)
 		return nil, e
 	}
 	payload = p
