@@ -18,10 +18,10 @@ func SetLogger(newLogger Logger) {
 
 type EmptyLogger struct {}
 
-func (l *EmptyLogger) Debug(args ...interface{})
-func (l *EmptyLogger) Debugf(format string, args ...interface{})
-func (l *EmptyLogger) Error(args ...interface{})
-func (l *EmptyLogger) Errorf(format string, args ...interface{})
+func (l *EmptyLogger) Debug(args ...interface{}) {}
+func (l *EmptyLogger) Debugf(format string, args ...interface{}) {}
+func (l *EmptyLogger) Error(args ...interface{}) {}
+func (l *EmptyLogger) Errorf(format string, args ...interface{}) {}
 
 func init(){
 	L = &EmptyLogger{}
