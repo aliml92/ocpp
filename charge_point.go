@@ -289,22 +289,28 @@ func (cp *ChargePoint) writer() {
 
 
 func (cp *ChargePoint) readerCsms() {
-	err := cp.Conn.SetReadDeadline(cp.getReadTimeout())
+	i := cp.getReadTimeout()
+	err := cp.Conn.SetReadDeadline(i)
 	if err != nil {
 		log.L.Error(err)
 	}
+	log.L.Debugf("first read deadline: %v", i)
 	cp.Conn.SetPingHandler(func(appData string) error {
 		cp.PingIn <- []byte(appData)
-		return cp.Conn.SetReadDeadline(cp.getReadTimeout())
+		i := cp.getReadTimeout()
+		log.L.Debugf("second read deadline: %v", i)
+		return cp.Conn.SetReadDeadline(i)
 	})	
 	defer func() {
 		cp.Conn.Close()
 	}()
 	for {
-		err := cp.Conn.SetReadDeadline(cp.getReadTimeout())
+		i := cp.getReadTimeout()
+		err := cp.Conn.SetReadDeadline(i)
 		if err != nil {
 			log.L.Error(err)
 		}
+		log.L.Debugf("third read deadline: %v", i)
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d and message %v", messageType, msg)
 		if err != nil {
