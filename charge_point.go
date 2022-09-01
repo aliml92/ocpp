@@ -306,12 +306,12 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		i := cp.getReadTimeout()
-		err := cp.Conn.SetReadDeadline(i)
-		if err != nil {
-			log.L.Error(err)
-		}
-		log.L.Debugf("third read deadline: %v", i)
+		// i := cp.getReadTimeout()
+		// err := cp.Conn.SetReadDeadline(i)
+		// if err != nil {
+		// 	log.L.Error(err)
+		// }
+		// log.L.Debugf("third read deadline: %v", i)
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d ", messageType)
 		if err != nil {
