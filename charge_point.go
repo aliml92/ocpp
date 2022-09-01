@@ -306,8 +306,9 @@ func (cp *ChargePoint) readerCsms() {
 			log.L.Error(err)
 		}
 		messageType, msg, err := cp.Conn.ReadMessage()
-		log.L.Debugf("messageType: %d received", messageType)
+		log.L.Debugf("messageType: %d and message %v", messageType, msg)
 		if err != nil {
+			log.L.Debugf("error occured: %v", err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
 				csms.ChargePoints.Delete(cp.Id)
