@@ -313,7 +313,7 @@ func (cp *ChargePoint) readerCsms() {
 		// }
 		// log.L.Debugf("third read deadline: %v", i)
 		messageType, msg, err := cp.Conn.ReadMessage()
-		log.L.Debugf("messageType: %d and message %v", messageType, msg)
+		log.L.Debugf("messageType: %d ", messageType)
 		if err != nil {
 			log.L.Debugf("error occured: %v", err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
