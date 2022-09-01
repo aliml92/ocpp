@@ -297,6 +297,7 @@ func (cp *ChargePoint) readerCsms() {
 	log.L.Debugf("first read deadline: %v", i)
 	cp.Conn.SetPingHandler(func(appData string) error {
 		cp.PingIn <- []byte(appData)
+		log.L.Debugf("ping received: %v", appData)
 		i := cp.getReadTimeout()
 		log.L.Debugf("second read deadline: %v", i)
 		return cp.Conn.SetReadDeadline(i)
