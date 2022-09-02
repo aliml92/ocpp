@@ -287,7 +287,7 @@ func (cp *ChargePoint) writer() {
 }
 
 
-// g
+// 
 func (cp *ChargePoint) readerCsms() {
 	// i := cp.getReadTimeout()
 	// err := cp.Conn.SetReadDeadline(i)
