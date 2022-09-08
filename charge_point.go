@@ -164,14 +164,13 @@ func (c *Client) After(action string, f func(*ChargePoint,  Payload)) *Client {
 
 // websocket reader to receive messages
 func (cp *ChargePoint) reader() {
-	_ = cp.Conn.SetReadDeadline(client.getReadTimeout())
-	defer func() {
-		cp.Conn.Close()
-	}()
 	cp.Conn.SetPongHandler(func(appData string) error {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
+	defer func() {
+		cp.Conn.Close()
+	}()
 	for {
 		_, msg, err := cp.Conn.ReadMessage()
 		if err != nil {
@@ -289,12 +288,6 @@ func (cp *ChargePoint) writer() {
 
 // 
 func (cp *ChargePoint) readerCsms() {
-	// i := cp.getReadTimeout()
-	// err := cp.Conn.SetReadDeadline(i)
-	// if err != nil {
-	// 	log.L.Error(err)
-	// }
-	// log.L.Debugf("first read deadline: %v", i)
 	cp.Conn.SetPingHandler(func(appData string) error {
 		cp.PingIn <- []byte(appData)
 		log.L.Debugf("ping received: %v", appData)
@@ -306,12 +299,6 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		// i := cp.getReadTimeout()
-		// err := cp.Conn.SetReadDeadline(i)
-		// if err != nil {
-		// 	log.L.Error(err)
-		// }
-		// log.L.Debugf("third read deadline: %v", i)
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d ", messageType)
 		if err != nil {
