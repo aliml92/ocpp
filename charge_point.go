@@ -55,7 +55,6 @@ type ChargePoint struct {
 
 func (cp *ChargePoint) Stop(){
 	cp.StopCh <- true
-	csms.ChargePoints.Delete(cp.Id)
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
@@ -306,6 +305,7 @@ func (cp *ChargePoint) readerCsms() {
 	for {
 		switch{
 		case <-cp.StopCh:
+			csms.ChargePoints.Delete(cp.Id)
 			return
 		default:
 			messageType, msg, err := cp.Conn.ReadMessage()
