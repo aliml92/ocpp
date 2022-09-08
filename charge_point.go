@@ -303,8 +303,9 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		switch{
+		select {
 		case <-cp.StopCh:
+			log.L.Debug("stop singal received")
 			csms.ChargePoints.Delete(cp.Id)
 			return
 		default:
