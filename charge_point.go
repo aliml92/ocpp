@@ -50,11 +50,16 @@ type ChargePoint struct {
 	Extras          map[string]interface{}
 	TimeoutConfig   TimeoutConfig
 	PingIn          chan []byte                              // ping in channel              #server specific
+	StopCh			chan bool								 // channel to close connection 				
 }
 
+func (cp *ChargePoint) Stop(){
+	cp.StopCh <- true
+	csms.ChargePoints.Delete(cp.Id)
+}
 
-func (c *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
-	c.TimeoutConfig = config
+func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
+	cp.TimeoutConfig = config
 }
 
 
@@ -299,54 +304,59 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		messageType, msg, err := cp.Conn.ReadMessage()
-		log.L.Debugf("messageType: %d ", messageType)
-		if err != nil {
-			log.L.Debugf("error occured: %v", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-				log.L.Error(err)
-				csms.ChargePoints.Delete(cp.Id)
-				log.L.Debugf("charge point with id %s deleted", cp.Id)
-			}
-			break
-		}
-		call, callResult, callError, err := unpack(&msg)
-		if err != nil {
-			cp.Out <- call.createCallError(err)
-			log.L.Error(err)
-		}
-		if call != nil {
-			handler, ok := csms.ActionHandlers[call.Action]
-			if ok {
-				responsePayload := handler(cp, call.Payload)
-				err = validate.Struct(responsePayload)
-				if err != nil {
+		switch{
+		case <-cp.StopCh:
+			return
+		default:
+			messageType, msg, err := cp.Conn.ReadMessage()
+			log.L.Debugf("messageType: %d ", messageType)
+			if err != nil {
+				log.L.Debugf("error occured: %v", err)
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
-				} else {
-					cp.Out <- call.createCallResult(responsePayload)
-					time.Sleep(time.Second)
-					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
-						go afterHandler(cp, call.Payload)
-					}
+					csms.ChargePoints.Delete(cp.Id)
+					log.L.Debugf("charge point with id %s deleted", cp.Id)
 				}
-			} else {
-				var err error = &OCPPError{
-					id:    call.UniqueId,
-					code:  "NotSupported",
-					cause: fmt.Sprintf("action %s is not supported", call.Action),
-				}
-				cp.Out <- call.createCallError(err)
-				log.L.Debugf("no handler for action %s", call.Action)
+				break
 			}
-		}
-		if callResult != nil {
-			log.L.Debugf("call result received: %v", callResult)
-			cp.Cr <- callResult
-		}
-		if callError != nil {
-			log.L.Debugf("call error received: %v", callError)
-			cp.Ce <- callError
-		}
+			call, callResult, callError, err := unpack(&msg)
+			if err != nil {
+				cp.Out <- call.createCallError(err)
+				log.L.Error(err)
+			}
+			if call != nil {
+				handler, ok := csms.ActionHandlers[call.Action]
+				if ok {
+					responsePayload := handler(cp, call.Payload)
+					err = validate.Struct(responsePayload)
+					if err != nil {
+						log.L.Error(err)
+					} else {
+						cp.Out <- call.createCallResult(responsePayload)
+						time.Sleep(time.Second)
+						if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
+							go afterHandler(cp, call.Payload)
+						}
+					}
+				} else {
+					var err error = &OCPPError{
+						id:    call.UniqueId,
+						code:  "NotSupported",
+						cause: fmt.Sprintf("action %s is not supported", call.Action),
+					}
+					cp.Out <- call.createCallError(err)
+					log.L.Debugf("no handler for action %s", call.Action)
+				}
+			}
+			if callResult != nil {
+				log.L.Debugf("call result received: %v", callResult)
+				cp.Cr <- callResult
+			}
+			if callError != nil {
+				log.L.Debugf("call error received: %v", callError)
+				cp.Ce <- callError
+			}		
+		}	
 	}
 }
 
@@ -464,6 +474,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *Char
 		Cr:              make(chan *CallResult),
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
+		StopCh: 		 make(chan bool,1),
 	}
 
 	if isClient {
