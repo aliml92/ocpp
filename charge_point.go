@@ -57,7 +57,7 @@ func (cp *ChargePoint) Stop(){
 	if err != nil {
 		log.L.Error(err)
 	}
-	// cp.StopCh <- true
+	cp.StopCh <- true
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
