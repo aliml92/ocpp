@@ -3,7 +3,6 @@ package ocpp
 import (
 	"encoding/json"
 	"fmt"
-	// "log"
 	"sync"
 	"time"
 
@@ -27,7 +26,7 @@ type Payload interface{}
 
 
 type TimeoutConfig struct {
-	OcppTimeout		time.Duration	// ocpp response timeout in seconds
+	OcppTimeout			time.Duration	// ocpp response timeout in seconds
 	WriteWait			time.Duration	// time allowed to write a message to the peer
 	PingWait			time.Duration   // time allowed to read the next pong message from the peer
 	PongWait       		time.Duration   // pong wait in seconds
@@ -54,7 +53,11 @@ type ChargePoint struct {
 }
 
 func (cp *ChargePoint) Stop(){
-	cp.StopCh <- true
+	err := cp.Conn.WriteControl(websocket.CloseMessage, nil, time.Now().Add(time.Second))
+	if err != nil {
+		log.L.Error(err)
+	}
+	// cp.StopCh <- true
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
@@ -298,6 +301,11 @@ func (cp *ChargePoint) readerCsms() {
 		i := cp.getReadTimeout()
 		log.L.Debugf("second read deadline: %v", i)
 		return cp.Conn.SetReadDeadline(i)
+	})
+	cp.Conn.SetCloseHandler(func(code int, text string) error {
+		log.L.Debugf("code received: %v", code)
+		log.L.Debugf("text received: %v", text)
+		return nil
 	})	
 	defer func() {
 		cp.Conn.Close()
