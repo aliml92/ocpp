@@ -302,11 +302,11 @@ func (cp *ChargePoint) readerCsms() {
 		log.L.Debugf("second read deadline: %v", i)
 		return cp.Conn.SetReadDeadline(i)
 	})
-	cp.Conn.SetCloseHandler(func(code int, text string) error {
-		log.L.Debugf("code received: %v", code)
-		log.L.Debugf("text received: %v", text)
-		return nil
-	})	
+	// cp.Conn.SetCloseHandler(func(code int, text string) error {
+	// 	log.L.Debugf("code received: %v", code)
+	// 	log.L.Debugf("text received: %v", text)
+	// 	return nil
+	// })	
 	defer func() {
 		cp.Conn.Close()
 	}()
