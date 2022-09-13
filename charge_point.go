@@ -176,11 +176,14 @@ func (cp *ChargePoint) reader() {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
-	// cp.Conn.SetCloseHandler(func(code int, text string) error {
-	// 	log.L.Debugf("code received: %v", code)
-	// 	log.L.Debugf("text received: %v", text)
-	// 	return cp.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.), time.Now().Add(time.Second))
-	// })
+	cp.Conn.SetCloseHandler(func(code int, text string) error {
+		log.L.Debugf("code received: %v", code)
+		log.L.Debugf("text received: %v", text)
+		if code == websocket.CloseNormalClosure {
+			return cp.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
+		}
+		return nil
+	})
 	defer func() {
 		cp.Conn.Close()
 	}()
