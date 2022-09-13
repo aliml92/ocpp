@@ -53,11 +53,12 @@ type ChargePoint struct {
 }
 
 func (cp *ChargePoint) Stop(){
-	err := cp.Conn.WriteControl(websocket.CloseMessage, nil, time.Now().Add(time.Second))
+	b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+	err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 	if err != nil {
 		log.L.Error(err)
 	}
-	cp.StopCh <- true
+	// cp.StopCh <- true
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
@@ -175,6 +176,11 @@ func (cp *ChargePoint) reader() {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
+	// cp.Conn.SetCloseHandler(func(code int, text string) error {
+	// 	log.L.Debugf("code received: %v", code)
+	// 	log.L.Debugf("text received: %v", text)
+	// 	return cp.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.), time.Now().Add(time.Second))
+	// })
 	defer func() {
 		cp.Conn.Close()
 	}()
@@ -311,62 +317,72 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		select {
-		case <-cp.StopCh:
-			log.L.Debug("stop singal received")
-			cp.Conn.Close()
-			csms.ChargePoints.Delete(cp.Id)
-			return
-		default:
-			messageType, msg, err := cp.Conn.ReadMessage()
-			log.L.Debugf("messageType: %d ", messageType)
-			if err != nil {
-				log.L.Debugf("error occured: %v", err)
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-					log.L.Error(err)
-					csms.ChargePoints.Delete(cp.Id)
-					log.L.Debugf("charge point with id %s deleted", cp.Id)
-				}
-				break
-			}
-			call, callResult, callError, err := unpack(&msg)
-			if err != nil {
-				cp.Out <- call.createCallError(err)
+		messageType, msg, err := cp.Conn.ReadMessage()
+		log.L.Debugf("messageType: %d ", messageType)
+		if err != nil {
+			log.L.Debugf("error occured: %v", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.L.Error(err)
+				csms.ChargePoints.Delete(cp.Id)
+				log.L.Debugf("charge point with id %s deleted", cp.Id)
 			}
-			if call != nil {
-				handler, ok := csms.ActionHandlers[call.Action]
-				if ok {
-					responsePayload := handler(cp, call.Payload)
-					err = validate.Struct(responsePayload)
-					if err != nil {
-						log.L.Error(err)
-					} else {
-						cp.Out <- call.createCallResult(responsePayload)
-						time.Sleep(time.Second)
-						if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
-							go afterHandler(cp, call.Payload)
-						}
-					}
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
+				log.L.Error(err)
+				csms.ChargePoints.Delete(cp.Id)
+				log.L.Debugf("charge point with id %s deleted", cp.Id)
+				cp.Conn.Close()
+				return
+			}
+			break
+		}
+		call, callResult, callError, err := unpack(&msg)
+		if err != nil {
+			cp.Out <- call.createCallError(err)
+			log.L.Error(err)
+		}
+		if call != nil {
+			handler, ok := csms.ActionHandlers[call.Action]
+			if ok {
+				responsePayload := handler(cp, call.Payload)
+				err = validate.Struct(responsePayload)
+				if err != nil {
+					log.L.Error(err)
 				} else {
-					var err error = &OCPPError{
-						id:    call.UniqueId,
-						code:  "NotSupported",
-						cause: fmt.Sprintf("action %s is not supported", call.Action),
+					cp.Out <- call.createCallResult(responsePayload)
+					time.Sleep(time.Second)
+					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
+						go afterHandler(cp, call.Payload)
 					}
-					cp.Out <- call.createCallError(err)
-					log.L.Debugf("no handler for action %s", call.Action)
 				}
+			} else {
+				var err error = &OCPPError{
+					id:    call.UniqueId,
+					code:  "NotSupported",
+					cause: fmt.Sprintf("action %s is not supported", call.Action),
+				}
+				cp.Out <- call.createCallError(err)
+				log.L.Debugf("no handler for action %s", call.Action)
 			}
-			if callResult != nil {
-				log.L.Debugf("call result received: %v", callResult)
-				cp.Cr <- callResult
-			}
-			if callError != nil {
-				log.L.Debugf("call error received: %v", callError)
-				cp.Ce <- callError
-			}		
+		}
+		if callResult != nil {
+			log.L.Debugf("call result received: %v", callResult)
+			cp.Cr <- callResult
+		}
+		if callError != nil {
+			log.L.Debugf("call error received: %v", callError)
+			cp.Ce <- callError
 		}	
+
+
+		// select {
+		// case <-cp.StopCh:
+		// 	log.L.Debug("stop singal received")
+		// 	cp.Conn.Close()
+		// 	csms.ChargePoints.Delete(cp.Id)
+		// 	return
+		// default:
+	
+		// }	
 	}
 }
 
