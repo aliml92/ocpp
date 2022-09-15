@@ -2,12 +2,13 @@ package ocpp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/aliml92/ocpp/v16"
 	log "github.com/aliml92/ocpp/log"
+	"github.com/aliml92/ocpp/v16"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -49,16 +50,24 @@ type ChargePoint struct {
 	Extras          map[string]interface{}
 	TimeoutConfig   TimeoutConfig
 	PingIn          chan []byte                              // ping in channel              #server specific
-	StopCh			chan bool								 // channel to close connection 				
+	StopCh			chan struct{}							 // channel to close connection
+	ReadDone        chan struct{} 				
 }
 
-func (cp *ChargePoint) Stop(){
+func (cp *ChargePoint) GracefulShutdown( timeout time.Duration) error {
 	b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
 	err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	if err != nil {
+	if err != nil && err != websocket.ErrCloseSent {
 		log.L.Error(err)
+		return cp.Conn.Close()
 	}
-	// cp.StopCh <- true
+	select {
+	case <- cp.ReadDone:
+	case <- time.After(timeout):
+		cp.StopCh <- struct{}{}
+	}
+	return cp.Conn.Close()
+	
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
@@ -176,19 +185,18 @@ func (cp *ChargePoint) reader() {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
-	cp.Conn.SetCloseHandler(func(code int, text string) error {
-		log.L.Debugf("code received: %v", code)
-		log.L.Debugf("text received: %v", text)
-		if code == websocket.CloseNormalClosure {
-			return cp.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
-		}
-		return nil
-	})
+	// cp.Conn.SetCloseHandler(func(code int, text string) error {
+	// 	log.L.Debugf("code received: %v", code)
+	// 	log.L.Debugf("text received: %v", text)
+	// 	return cp.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.), time.Now().Add(time.Second))
+	// })
 	defer func() {
 		cp.Conn.Close()
 	}()
 	for {
-		_, msg, err := cp.Conn.ReadMessage()
+		messageType, msg, err := cp.Conn.ReadMessage()
+		cp.ReadDone <- struct{}{}
+		log.L.Debugf("messageType: %d , err: %v", messageType, err)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
@@ -320,72 +328,66 @@ func (cp *ChargePoint) readerCsms() {
 		cp.Conn.Close()
 	}()
 	for {
-		messageType, msg, err := cp.Conn.ReadMessage()
-		log.L.Debugf("messageType: %d ", messageType)
-		if err != nil {
-			log.L.Debugf("error occured: %v", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.L.Error(err)
-				csms.ChargePoints.Delete(cp.Id)
-				log.L.Debugf("charge point with id %s deleted", cp.Id)
+		select {
+		case <-cp.StopCh:
+			log.L.Debug("stop singal received")
+			cp.Conn.Close()
+			csms.ChargePoints.Delete(cp.Id)
+			return
+		default:
+			messageType, msg, err := cp.Conn.ReadMessage()
+			log.L.Debugf("messageType: %d ", messageType)
+			var closeErr *websocket.CloseError
+			if errors.As(err, &closeErr) {
+				log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
 			}
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
-				log.L.Error(err)
-				csms.ChargePoints.Delete(cp.Id)
-				log.L.Debugf("charge point with id %s deleted", cp.Id)
-				cp.Conn.Close()
-				return
-			}
-			break
-		}
-		call, callResult, callError, err := unpack(&msg)
-		if err != nil {
-			cp.Out <- call.createCallError(err)
-			log.L.Error(err)
-		}
-		if call != nil {
-			handler, ok := csms.ActionHandlers[call.Action]
-			if ok {
-				responsePayload := handler(cp, call.Payload)
-				err = validate.Struct(responsePayload)
-				if err != nil {
+			if err != nil {
+				log.L.Debugf("error occured: %v", err)
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
-				} else {
-					cp.Out <- call.createCallResult(responsePayload)
-					time.Sleep(time.Second)
-					if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
-						go afterHandler(cp, call.Payload)
-					}
+					csms.ChargePoints.Delete(cp.Id)
+					log.L.Debugf("charge point with id %s deleted", cp.Id)
 				}
-			} else {
-				var err error = &OCPPError{
-					id:    call.UniqueId,
-					code:  "NotSupported",
-					cause: fmt.Sprintf("action %s is not supported", call.Action),
-				}
-				cp.Out <- call.createCallError(err)
-				log.L.Debugf("no handler for action %s", call.Action)
+				break
 			}
-		}
-		if callResult != nil {
-			log.L.Debugf("call result received: %v", callResult)
-			cp.Cr <- callResult
-		}
-		if callError != nil {
-			log.L.Debugf("call error received: %v", callError)
-			cp.Ce <- callError
+			call, callResult, callError, err := unpack(&msg)
+			if err != nil {
+				cp.Out <- call.createCallError(err)
+				log.L.Error(err)
+			}
+			if call != nil {
+				handler, ok := csms.ActionHandlers[call.Action]
+				if ok {
+					responsePayload := handler(cp, call.Payload)
+					err = validate.Struct(responsePayload)
+					if err != nil {
+						log.L.Error(err)
+					} else {
+						cp.Out <- call.createCallResult(responsePayload)
+						time.Sleep(time.Second)
+						if afterHandler, ok := csms.AfterHandlers[call.Action]; ok {
+							go afterHandler(cp, call.Payload)
+						}
+					}
+				} else {
+					var err error = &OCPPError{
+						id:    call.UniqueId,
+						code:  "NotSupported",
+						cause: fmt.Sprintf("action %s is not supported", call.Action),
+					}
+					cp.Out <- call.createCallError(err)
+					log.L.Debugf("no handler for action %s", call.Action)
+				}
+			}
+			if callResult != nil {
+				log.L.Debugf("call result received: %v", callResult)
+				cp.Cr <- callResult
+			}
+			if callError != nil {
+				log.L.Debugf("call error received: %v", callError)
+				cp.Ce <- callError
+			}		
 		}	
-
-
-		// select {
-		// case <-cp.StopCh:
-		// 	log.L.Debug("stop singal received")
-		// 	cp.Conn.Close()
-		// 	csms.ChargePoints.Delete(cp.Id)
-		// 	return
-		// default:
-	
-		// }	
 	}
 }
 
@@ -503,7 +505,8 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *Char
 		Cr:              make(chan *CallResult),
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
-		StopCh: 		 make(chan bool,1),
+		StopCh: 		 make(chan struct{}, 1),
+		ReadDone: 		 make(chan struct{}, 1),
 	}
 
 	if isClient {
