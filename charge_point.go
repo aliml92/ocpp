@@ -205,6 +205,12 @@ func (cp *ChargePoint) reader() {
 	for {
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d , err: %v", messageType, err)
+		var closeErr *websocket.CloseError
+		if errors.As(err, &closeErr){
+			log.L.Error(closeErr)
+			cp.Conn.Close()
+			return
+		}
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
@@ -311,7 +317,9 @@ func (cp *ChargePoint) writer() {
 				if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 					log.L.Error(err)
 					return
-				}	
+				}
+			case <- cp.StopWriter:
+				return		
 			}
 		}	
 	}
@@ -520,7 +528,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *Char
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
 		StopCh: 		 make(chan struct{}, 1),
-		StopWriter:      make(chan struct{}, 1),
+		StopWriter:      make(chan struct{}, 2),
 		ReceiveClose: 	 make(chan struct{}, 1),
 	}
 
