@@ -348,7 +348,9 @@ func (cp *ChargePoint) readerCsms() {
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
 				log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
-				if closeErr.Code == websocket.CloseNormalClosure {
+				if closeErr.Code == 1000 {
+					//TODO
+					log.L.Debug("closeErr received")
 					cp.ReceiveClose <- struct{}{}
 				}
 			}
