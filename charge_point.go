@@ -64,8 +64,11 @@ func (cp *ChargePoint) GracefulShutdown( timeout time.Duration) error {
 	}
 	cp.StopWriter <- struct{}{}
 	select {
-	case <- cp.ReceiveClose:	
+	case <- cp.ReceiveClose:
+		log.L.Debug("Close Singal Received")
+		cp.StopCh <- struct{}{}	
 	case <- time.After(timeout):
+		log.L.Debug("Timeout Happened")
 		cp.StopCh <- struct{}{}
 	}
 	return cp.Conn.Close()
