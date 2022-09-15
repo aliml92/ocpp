@@ -51,7 +51,8 @@ type ChargePoint struct {
 	TimeoutConfig   TimeoutConfig
 	PingIn          chan []byte                              // ping in channel              #server specific
 	StopCh			chan struct{}							 // channel to close connection
-	ReadDone        chan struct{} 				
+	StopWriter      chan struct{}   
+	ReceiveClose    chan struct{} 				
 }
 
 func (cp *ChargePoint) GracefulShutdown( timeout time.Duration) error {
@@ -61,14 +62,19 @@ func (cp *ChargePoint) GracefulShutdown( timeout time.Duration) error {
 		log.L.Error(err)
 		return cp.Conn.Close()
 	}
+	cp.StopWriter <- struct{}{}
 	select {
-	case <- cp.ReadDone:
+	case <- cp.ReceiveClose:	
 	case <- time.After(timeout):
 		cp.StopCh <- struct{}{}
 	}
 	return cp.Conn.Close()
 	
 }
+
+
+
+
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
 	cp.TimeoutConfig = config
@@ -195,7 +201,6 @@ func (cp *ChargePoint) reader() {
 	}()
 	for {
 		messageType, msg, err := cp.Conn.ReadMessage()
-		cp.ReadDone <- struct{}{}
 		log.L.Debugf("messageType: %d , err: %v", messageType, err)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
@@ -340,6 +345,9 @@ func (cp *ChargePoint) readerCsms() {
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
 				log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
+				if closeErr.Code == websocket.CloseNormalClosure {
+					cp.ReceiveClose <- struct{}{}
+				}
 			}
 			if err != nil {
 				log.L.Debugf("error occured: %v", err)
@@ -436,9 +444,10 @@ func (cp *ChargePoint) writerCsms() {
 				log.L.Error(err)
 				return
 			}
-			log.L.Debug("Pong sent")	
+			log.L.Debug("Pong sent")
+		case <- cp.StopWriter:
+			return		
 		}
-
 	}
 }
 
@@ -506,7 +515,8 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isClient bool) *Char
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
 		StopCh: 		 make(chan struct{}, 1),
-		ReadDone: 		 make(chan struct{}, 1),
+		StopWriter:      make(chan struct{}, 1),
+		ReceiveClose: 	 make(chan struct{}, 1),
 	}
 
 	if isClient {
