@@ -57,7 +57,8 @@ type ChargePoint struct {
 	cliWClose     	chan struct{}   
 	closeAck     	chan struct{}
 	forceRClose		chan struct{}
-	forceWClose		chan struct{}	
+	forceWClose		chan struct{}
+	isCloseAckOnWait bool	
 }
 
 
@@ -76,6 +77,7 @@ func (cp *ChargePoint) Shutdown(timeout time.Duration, force bool) error {
 
 	if cp.isServer {
 		cp.srvWClose <- struct{}{}
+		cp.isCloseAckOnWait = true
 		select {
 		case <- cp.closeAck:
 			log.L.Debug("Close Singal Received")
@@ -86,6 +88,7 @@ func (cp *ChargePoint) Shutdown(timeout time.Duration, force bool) error {
 		}
 	} else {
 		cp.cliWClose <- struct{}{}
+		cp.isCloseAckOnWait = true
 		select {
 		case <- cp.closeAck:
 			log.L.Debug("Close Singal Received")
@@ -222,10 +225,11 @@ func (cp *ChargePoint) cliReader() {
 	cp.Conn.SetCloseHandler(func(code int, text string) error {
 		log.L.Debugf("code received: %v", code)
 		log.L.Debugf("text received: %v", text)
-		if code == 1000 {
+		if code == 1000 && cp.isCloseAckOnWait{
 			count++
 			log.L.Debugf("closeErr received: %d", count)
 			cp.closeAck <- struct{}{}
+			return nil
 		}
 		b := websocket.FormatCloseMessage(code, text)
 		return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
@@ -394,10 +398,11 @@ func (cp *ChargePoint) srvReader() {
 	cp.Conn.SetCloseHandler(func(code int, text string) error {
 		log.L.Debugf("code received: %v", code)
 		log.L.Debugf("text received: %v", text)
-		if code == 1000 {
+		if code == 1000 && cp.isCloseAckOnWait{
 			count++
 			log.L.Debugf("closeErr received: %d", count)
 			cp.closeAck <- struct{}{}
+			return nil
 		}
 		b := websocket.FormatCloseMessage(code, text)
 		return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
