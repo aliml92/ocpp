@@ -2,8 +2,6 @@ package ocpp
 
 import (
 	"encoding/json"
-	"errors"
-	// "errors"
 	"fmt"
 	"sync"
 	"time"
