@@ -214,6 +214,7 @@ func (c *Client) After(action string, f func(*ChargePoint,  Payload)) *Client {
 
 // websocket reader to receive messages
 func (cp *ChargePoint) cliReader() {
+	var count int
 	cp.Conn.SetPongHandler(func(appData string) error {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
@@ -239,8 +240,9 @@ func (cp *ChargePoint) cliReader() {
 			if err != nil {
 				var closeErr *websocket.CloseError
 				if errors.As(err, &closeErr){
-					log.L.Error(closeErr)
 					if closeErr.Code == 1000 {
+						count++
+						log.L.Error(closeErr)
 						cp.closeAck <- struct{}{}
 					}
 				}
@@ -372,6 +374,7 @@ func (cp *ChargePoint) cliWriter() {
 
 // 
 func (cp *ChargePoint) srvReader() {
+	var count int
 	cp.Conn.SetPingHandler(func(appData string) error {
 		cp.PingIn <- []byte(appData)
 		log.L.Debugf("ping received: %v", appData)
@@ -403,7 +406,8 @@ func (cp *ChargePoint) srvReader() {
 				if errors.As(err, &closeErr) {
 					log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
 					if closeErr.Code == 1000 {
-						log.L.Debug("closeErr received")
+						count++
+						log.L.Debugf("closeErr received: %d", count)
 						cp.closeAck <- struct{}{}
 					}
 				}
