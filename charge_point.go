@@ -2,6 +2,7 @@ package ocpp
 
 import (
 	"encoding/json"
+	"errors"
 	// "errors"
 	"fmt"
 	"sync"
@@ -222,18 +223,18 @@ func (cp *ChargePoint) cliReader() {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
-	cp.Conn.SetCloseHandler(func(code int, text string) error {
-		log.L.Debugf("code received: %v", code)
-		log.L.Debugf("text received: %v", text)
-		if code == 1000 && cp.isCloseAckOnWait{
-			count++
-			log.L.Debugf("closeErr received: %d", count)
-			cp.closeAck <- struct{}{}
-			return nil
-		}
-		b := websocket.FormatCloseMessage(code, text)
-		return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	})
+	// cp.Conn.SetCloseHandler(func(code int, text string) error {
+	// 	log.L.Debugf("code received: %v", code)
+	// 	log.L.Debugf("text received: %v", text)
+	// 	if code == 1000 && cp.isCloseAckOnWait{
+	// 		count++
+	// 		log.L.Debugf("closeErr received: %d", count)
+	// 		cp.closeAck <- struct{}{}
+	// 		return nil
+	// 	}
+	// 	b := websocket.FormatCloseMessage(code, text)
+	// 	return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+	// })
 	defer func() {
 		cp.Conn.Close()
 	}()
@@ -251,14 +252,17 @@ func (cp *ChargePoint) cliReader() {
 			log.L.Debugf("messageType: %d" , messageType)
 			if err != nil {
 				log.L.Error(err)
-				// var closeErr *websocket.CloseError
-				// if errors.As(err, &closeErr){
-				// 	if closeErr.Code == 1000 {
-				// 		count++
-				// 		log.L.Error(closeErr)
-				// 		cp.closeAck <- struct{}{}
-				// 	}
-				// }
+				var closeErr *websocket.CloseError
+				if errors.As(err, &closeErr){
+					if closeErr.Code == 1000 && cp.isCloseAckOnWait {
+						count++
+						cp.Conn.SetPingHandler(nil)
+						cp.Conn.SetPongHandler(nil)
+						cp.Conn.SetCloseHandler(nil)
+						log.L.Error(closeErr)
+						cp.closeAck <- struct{}{}
+					}
+				}
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
 				}				
@@ -395,18 +399,18 @@ func (cp *ChargePoint) srvReader() {
 		log.L.Debugf("second read deadline: %v", i)
 		return cp.Conn.SetReadDeadline(i)
 	})
-	cp.Conn.SetCloseHandler(func(code int, text string) error {
-		log.L.Debugf("code received: %v", code)
-		log.L.Debugf("text received: %v", text)
-		if code == 1000 && cp.isCloseAckOnWait{
-			count++
-			log.L.Debugf("closeErr received: %d", count)
-			cp.closeAck <- struct{}{}
-			return nil
-		}
-		b := websocket.FormatCloseMessage(code, text)
-		return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	})	
+	// cp.Conn.SetCloseHandler(func(code int, text string) error {
+	// 	log.L.Debugf("code received: %v", code)
+	// 	log.L.Debugf("text received: %v", text)
+	// 	if code == 1000 && cp.isCloseAckOnWait{
+	// 		count++
+	// 		log.L.Debugf("closeErr received: %d", count)
+	// 		cp.closeAck <- struct{}{}
+	// 		return nil
+	// 	}
+	// 	b := websocket.FormatCloseMessage(code, text)
+	// 	return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+	// })	
 	defer func() {
 		cp.Conn.Close()
 	}()
@@ -424,15 +428,18 @@ func (cp *ChargePoint) srvReader() {
 			messageType, msg, err := cp.Conn.ReadMessage()
 			log.L.Debugf("messageType: %d ", messageType)
 			if err != nil {
-				// var closeErr *websocket.CloseError
-				// if errors.As(err, &closeErr) {
-				// 	log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
-				// 	if closeErr.Code == 1000 {
-				// 		count++
-				// 		log.L.Debugf("closeErr received: %d", count)
-				// 		cp.closeAck <- struct{}{}
-				// 	}
-				// }
+				var closeErr *websocket.CloseError
+				if errors.As(err, &closeErr) {
+					log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
+					if closeErr.Code == 1000 && cp.isCloseAckOnWait{
+						count++
+						cp.Conn.SetPingHandler(nil)
+						cp.Conn.SetPongHandler(nil)
+						cp.Conn.SetCloseHandler(nil)
+						log.L.Debugf("closeErr received: %d", count)
+						cp.closeAck <- struct{}{}
+					}
+				}
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
 					// server.Chargepoints.Delete(cp.Id)
