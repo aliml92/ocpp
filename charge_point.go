@@ -51,60 +51,15 @@ type ChargePoint struct {
 	Extras          map[string]interface{}
 	TimeoutConfig   TimeoutConfig
 	isServer        bool 
-	PingIn          chan []byte                              // ping in channel              #server specific
-	srvRClose		chan struct{}							 // channel to close connection
-	srvWClose   	chan struct{}
-	cliRClose    	chan struct{}
-	cliWClose     	chan struct{}   
-	closeAck     	chan struct{}
-	forceRClose		chan struct{}
-	forceWClose		chan struct{}
-	isCloseAckOnWait bool	
+	pingIn          chan []byte                              // ping in channel              #server specific
+	closeC     		chan websocket.CloseError  
+	forceWClose		chan error
 }
 
 
-func (cp *ChargePoint) Shutdown(timeout time.Duration, force bool) error {
-	b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
-	err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	if err != nil && err != websocket.ErrCloseSent {
-		log.L.Error(err)
-		return cp.Conn.Close()
-	}
-	if force {
-		cp.forceRClose <- struct{}{}
-		cp.forceWClose <-struct{}{}
-		return cp.Conn.Close()
-	}
-
-	if cp.isServer {
-		cp.srvWClose <- struct{}{}
-		cp.isCloseAckOnWait = true
-		select {
-		case <- cp.closeAck:
-			log.L.Debug("Close Singal Received")
-			cp.srvRClose <- struct{}{}	
-		case <- time.After(timeout):
-			log.L.Debug("Timeout Happened")
-			cp.srvRClose <- struct{}{}
-		}
-	} else {
-		cp.cliWClose <- struct{}{}
-		cp.isCloseAckOnWait = true
-		select {
-		case <- cp.closeAck:
-			log.L.Debug("Close Singal Received")
-			cp.cliRClose <- struct{}{}	
-		case <- time.After(timeout):
-			log.L.Debug("Timeout Happened")
-			cp.cliRClose <- struct{}{}
-		}
-	} 
-	return cp.Conn.Close()
-	
+func (cp *ChargePoint) Shutdown(code int, text string) {
+	cp.closeC <- websocket.CloseError{Code: code, Text: text}
 }
-
-
-
 
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
@@ -218,96 +173,68 @@ func (c *Client) After(action string, f func(*ChargePoint,  Payload)) *Client {
 
 // websocket reader to receive messages
 func (cp *ChargePoint) cliReader() {
-	var count int
 	cp.Conn.SetPongHandler(func(appData string) error {
 		log.L.Debugf("Pong received: %v", appData)
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
-	// cp.Conn.SetCloseHandler(func(code int, text string) error {
-	// 	log.L.Debugf("code received: %v", code)
-	// 	log.L.Debugf("text received: %v", text)
-	// 	if code == 1000 && cp.isCloseAckOnWait{
-	// 		count++
-	// 		log.L.Debugf("closeErr received: %d", count)
-	// 		cp.closeAck <- struct{}{}
-	// 		return nil
-	// 	}
-	// 	b := websocket.FormatCloseMessage(code, text)
-	// 	return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	// })
-	defer func() {
-		cp.Conn.Close()
-	}()
-	loop:
 	for {
-		select {
-		case <- cp.forceRClose:
-			log.L.Debug("force stop singal received")
-			return
-		case <- cp.cliRClose:
-			log.L.Debug("stop singal received")
-			// TODO
-			return
-		default:
-			messageType, msg, err := cp.Conn.ReadMessage()
-			log.L.Debugf("messageType: %d" , messageType)
-			if err != nil {
-				log.L.Error(err)
-				var closeErr *websocket.CloseError
-				if errors.As(err, &closeErr){
-					if closeErr.Code == 1000 && cp.isCloseAckOnWait {
-						count++
-						cp.Conn.SetPingHandler(nil)
-						cp.Conn.SetPongHandler(nil)
-						cp.Conn.SetCloseHandler(nil)
-						log.L.Error(closeErr)
-						cp.closeAck <- struct{}{}
-					}
-				}
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-					log.L.Error(err)
-				}				
-				break loop
-			}
-			call, callResult, callError, err := unpack(&msg)
-			if err != nil {
-				cp.Out <- call.createCallError(err)
+		messageType, msg, err := cp.Conn.ReadMessage()
+		log.L.Debugf("messageType: %d" , messageType)
+		if err != nil {
+			// log.L.Error(err)
+			// var closeErr *websocket.CloseError
+			// if errors.As(err, &closeErr){
+			// 	if closeErr.Code == 1000 && cp.isCloseAckOnWait {
+			// 		cp.Conn.SetPingHandler(nil)
+			// 		cp.Conn.SetPongHandler(nil)
+			// 		cp.Conn.SetCloseHandler(nil)
+			// 		log.L.Error(closeErr)
+			// 		cp.closeAck <- struct{}{}
+			// 	}
+			// }
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
 			}
-			if call != nil {
-				handler, ok := client.ActionHandlers[call.Action]
-				if ok {
-					responsePayload := handler(cp, call.Payload)
-					// log.L.Debugf("[ocpp] %v", responsePayload)
-					err = validate.Struct(responsePayload)
-					if err != nil {
-						log.L.Error(err)
-					} else {
-						cp.Out <- call.createCallResult(responsePayload)
-						time.Sleep(time.Second)
-						if afterHandler, ok := client.AfterHandlers[call.Action]; ok {
-							go afterHandler(cp, call.Payload)
-						}
-					}
-				} else {
-					var err error = &OCPPError{
-						id:    call.UniqueId,
-						code:  "NotSupported",
-						cause: fmt.Sprintf("Action %s is not supported", call.Action),
-					}
-					cp.Out <- call.createCallError(err)
-					log.L.Errorf("No handler for action %s", call.Action)
-				}
-			}
-			if callResult != nil {
-				log.L.Debug(callResult)
-				cp.Cr <- callResult
-			}
-			if callError != nil {
-				log.L.Debug(callError)
-				cp.Ce <- callError
-			}				  
+			cp.forceWClose <- err				
+			return
 		}
+		call, callResult, callError, err := unpack(&msg)
+		if err != nil {
+			cp.Out <- call.createCallError(err)
+			log.L.Error(err)
+		}
+		if call != nil {
+			handler, ok := client.ActionHandlers[call.Action]
+			if ok {
+				responsePayload := handler(cp, call.Payload)
+				err = validate.Struct(responsePayload)
+				if err != nil {
+					log.L.Error(err)
+				} else {
+					cp.Out <- call.createCallResult(responsePayload)
+					time.Sleep(time.Second)
+					if afterHandler, ok := client.AfterHandlers[call.Action]; ok {
+						go afterHandler(cp, call.Payload)
+					}
+				}
+			} else {
+				var err error = &OCPPError{
+					id:    call.UniqueId,
+					code:  "NotSupported",
+					cause: fmt.Sprintf("Action %s is not supported", call.Action),
+				}
+				cp.Out <- call.createCallError(err)
+				log.L.Errorf("No handler for action %s", call.Action)
+			}
+		}
+		if callResult != nil {
+			log.L.Debug(callResult)
+			cp.Cr <- callResult
+		}
+		if callError != nil {
+			log.L.Debug(callError)
+			cp.Ce <- callError
+		}		
 
 	}
 }
@@ -316,13 +243,21 @@ func (cp *ChargePoint) cliReader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) cliWriter() {
+	defer func() {
+		_ = cp.Conn.Close()
+	}()
 	switch client.TimeoutConfig.PingPeriod {
 	case 0:
 		for {
 			select {
 			case <- cp.forceWClose:
 				return
-			case <- cp.cliWClose:
+			case <- cp.closeC:
+				b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+				if err != nil && err != websocket.ErrCloseSent {
+					log.L.Error(err)
+				}
 				return	
 			case message, ok := <-cp.Out:
 				_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.TimeoutConfig.WriteWait))			
@@ -347,7 +282,6 @@ func (cp *ChargePoint) cliWriter() {
 			}
 		}
 	default:
-		defer cp.Conn.Close()
 		ticker := time.NewTicker(client.TimeoutConfig.PingPeriod)
 		defer ticker.Stop()
 		for {
@@ -380,7 +314,12 @@ func (cp *ChargePoint) cliWriter() {
 				}
 			case <- cp.forceWClose:
 				return
-			case <- cp.cliWClose:
+			case <- cp.closeC:
+				b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+				if err != nil && err != websocket.ErrCloseSent {
+					log.L.Error(err)
+				}
 				return			
 			}
 		}					
@@ -392,9 +331,9 @@ func (cp *ChargePoint) cliWriter() {
 
 // 
 func (cp *ChargePoint) srvReader() {
-	var count int
+	// var count int
 	cp.Conn.SetPingHandler(func(appData string) error {
-		cp.PingIn <- []byte(appData)
+		cp.pingIn <- []byte(appData)
 		log.L.Debugf("ping received: %v", appData)
 		i := cp.getReadTimeout()
 		log.L.Debugf("second read deadline: %v", i)
@@ -413,82 +352,71 @@ func (cp *ChargePoint) srvReader() {
 	// 	return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 	// })	
 	defer func() {
-		cp.Conn.Close()
+		_ = cp.Conn.Close()
 	}()
-	loop: 
 	for {
-		select {
-		case <- cp.forceRClose:
-			log.L.Debug("force stop singal received")
-			server.Chargepoints.Delete(cp.Id)
-			return	
-		case <-cp.srvRClose:
-			log.L.Debug("stop singal received")
-			server.Chargepoints.Delete(cp.Id)
-			return
-		default:
-			c := cp.Conn.CloseHandler()
-			cp.Conn.SetCloseHandler(nil)
-			messageType, msg, err := cp.Conn.ReadMessage()
-			log.L.Debugf("messageType: %d ", messageType)
-			if err != nil {
-				var closeErr *websocket.CloseError
-				if errors.As(err, &closeErr) {
-					log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
-					if closeErr.Code == 1000 && cp.isCloseAckOnWait{
-						count++
-						cp.Conn.SetPingHandler(nil)
-						cp.Conn.SetPongHandler(nil)
-						cp.Conn.SetCloseHandler(nil)
-						log.L.Debugf("closeErr received: %d", count)
-						cp.closeAck <- struct{}{}
-					}
-					cp.Conn.SetCloseHandler(c)
-				}
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-					log.L.Error(err)
-					// server.Chargepoints.Delete(cp.Id)
-					log.L.Debugf("charge point with id %s deleted", cp.Id)
-				}
-				break loop
-			}
-			call, callResult, callError, err := unpack(&msg)
-			if err != nil {
-				cp.Out <- call.createCallError(err)
+		// c := cp.Conn.CloseHandler()
+		// cp.Conn.SetCloseHandler(nil)
+		messageType, msg, err := cp.Conn.ReadMessage()
+		log.L.Debugf("messageType: %d ", messageType)
+		if err != nil {
+			// var closeErr *websocket.CloseError
+			// if errors.As(err, &closeErr) {
+			// 	log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
+			// 	if closeErr.Code == 1000 && cp.isCloseAckOnWait{
+			// 		count++
+			// 		cp.Conn.SetPingHandler(nil)
+			// 		cp.Conn.SetPongHandler(nil)
+			// 		cp.Conn.SetCloseHandler(nil)
+			// 		log.L.Debugf("closeErr received: %d", count)
+			// 		cp.closeAck <- struct{}{}
+			// 	}
+			// 	cp.Conn.SetCloseHandler(c)
+			// }
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
+				// server.Chargepoints.Delete(cp.Id)
+				log.L.Debugf("charge point with id %s deleted", cp.Id)
 			}
-			if call != nil {
-				handler, ok := server.ActionHandlers[call.Action]
-				if ok {
-					responsePayload := handler(cp, call.Payload)
-					err = validate.Struct(responsePayload)
-					if err != nil {
-						log.L.Error(err)
-					} else {
-						cp.Out <- call.createCallResult(responsePayload)
-						time.Sleep(time.Second)
-						if afterHandler, ok := server.AfterHandlers[call.Action]; ok {
-							go afterHandler(cp, call.Payload)
-						}
-					}
+			cp.forceWClose <- err
+			return 
+		}
+		call, callResult, callError, err := unpack(&msg)
+		if err != nil {
+			cp.Out <- call.createCallError(err)
+			log.L.Error(err)
+		}
+		if call != nil {
+			handler, ok := server.ActionHandlers[call.Action]
+			if ok {
+				responsePayload := handler(cp, call.Payload)
+				err = validate.Struct(responsePayload)
+				if err != nil {
+					log.L.Error(err)
 				} else {
-					var err error = &OCPPError{
-						id:    call.UniqueId,
-						code:  "NotSupported",
-						cause: fmt.Sprintf("action %s is not supported", call.Action),
+					cp.Out <- call.createCallResult(responsePayload)
+					time.Sleep(time.Second)
+					if afterHandler, ok := server.AfterHandlers[call.Action]; ok {
+						go afterHandler(cp, call.Payload)
 					}
-					cp.Out <- call.createCallError(err)
-					log.L.Debugf("no handler for action %s", call.Action)
 				}
+			} else {
+				var err error = &OCPPError{
+					id:    call.UniqueId,
+					code:  "NotSupported",
+					cause: fmt.Sprintf("action %s is not supported", call.Action),
+				}
+				cp.Out <- call.createCallError(err)
+				log.L.Debugf("no handler for action %s", call.Action)
 			}
-			if callResult != nil {
-				log.L.Debugf("call result received: %v", callResult)
-				cp.Cr <- callResult
-			}
-			if callError != nil {
-				log.L.Debugf("call error received: %v", callError)
-				cp.Ce <- callError
-			}		
+		}
+		if callResult != nil {
+			log.L.Debugf("call result received: %v", callResult)
+			cp.Cr <- callResult
+		}
+		if callError != nil {
+			log.L.Debugf("call error received: %v", callError)
+			cp.Ce <- callError
 		}	
 	}
 }
@@ -528,7 +456,7 @@ func (cp *ChargePoint) srvWriter() {
 				return
 			}
 			log.L.Debugf("text message sent %d", n)
-		case <-cp.PingIn:
+		case <-cp.pingIn:
 			err := cp.Conn.SetWriteDeadline(time.Now().Add(cp.TimeoutConfig.WriteWait))
 			if err != nil {
 				log.L.Error(err)
@@ -540,8 +468,14 @@ func (cp *ChargePoint) srvWriter() {
 			}
 			log.L.Debug("Pong sent")
 		case <- cp.forceWClose:
+			server.Chargepoints.Delete(cp.Id)
 			return
-		case <- cp.srvWClose:
+		case <- cp.closeC:
+			b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+			if err != nil && err != websocket.ErrCloseSent {
+				log.L.Error(err)
+			}
 			return			
 		}
 	}
@@ -610,24 +544,19 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		Cr:              make(chan *CallResult),
 		Ce:              make(chan *CallError),
 		Extras: 		 make(map[string]interface{}),
-		closeAck: 	 	 make(chan struct{}, 1),
-		forceRClose:     make(chan struct{}, 1),
-		forceWClose:     make(chan struct{}, 1),
+		closeC:     	 make(chan websocket.CloseError, 1),
+		forceWClose:     make(chan error,1),
 	}
 
 	if isServer {
 		cp.TimeoutConfig = server.TimeoutConfig
-		cp.PingIn = make(chan []byte)
+		cp.pingIn = make(chan []byte)
 		cp.isServer = true
-		cp.srvRClose = 	make(chan struct{}, 1)
-		cp.srvWClose = make(chan struct{}, 1)
 		server.Chargepoints.Store(id, cp)
 		go cp.srvReader()
 		go cp.srvWriter()
 	} else {
 		cp.TimeoutConfig = client.TimeoutConfig
-		cp.cliRClose = make(chan struct{},1)
-		cp.cliWClose = make(chan struct{},1)
 		go cp.cliReader()
 		go cp.cliWriter()
 	} 
