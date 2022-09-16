@@ -238,6 +238,7 @@ func (cp *ChargePoint) cliReader() {
 	defer func() {
 		cp.Conn.Close()
 	}()
+	loop:
 	for {
 		select {
 		case <- cp.forceRClose:
@@ -266,7 +267,7 @@ func (cp *ChargePoint) cliReader() {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
 				}				
-				break
+				break loop
 			}
 			call, callResult, callError, err := unpack(&msg)
 			if err != nil {
@@ -414,6 +415,7 @@ func (cp *ChargePoint) srvReader() {
 	defer func() {
 		cp.Conn.Close()
 	}()
+	loop: 
 	for {
 		select {
 		case <- cp.forceRClose:
@@ -425,6 +427,8 @@ func (cp *ChargePoint) srvReader() {
 			server.Chargepoints.Delete(cp.Id)
 			return
 		default:
+			c := cp.Conn.CloseHandler()
+			cp.Conn.SetCloseHandler(nil)
 			messageType, msg, err := cp.Conn.ReadMessage()
 			log.L.Debugf("messageType: %d ", messageType)
 			if err != nil {
@@ -439,13 +443,14 @@ func (cp *ChargePoint) srvReader() {
 						log.L.Debugf("closeErr received: %d", count)
 						cp.closeAck <- struct{}{}
 					}
+					cp.Conn.SetCloseHandler(c)
 				}
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					log.L.Error(err)
 					// server.Chargepoints.Delete(cp.Id)
 					log.L.Debugf("charge point with id %s deleted", cp.Id)
 				}
-				break
+				break loop
 			}
 			call, callResult, callError, err := unpack(&msg)
 			if err != nil {
