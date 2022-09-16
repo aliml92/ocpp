@@ -55,8 +55,8 @@ type ChargePoint struct {
 }
 
 
-func (cp *ChargePoint) Shutdown(code int, text string) {
-	cp.closeC <- websocket.CloseError{Code: code, Text: text}
+func (cp *ChargePoint) Shutdown() {
+	cp.closeC <- websocket.CloseError{Code: websocket.CloseNormalClosure, Text: ""}
 }
 
 
@@ -179,17 +179,6 @@ func (cp *ChargePoint) cliReader() {
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d" , messageType)
 		if err != nil {
-			// log.L.Error(err)
-			// var closeErr *websocket.CloseError
-			// if errors.As(err, &closeErr){
-			// 	if closeErr.Code == 1000 && cp.isCloseAckOnWait {
-			// 		cp.Conn.SetPingHandler(nil)
-			// 		cp.Conn.SetPongHandler(nil)
-			// 		cp.Conn.SetCloseHandler(nil)
-			// 		log.L.Error(closeErr)
-			// 		cp.closeAck <- struct{}{}
-			// 	}
-			// }
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
 			}
@@ -250,8 +239,8 @@ func (cp *ChargePoint) cliWriter() {
 			select {
 			case <- cp.forceWClose:
 				return
-			case <- cp.closeC:
-				b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			case closeErr := <- cp.closeC:
+				b := websocket.FormatCloseMessage(closeErr.Code,closeErr.Text)
 				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 				if err != nil && err != websocket.ErrCloseSent {
 					log.L.Error(err)
@@ -312,8 +301,8 @@ func (cp *ChargePoint) cliWriter() {
 				}
 			case <- cp.forceWClose:
 				return
-			case <- cp.closeC:
-				b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			case closeErr := <-cp.closeC:
+				b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
 				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 				if err != nil && err != websocket.ErrCloseSent {
 					log.L.Error(err)
@@ -468,8 +457,8 @@ func (cp *ChargePoint) srvWriter() {
 		case <- cp.forceWClose:
 			server.Chargepoints.Delete(cp.Id)
 			return
-		case <- cp.closeC:
-			b := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+		case closeErr := <- cp.closeC:
+			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
 			err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 			if err != nil && err != websocket.ErrCloseSent {
 				log.L.Error(err)
