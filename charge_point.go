@@ -172,7 +172,7 @@ func (c *Client) After(action string, f func(*ChargePoint,  Payload)) *Client {
 // websocket reader to receive messages
 func (cp *ChargePoint) cliReader() {
 	cp.Conn.SetPongHandler(func(appData string) error {
-		log.L.Debugf("Pong received: %v", appData)
+		log.L.Debug("pong <- ")
 		return cp.Conn.SetReadDeadline(client.getReadTimeout())
 	})
 	for {
@@ -321,49 +321,19 @@ func (cp *ChargePoint) srvReader() {
 	// var count int
 	cp.Conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
-		log.L.Debugf("ping received: %v", appData)
+		log.L.Debug("ping <- ")
 		i := cp.getReadTimeout()
-		log.L.Debugf("second read deadline: %v", i)
 		return cp.Conn.SetReadDeadline(i)
 	})
-	// cp.Conn.SetCloseHandler(func(code int, text string) error {
-	// 	log.L.Debugf("code received: %v", code)
-	// 	log.L.Debugf("text received: %v", text)
-	// 	if code == 1000 && cp.isCloseAckOnWait{
-	// 		count++
-	// 		log.L.Debugf("closeErr received: %d", count)
-	// 		cp.closeAck <- struct{}{}
-	// 		return nil
-	// 	}
-	// 	b := websocket.FormatCloseMessage(code, text)
-	// 	return cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-	// })	
 	defer func() {
 		_ = cp.Conn.Close()
 	}()
 	for {
-		// c := cp.Conn.CloseHandler()
-		// cp.Conn.SetCloseHandler(nil)
 		messageType, msg, err := cp.Conn.ReadMessage()
 		log.L.Debugf("messageType: %d ", messageType)
 		if err != nil {
-			// var closeErr *websocket.CloseError
-			// if errors.As(err, &closeErr) {
-			// 	log.L.Debugf("close error occured: code: %v, text: %v", closeErr.Code, closeErr.Text)
-			// 	if closeErr.Code == 1000 && cp.isCloseAckOnWait{
-			// 		count++
-			// 		cp.Conn.SetPingHandler(nil)
-			// 		cp.Conn.SetPongHandler(nil)
-			// 		cp.Conn.SetCloseHandler(nil)
-			// 		log.L.Debugf("closeErr received: %d", count)
-			// 		cp.closeAck <- struct{}{}
-			// 	}
-			// 	cp.Conn.SetCloseHandler(c)
-			// }
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 				log.L.Error(err)
-				// server.Chargepoints.Delete(cp.Id)
-				log.L.Debugf("charge point with id %s deleted", cp.Id)
 			}
 			cp.forceWClose <- err
 			return 
@@ -398,11 +368,11 @@ func (cp *ChargePoint) srvReader() {
 			}
 		}
 		if callResult != nil {
-			log.L.Debugf("call result received: %v", callResult)
+			log.L.Debugf("call result <-: %v", callResult)
 			cp.Cr <- callResult
 		}
 		if callError != nil {
-			log.L.Debugf("call error received: %v", callError)
+			log.L.Debugf("call err <-: %v", callError)
 			cp.Ce <- callError
 		}	
 	}
@@ -424,25 +394,29 @@ func (cp *ChargePoint) srvWriter() {
 				if err != nil {
 					log.L.Error(err)
 				}
-				log.L.Debug("close message sent")
+				log.L.Debug("close msg ->")
+				server.Chargepoints.Delete(cp.Id)
 				return
 			}
 			w, err := cp.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				log.L.Error(err)
+				server.Chargepoints.Delete(cp.Id)
 				return
 			}
 			n, err := w.Write(*message)
 			if err != nil {
 				log.L.Error(err)
+				server.Chargepoints.Delete(cp.Id)
 				return
 			}
 			if err := w.Close(); err != nil {
 				server.Chargepoints.Delete(cp.Id)
 				log.L.Error(err)
+				server.Chargepoints.Delete(cp.Id)
 				return
 			}
-			log.L.Debugf("text message sent %d", n)
+			log.L.Debugf("text msg -> %d", n)
 		case <-cp.pingIn:
 			err := cp.Conn.SetWriteDeadline(time.Now().Add(cp.TimeoutConfig.WriteWait))
 			if err != nil {
@@ -451,13 +425,15 @@ func (cp *ChargePoint) srvWriter() {
 			err = cp.Conn.WriteMessage(websocket.PongMessage, []byte{})
 			if err != nil {
 				log.L.Error(err)
+				server.Chargepoints.Delete(cp.Id)
 				return
 			}
-			log.L.Debug("Pong sent")
+			log.L.Debug("pong ->")
 		case <- cp.forceWClose:
 			server.Chargepoints.Delete(cp.Id)
 			return
 		case closeErr := <- cp.closeC:
+			server.Chargepoints.Delete(cp.Id)
 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
 			err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 			if err != nil && err != websocket.ErrCloseSent {
