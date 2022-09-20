@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	
 
-	"github.com/aliml92/ocpp/v16"
 	log "github.com/aliml92/ocpp/log"
+	"github.com/aliml92/ocpp/v16"
 	// "github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 )
-
 
 var reqmap = map[string]func(*json.RawMessage) (Payload, error){
 	"BootNotification":              ureq[v16.BootNotificationReq],
@@ -44,8 +42,6 @@ var reqmap = map[string]func(*json.RawMessage) (Payload, error){
 	"UpdateFirmware":                ureq[v16.UpdateFirmwareReq],
 }
 
-
-
 var confmap = map[string]func(*json.RawMessage) (Payload, error){
 	"BootNotification":              uconf[v16.BootNotificationConf],
 	"Authorize":                     uconf[v16.AuthorizeConf],
@@ -76,9 +72,6 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 	"UnlockConnector":               uconf[v16.UnlockConnectorConf],
 	"UpdateFirmware":                uconf[v16.UpdateFirmwareConf],
 }
-
-
-
 
 // var reqmapv201 = map[string]func(*json.RawMessage) (Payload, error){
 // 	"Authorize":                     	ureq[v201.AuthorizeReq],
@@ -147,7 +140,6 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 // 	"UpdateFirmware":                	ureq[v201.UpdateFirmwareReq],
 // }
 
-
 // var resmapv201 = map[string]func(*json.RawMessage) (Payload, error){
 // 	"Authorize":                     	uconf[v201.AuthorizeRes],
 // 	"BootNotification":              	uconf[v201.BootNotificationRes],
@@ -214,7 +206,6 @@ var confmap = map[string]func(*json.RawMessage) (Payload, error){
 // 	"UnpublishFirmware":             	uconf[v201.UnpublishFirmwareRes],
 // 	"UpdateFirmware":                	uconf[v201.UpdateFirmwareRes],
 // }
-
 
 type OCPPError struct {
 	id    string
@@ -328,11 +319,11 @@ func (e *TimeoutError) Error() string {
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}]
 func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
-	var rm []json.RawMessage   	//  raw message
-	var mti uint8 				//  MessageTypeId
-	var ui string 				//  UniqueId
-	var a string  				//  Action
-	var p Payload 				//  Payload
+	var rm []json.RawMessage //  raw message
+	var mti uint8            //  MessageTypeId
+	var ui string            //  UniqueId
+	var a string             //  Action
+	var p Payload            //  Payload
 	var c *Call
 	var cr *CallResult
 	var ce *CallError
@@ -343,7 +334,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "Invalid JSON format",
 		}
-		
+
 		return nil, nil, nil, e
 	}
 	err = json.Unmarshal(rm[1], &ui)
@@ -432,8 +423,6 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 
 }
 
-
-
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
 func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	a, ok := reqmap[mAction]
@@ -473,8 +462,6 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 	payload = p
 	return payload, nil
 }
-
-
 
 func unmarshalConf(mAction string, rawPayload *json.RawMessage) (Payload, error) {
 	a, ok := confmap[mAction]

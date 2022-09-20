@@ -5,14 +5,14 @@ type AuthorizeConf struct {
 }
 
 type BootNotificationConf struct {
-	CurrentTime 	string 		`json:"currentTime" validate:"required,ISO8601date"`
-	Interval    	int    		`json:"interval" validate:"required,gte=0"`
-	Status      	string 		`json:"status" validate:"required,RegistrationStatus"`
+	CurrentTime string `json:"currentTime" validate:"required,ISO8601date"`
+	Interval    *int   `json:"interval" validate:"required,gte=0"`
+	Status      string `json:"status" validate:"required,RegistrationStatus"`
 }
 
 type DataTransferConf struct {
-	Status 	string 		`json:"status" validate:"required,DataTransferStatus"`
-	Data   	string 		`json:"data,omitempty"`
+	Status string `json:"status" validate:"required,DataTransferStatus"`
+	Data   string `json:"data,omitempty"`
 }
 
 type DiagnosticsStatusNotificationConf struct{}
@@ -20,47 +20,47 @@ type DiagnosticsStatusNotificationConf struct{}
 type FirmwareStatusNotificationConf struct{}
 
 type HeartbeatConf struct {
-	CurrentTime 	string 	`json:"currentTime" validate:"required,ISO8601date"`
+	CurrentTime string `json:"currentTime" validate:"required,ISO8601date"`
 }
 
 type MeterValuesConf struct{}
 
 type StartTransactionConf struct {
-	IdTagInfo     	IdTagInfo 	`json:"idTagInfo" validate:"required"`
-	TransactionId 	int       	`json:"transactionId" validate:"required"`
+	IdTagInfo     IdTagInfo `json:"idTagInfo" validate:"required"`
+	TransactionId int       `json:"transactionId" validate:"required"`
 }
 
 type StatusNotificationConf struct{}
 
 type StopTransactionConf struct {
-	IdTagInfo 	IdTagInfo 	`json:"idTagInfo" validate:"required"`
+	IdTagInfo IdTagInfo `json:"idTagInfo" validate:"required"`
 }
 
 type CancelReservationConf struct {
-	Status 	string 	`json:"status" validate:"required,CancelReservationStatus"`
+	Status string `json:"status" validate:"required,CancelReservationStatus"`
 }
 
 type ChangeAvailabilityConf struct {
-	Status 	string 	`json:"status" validate:"required,AvailabilityStatus"`
+	Status string `json:"status" validate:"required,AvailabilityStatus"`
 }
 
 type ChangeConfigurationConf struct {
-	Status 	string 	`json:"status" validate:"required,ConfigurationStatus"`
+	Status string `json:"status" validate:"required,ConfigurationStatus"`
 }
 
 type ClearCacheConf struct {
-	Status 	string 	`json:"status" validate:"required,ClearCacheStatus"`
+	Status string `json:"status" validate:"required,ClearCacheStatus"`
 }
 
 type ClearChargingProfileConf struct {
-	Status 	string 	`json:"status" validate:"required,ClearChargingProfileStatus"`
+	Status string `json:"status" validate:"required,ClearChargingProfileStatus"`
 }
 
 type GetCompositeScheduleConf struct {
 	Status           string           `json:"status" validate:"required,GetCompositeScheduleStatus"`
 	ConnectorId      int              `json:"connectorId" validate:"required,gte=0"`
 	ScheduleStart    string           `json:"scheduleStart,omitempty" validate:"omitempty,ISO8601date"`
-	ChargingSchedule ChargingSchedule `json:"chargingSchedule,omitempty"`
+	ChargingSchedule *ChargingSchedule `json:"chargingSchedule,omitempty"`
 }
 
 type GetConfigurationConf struct {
@@ -69,43 +69,43 @@ type GetConfigurationConf struct {
 }
 
 type GetDiagnosticsConf struct {
-	FileName 	string 	`json:"fileName,omitempty" validate:"omitempty,max=255"`
+	FileName string `json:"fileName,omitempty" validate:"omitempty,max=255"`
 }
 
 type GetLocalListVersionConf struct {
-	ListVersion 	int 	`json:"listVersion" validate:"required,gte=0"`
+	ListVersion int `json:"listVersion" validate:"required,gte=0"`
 }
 
 type RemoteStartTransactionConf struct {
-	Status 	string 	`json:"status" validate:"required,RemoteStartStopStatus"`
+	Status string `json:"status" validate:"required,RemoteStartStopStatus"`
 }
 
 type RemoteStopTransactionConf struct {
-	Status 	string 	`json:"status" validate:"required,RemoteStartStopStatus"`
+	Status string `json:"status" validate:"required,RemoteStartStopStatus"`
 }
 
 type ReserveNowConf struct {
-	Status 	string 	`json:"status" validate:"required,ReservationStatus"`
+	Status string `json:"status" validate:"required,ReservationStatus"`
 }
 
 type ResetConf struct {
-	Status 	string 	`json:"status" validate:"required,ResetStatus"`
+	Status string `json:"status" validate:"required,ResetStatus"`
 }
 
 type SendLocalListConf struct {
-	Status 	string 	`json:"status" validate:"required,UpdateStatus"`
+	Status string `json:"status" validate:"required,UpdateStatus"`
 }
 
 type SetChargingProfileConf struct {
-	Status 	string 	`json:"status" validate:"required,ChargingProfileStatus"`
+	Status string `json:"status" validate:"required,ChargingProfileStatus"`
 }
 
 type TriggerMessageConf struct {
-	Status 	string 	`json:"status" validate:"required,TriggerMessageStatus"`
+	Status string `json:"status" validate:"required,TriggerMessageStatus"`
 }
 
 type UnlockConnectorConf struct {
-	Status 	string 	`json:"status" validate:"required,UnlockStatus"`
+	Status string `json:"status" validate:"required,UnlockStatus"`
 }
 
 type UpdateFirmwareConf struct{}
@@ -113,15 +113,15 @@ type UpdateFirmwareConf struct{}
 // OCPP 1.6 security whitepaper edition 2 implementation
 
 type CertificateSignedConf struct {
-	Status 	string 	`json:"status" validate:"required,CertificateSignedStatusEnumType"`
+	Status string `json:"status" validate:"required,CertificateSignedStatusEnumType"`
 }
 
 type DeleteCertificateConf struct {
-	Status 	string 	`json:"status" validate:"required,DeleteCertificateStatusEnumType"`
+	Status string `json:"status" validate:"required,DeleteCertificateStatusEnumType"`
 }
 
 type ExtendedTriggerMessageConf struct {
-	Status 	string 	`json:"status" validate:"required,TriggerMessageStatusEnumType"`
+	Status string `json:"status" validate:"required,TriggerMessageStatusEnumType"`
 }
 
 type GetInstalledCertificateIdsConf struct {
@@ -130,12 +130,12 @@ type GetInstalledCertificateIdsConf struct {
 }
 
 type GetLogConf struct {
-	Status   	string 		`json:"status" validate:"required,LogStatusEnumType"`
-	Filename 	string 		`json:"filename,omitempty" validate:"omitempty,max=255"`
+	Status   string `json:"status" validate:"required,LogStatusEnumType"`
+	Filename string `json:"filename,omitempty" validate:"omitempty,max=255"`
 }
 
 type InstallCertificateConf struct {
-	Status 		string 		`json:"status" validate:"required,CertificateStatusEnumType"`
+	Status string `json:"status" validate:"required,CertificateStatusEnumType"`
 }
 
 type LogStatusNotificationConf struct{}
@@ -143,11 +143,11 @@ type LogStatusNotificationConf struct{}
 type SecurityEventNotificationConf struct{}
 
 type SignCertificateConf struct {
-	Status 	string 	`json:"status" validate:"required,GenericStatusEnumType"`
+	Status string `json:"status" validate:"required,GenericStatusEnumType"`
 }
 
 type SignedFirmwareStatusNotificationConf struct{}
 
 type SignedUpdateFirmwareConf struct {
-	Status 	string 	`json:"status" validate:"required,UpdateFirmwareStatusEnumType"`
+	Status string `json:"status" validate:"required,UpdateFirmwareStatusEnumType"`
 }

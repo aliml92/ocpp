@@ -8,21 +8,19 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-
 var Validate = validator.New()
 
 func contains(elems []string, v string) bool {
-    for _, s := range elems {
-        if v == s {
-            return true
-        }
-    }
-    return false
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
-
-// replaces some validators with GenericStatusEnumType  
-func init(){
+// replaces some validators with GenericStatusEnumType
+func init() {
 
 	// register function to get tag name from json tags.
 	Validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -50,7 +48,7 @@ func init(){
 	Validate.RegisterValidation("AvailabilityType", isValidAvailabilityType)
 	Validate.RegisterValidation("AvailabilityStatus", isValidAvailabilityStatus)
 	Validate.RegisterValidation("ConfigurationStatus", isValidConfigurationStatus)
-	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatusEnumType)            		// generic status enum type
+	Validate.RegisterValidation("ClearCacheStatus", isValidGenericStatusEnumType) // generic status enum type
 	Validate.RegisterValidation("ChargingProfilePurposeType", isValidChargingProfilePurposeType)
 	Validate.RegisterValidation("ChargingRateUnitType", isValidChargingRateUnitType)
 	Validate.RegisterValidation("ChargingProfileKindType", isValidChargingProfileKindType)
@@ -58,17 +56,17 @@ func init(){
 	Validate.RegisterValidation("ResetType", isValidResetType)
 	Validate.RegisterValidation("MessageTrigger", isValidMessageTrigger)
 	Validate.RegisterValidation("ClearChargingProfileStatus", isValidClearChargingProfileStatus)
-	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatusEnumType)        		// generic status enum type
+	Validate.RegisterValidation("RemoteStartStopStatus", isValidGenericStatusEnumType) // generic status enum type
 	Validate.RegisterValidation("ReservationStatus", isValidReservationStatus)
-	Validate.RegisterValidation("ResetStatus", isValidGenericStatusEnumType)                 		// generic status enum type
+	Validate.RegisterValidation("ResetStatus", isValidGenericStatusEnumType) // generic status enum type
 	Validate.RegisterValidation("UpdateStatus", isValidUpdateStatus)
 	Validate.RegisterValidation("ChargingProfileStatus", isValidChargingProfileStatus)
 	Validate.RegisterValidation("TriggerMessageStatus", isValidTriggerMessageStatus)
 	Validate.RegisterValidation("UnlockStatus", isValidUnlockStatus)
-	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatusEnumType)        	// generic status enum type
-	Validate.RegisterValidation("GetCompositeScheduleStatus", isValidGenericStatusEnumType)      	// generic status enum type
+	Validate.RegisterValidation("CancelReservationStatus", isValidGenericStatusEnumType)    // generic status enum type
+	Validate.RegisterValidation("GetCompositeScheduleStatus", isValidGenericStatusEnumType) // generic status enum type
 	Validate.RegisterValidation("FirmwareStatus", isValidFirmwareStatusEnumType)
-	Validate.RegisterValidation("CertificateSignedStatusEnumType", isValidGenericStatusEnumType) 	// generic status enum type
+	Validate.RegisterValidation("CertificateSignedStatusEnumType", isValidGenericStatusEnumType) // generic status enum type
 	Validate.RegisterValidation("CertificateStatusEnumType", isValidCertificateStatusEnumType)
 	Validate.RegisterValidation("CertificateUseTypeEnumType", isValidCertificateUseTypeEnumType)
 	Validate.RegisterValidation("DeleteCertificateStatusEnumType", isValidDeleteCertificateStatusEnumType)
@@ -84,13 +82,11 @@ func init(){
 	Validate.RegisterValidation("UploadLogStatusEnumType", isValidUploadLogStatusEnumType)
 }
 
-
 func IsISO8601Date(fl validator.FieldLevel) bool {
-    ISO8601DateRegexString := "^(?:[1-9]\\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?(?:Z|[+-][01]\\d:[0-5]\\d)$"
-    ISO8601DateRegex := regexp.MustCompile(ISO8601DateRegexString)
-  	return ISO8601DateRegex.MatchString(fl.Field().String())
+	ISO8601DateRegexString := "^(?:[1-9]\\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?(?:Z|[+-][01]\\d:[0-5]\\d)$"
+	ISO8601DateRegex := regexp.MustCompile(ISO8601DateRegexString)
+	return ISO8601DateRegex.MatchString(fl.Field().String())
 }
-
 
 func isValidRegistrationStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
@@ -125,12 +121,12 @@ func isValidDiagnosticsStatus(fl validator.FieldLevel) bool {
 func isValidFirmwareStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	cases := []string{
-		"Downloaded", 
-		"DownloadFailed", 
+		"Downloaded",
+		"DownloadFailed",
 		"Downloading",
-		"Idle", 
-		"InstallationFailed", 
-		"Installing", 
+		"Idle",
+		"InstallationFailed",
+		"Installing",
 		"Installed",
 	}
 	return contains(cases, status)
@@ -139,8 +135,8 @@ func isValidFirmwareStatus(fl validator.FieldLevel) bool {
 func isValidReadingContext(fl validator.FieldLevel) bool {
 	context := fl.Field().String()
 	cases := []string{
-		"Interruption.Begin", 
-		"Interruption.End", 
+		"Interruption.Begin",
+		"Interruption.End",
 		"Other",
 		"Sample.Clock",
 		"Sample.Periodic",
@@ -185,10 +181,9 @@ func isValidMeasurand(fl validator.FieldLevel) bool {
 		"RPM",
 		"SoC",
 		"Temperature",
-		"Voltage",}
+		"Voltage"}
 	return contains(cases, measurand)
 }
-
 
 func isValidPhase(fl validator.FieldLevel) bool {
 	phase := fl.Field().String()
@@ -202,10 +197,9 @@ func isValidPhase(fl validator.FieldLevel) bool {
 		"L3-N",
 		"L1-L2",
 		"L2-L3",
-		"L3-L1",}
+		"L3-L1"}
 	return contains(cases, phase)
 }
-
 
 func isValidLocation(fl validator.FieldLevel) bool {
 	location := fl.Field().String()
@@ -218,8 +212,6 @@ func isValidLocation(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, location)
 }
-
-
 
 func isValidUnitOfMeasure(fl validator.FieldLevel) bool {
 	unit := fl.Field().String()
@@ -242,8 +234,6 @@ func isValidUnitOfMeasure(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, unit)
 }
-
-
 
 func isValidChargePointErrorCode(fl validator.FieldLevel) bool {
 	code := fl.Field().String()
@@ -268,8 +258,6 @@ func isValidChargePointErrorCode(fl validator.FieldLevel) bool {
 	return contains(cases, code)
 }
 
-
-
 func isValidChargePointStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	cases := []string{
@@ -285,7 +273,6 @@ func isValidChargePointStatus(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, status)
 }
-
 
 func isValidReason(fl validator.FieldLevel) bool {
 	reason := fl.Field().String()
@@ -305,9 +292,6 @@ func isValidReason(fl validator.FieldLevel) bool {
 	return contains(cases, reason)
 }
 
-
-
-
 func isValidDataTransferStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -315,17 +299,15 @@ func isValidDataTransferStatus(fl validator.FieldLevel) bool {
 		return true
 	default:
 		return false
-	}	
+	}
 }
-
-
 
 func isValidAvailabilityType(fl validator.FieldLevel) bool {
 	type_ := fl.Field().String()
 	switch type_ {
 	case "Inoperative", "Operative":
 		return true
-	default:	
+	default:
 		return false
 	}
 
@@ -341,7 +323,6 @@ func isValidAvailabilityStatus(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isValidConfigurationStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -353,8 +334,6 @@ func isValidConfigurationStatus(fl validator.FieldLevel) bool {
 
 }
 
-
-
 func isValidChargingProfilePurposeType(fl validator.FieldLevel) bool {
 	purpose := fl.Field().String()
 	switch purpose {
@@ -364,7 +343,6 @@ func isValidChargingProfilePurposeType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isValidChargingRateUnitType(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
@@ -376,7 +354,6 @@ func isValidChargingRateUnitType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isValidChargingProfileKindType(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
 	switch kind {
@@ -387,7 +364,6 @@ func isValidChargingProfileKindType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isValidRecurrencyKindType(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
 	switch kind {
@@ -397,7 +373,6 @@ func isValidRecurrencyKindType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isValidResetType(fl validator.FieldLevel) bool {
 	kind := fl.Field().String()
@@ -422,7 +397,7 @@ func isValidMessageTrigger(fl validator.FieldLevel) bool {
 	return contains(cases, trigger)
 }
 
- func isValidClearChargingProfileStatus(fl validator.FieldLevel) bool {
+func isValidClearChargingProfileStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
 	case "Accepted", "Unknown":
@@ -431,9 +406,6 @@ func isValidMessageTrigger(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
-
-
 
 func isValidReservationStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
@@ -445,9 +417,6 @@ func isValidReservationStatus(fl validator.FieldLevel) bool {
 	}
 }
 
-
-
-
 func isValidUpdateStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -457,7 +426,6 @@ func isValidUpdateStatus(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isValidChargingProfileStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
@@ -479,7 +447,6 @@ func isValidTriggerMessageStatus(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isValidUnlockStatus(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	switch status {
@@ -489,8 +456,6 @@ func isValidUnlockStatus(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
-
 
 func isValidCertificateStatusEnumType(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
@@ -622,7 +587,6 @@ func isValidUpdateFirmwareStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, status)
 }
 
-
 func isValidUploadLogStatusEnumType(fl validator.FieldLevel) bool {
 	status := fl.Field().String()
 	cases := []string{
@@ -636,6 +600,3 @@ func isValidUploadLogStatusEnumType(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, status)
 }
-
-
-

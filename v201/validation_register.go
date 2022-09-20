@@ -8,20 +8,18 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-
 var Validate = validator.New()
 
 func contains(elems []string, v string) bool {
-    for _, s := range elems {
-        if v == s {
-            return true
-        }
-    }
-    return false
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
-
-func init(){
+func init() {
 
 	// register function to get tag name from json tags.
 	Validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -39,98 +37,96 @@ func init(){
 	Validate.RegisterValidation("BootReasonEnumType", isBootReasonEnumType)
 	Validate.RegisterValidation("CancelReservationStatusEnumType", isCancelReservationStatusEnumType)
 	Validate.RegisterValidation("CertificateActionEnumType", isCertificateActionEnumType)
-	Validate.RegisterValidation("CertificateSignedStatusEnumType",  isCertificateSignedStatusEnumType)
+	Validate.RegisterValidation("CertificateSignedStatusEnumType", isCertificateSignedStatusEnumType)
 	Validate.RegisterValidation("CertificateSigningUseEnumType", isCertificateSigningUseEnumType)
-	Validate.RegisterValidation("ChangeAvailabilityStatusEnumType",  isChangeAvailabilityStatusEnumType)
-	Validate.RegisterValidation("ChargingLimitSourceEnumType",  isChargingLimitSourceEnumType)
+	Validate.RegisterValidation("ChangeAvailabilityStatusEnumType", isChangeAvailabilityStatusEnumType)
+	Validate.RegisterValidation("ChargingLimitSourceEnumType", isChargingLimitSourceEnumType)
 	Validate.RegisterValidation("ChargingProfileKindEnumType", isChargingProfileKindEnumType)
-	Validate.RegisterValidation("ChargingProfilePurposeEnumType",  isChargingProfilePurposeEnumType)
-	Validate.RegisterValidation("ChargingProfileStatusEnumType",  isChargingProfileStatusEnumType)
-	Validate.RegisterValidation("ChargingRateUnitEnumType",  isChargingRateUnitEnumType)
-	Validate.RegisterValidation("ChargingStateEnumType",  isChargingStateEnumType)
-	Validate.RegisterValidation("ClearCacheStatusEnumType",  isClearCacheStatusEnumType)
-	Validate.RegisterValidation("ClearChargingProfileStatusEnumType",  isClearChargingProfileStatusEnumType)
-	Validate.RegisterValidation("ClearMessageStatusEnumType",  isClearMessageStatusEnumType)
-	Validate.RegisterValidation("ClearMonitoringStatusEnumType",  isClearMonitoringStatusEnumType)
-	Validate.RegisterValidation("ComponentCriterionEnumType",  isComponentCriterionEnumType)
-	Validate.RegisterValidation("ConnectorEnumType",  isConnectorEnumType)
-	Validate.RegisterValidation("ConnectorStatusEnumType",  isConnectorStatusEnumType)
-	Validate.RegisterValidation("CostKindEnumType",  isCostKindEnumType)
-	Validate.RegisterValidation("CustomerInformationStatusEnumType",  isCustomerInformationStatusEnumType)
-	Validate.RegisterValidation("DataEnumType",  isDataEnumType)
-	Validate.RegisterValidation("DataTransferStatusEnumType",  isDataTransferStatusEnumType)
-	Validate.RegisterValidation("DeleteCertificateStatusEnumType",  isDeleteCertificateStatusEnumType)
-	Validate.RegisterValidation("DisplayMessageStatusEnumType",  isDisplayMessageStatusEnumType)
-	Validate.RegisterValidation("EnergyTransferModeEnumType",  isEnergyTransferModeEnumType)
-	Validate.RegisterValidation("EventNotificationEnumType",  isEventNotificationEnumType)
-	Validate.RegisterValidation("EventTriggerEnumType",  isEventTriggerEnumType)
-	Validate.RegisterValidation("FirmwareStatusEnumType",  isFirmwareStatusEnumType)
-	Validate.RegisterValidation("GenericDeviceModelStatusEnumType",  isGenericDeviceModelStatusEnumType)
-	Validate.RegisterValidation("GenericStatusEnumType",  isGenericStatusEnumType)
-	Validate.RegisterValidation("GetCertificateIdUseEnumType",  isGetCertificateIdUseEnumType)
-	Validate.RegisterValidation("GetCertificateStatusEnumType",  isGetCertificateStatusEnumType)
-	Validate.RegisterValidation("GetChargingProfileStatusEnumType",  isGetChargingProfileStatusEnumType)
-	Validate.RegisterValidation("GetDisplayMessagesStatusEnumType",  isGetDisplayMessagesStatusEnumType)
-	Validate.RegisterValidation("GetInstalledCertificateStatusEnumType",  isGetInstalledCertificateStatusEnumType)
-	Validate.RegisterValidation("GetVariableStatusEnumType",  isGetVariableStatusEnumType)
-	Validate.RegisterValidation("HashAlgorithmEnumType",  isHashAlgorithmEnumType)
-	Validate.RegisterValidation("IdTokenEnumType",  isIdTokenEnumType)
-	Validate.RegisterValidation("InstallCertificateStatusEnumType",  isInstallCertificateStatusEnumType)
-	Validate.RegisterValidation("InstallCertificateUseEnumType",  isInstallCertificateUseEnumType)
-	Validate.RegisterValidation("Iso15118EVCertificateStatusEnumType",  isIso15118EVCertificateStatusEnumType)
-	Validate.RegisterValidation("LocationEnumType",  isLocationEnumType)
-	Validate.RegisterValidation("LogEnumType",  isLogEnumType)
-	Validate.RegisterValidation("LogStatusEnumType",  isLogStatusEnumType)
-	Validate.RegisterValidation("MeasurandEnumType",  isMeasurandEnumType)
-	Validate.RegisterValidation("MessageFormatEnumType",  isMessageFormatEnumType)
-	Validate.RegisterValidation("MessagePriorityEnumType",  isMessagePriorityEnumType)
-	Validate.RegisterValidation("MessageStateEnumType",  isMessageStateEnumType)
-	Validate.RegisterValidation("MessageTriggerEnumType",  isMessageTriggerEnumType)
-	Validate.RegisterValidation("MonitorEnumType",  isMonitorEnumType)
-	Validate.RegisterValidation("MonitoringBaseEnumType",  	isMonitoringBaseEnumType)
-	Validate.RegisterValidation("MonitoringCriterionEnumType",  isMonitoringCriterionEnumType)
+	Validate.RegisterValidation("ChargingProfilePurposeEnumType", isChargingProfilePurposeEnumType)
+	Validate.RegisterValidation("ChargingProfileStatusEnumType", isChargingProfileStatusEnumType)
+	Validate.RegisterValidation("ChargingRateUnitEnumType", isChargingRateUnitEnumType)
+	Validate.RegisterValidation("ChargingStateEnumType", isChargingStateEnumType)
+	Validate.RegisterValidation("ClearCacheStatusEnumType", isClearCacheStatusEnumType)
+	Validate.RegisterValidation("ClearChargingProfileStatusEnumType", isClearChargingProfileStatusEnumType)
+	Validate.RegisterValidation("ClearMessageStatusEnumType", isClearMessageStatusEnumType)
+	Validate.RegisterValidation("ClearMonitoringStatusEnumType", isClearMonitoringStatusEnumType)
+	Validate.RegisterValidation("ComponentCriterionEnumType", isComponentCriterionEnumType)
+	Validate.RegisterValidation("ConnectorEnumType", isConnectorEnumType)
+	Validate.RegisterValidation("ConnectorStatusEnumType", isConnectorStatusEnumType)
+	Validate.RegisterValidation("CostKindEnumType", isCostKindEnumType)
+	Validate.RegisterValidation("CustomerInformationStatusEnumType", isCustomerInformationStatusEnumType)
+	Validate.RegisterValidation("DataEnumType", isDataEnumType)
+	Validate.RegisterValidation("DataTransferStatusEnumType", isDataTransferStatusEnumType)
+	Validate.RegisterValidation("DeleteCertificateStatusEnumType", isDeleteCertificateStatusEnumType)
+	Validate.RegisterValidation("DisplayMessageStatusEnumType", isDisplayMessageStatusEnumType)
+	Validate.RegisterValidation("EnergyTransferModeEnumType", isEnergyTransferModeEnumType)
+	Validate.RegisterValidation("EventNotificationEnumType", isEventNotificationEnumType)
+	Validate.RegisterValidation("EventTriggerEnumType", isEventTriggerEnumType)
+	Validate.RegisterValidation("FirmwareStatusEnumType", isFirmwareStatusEnumType)
+	Validate.RegisterValidation("GenericDeviceModelStatusEnumType", isGenericDeviceModelStatusEnumType)
+	Validate.RegisterValidation("GenericStatusEnumType", isGenericStatusEnumType)
+	Validate.RegisterValidation("GetCertificateIdUseEnumType", isGetCertificateIdUseEnumType)
+	Validate.RegisterValidation("GetCertificateStatusEnumType", isGetCertificateStatusEnumType)
+	Validate.RegisterValidation("GetChargingProfileStatusEnumType", isGetChargingProfileStatusEnumType)
+	Validate.RegisterValidation("GetDisplayMessagesStatusEnumType", isGetDisplayMessagesStatusEnumType)
+	Validate.RegisterValidation("GetInstalledCertificateStatusEnumType", isGetInstalledCertificateStatusEnumType)
+	Validate.RegisterValidation("GetVariableStatusEnumType", isGetVariableStatusEnumType)
+	Validate.RegisterValidation("HashAlgorithmEnumType", isHashAlgorithmEnumType)
+	Validate.RegisterValidation("IdTokenEnumType", isIdTokenEnumType)
+	Validate.RegisterValidation("InstallCertificateStatusEnumType", isInstallCertificateStatusEnumType)
+	Validate.RegisterValidation("InstallCertificateUseEnumType", isInstallCertificateUseEnumType)
+	Validate.RegisterValidation("Iso15118EVCertificateStatusEnumType", isIso15118EVCertificateStatusEnumType)
+	Validate.RegisterValidation("LocationEnumType", isLocationEnumType)
+	Validate.RegisterValidation("LogEnumType", isLogEnumType)
+	Validate.RegisterValidation("LogStatusEnumType", isLogStatusEnumType)
+	Validate.RegisterValidation("MeasurandEnumType", isMeasurandEnumType)
+	Validate.RegisterValidation("MessageFormatEnumType", isMessageFormatEnumType)
+	Validate.RegisterValidation("MessagePriorityEnumType", isMessagePriorityEnumType)
+	Validate.RegisterValidation("MessageStateEnumType", isMessageStateEnumType)
+	Validate.RegisterValidation("MessageTriggerEnumType", isMessageTriggerEnumType)
+	Validate.RegisterValidation("MonitorEnumType", isMonitorEnumType)
+	Validate.RegisterValidation("MonitoringBaseEnumType", isMonitoringBaseEnumType)
+	Validate.RegisterValidation("MonitoringCriterionEnumType", isMonitoringCriterionEnumType)
 	Validate.RegisterValidation("MutabilityEnumType", isMutabilityEnumType)
-	Validate.RegisterValidation("NotifyEVChargingNeedsStatusEnumType",  isNotifyEVChargingNeedsStatusEnumType)
-	Validate.RegisterValidation("OCPPInterfaceEnumType",  isOCPPInterfaceEnumType)
-	Validate.RegisterValidation("OCPPTransportEnumType",  isOCPPTransportEnumType)
-	Validate.RegisterValidation("OCPPVersionEnumType",  isOCPPVersionEnumType)
-	Validate.RegisterValidation("OperationalStatusEnumType",  isOperationalStatusEnumType)
-	Validate.RegisterValidation("PhaseEnumType",  isPhaseEnumType)
-	Validate.RegisterValidation("PublishFirmwareStatusEnumType",  isPublishFirmwareStatusEnumType)
-	Validate.RegisterValidation("ReadingContextEnumType",  isReadingContextEnumType)
-	Validate.RegisterValidation("ReasonEnumType",  isReasonEnumType)
-	Validate.RegisterValidation("RecurrencyKindEnumType",  isRecurrencyKindEnumType)
-	Validate.RegisterValidation("RegistrationStatusEnumType",  isRegistrationStatusEnumType)
-	Validate.RegisterValidation("ReportBaseEnumType", 	isReportBaseEnumType)
-	Validate.RegisterValidation("RequestStartStopStatusEnumType",  isRequestStartStopStatusEnumType)
-	Validate.RegisterValidation("ReservationUpdateStatusEnumType",  isReservationUpdateStatusEnumType)
-	Validate.RegisterValidation("ReserveNowStatusEnumType",  isReserveNowStatusEnumType)
-	Validate.RegisterValidation("ResetEnumType",  isResetEnumType)
-	Validate.RegisterValidation("ResetStatusEnumType",  isResetStatusEnumType)
-	Validate.RegisterValidation("SendLocalListStatusEnumType",  isSendLocalListStatusEnumType)
-	Validate.RegisterValidation("SetMonitoringStatusEnumType",  isSetMonitoringStatusEnumType)
-	Validate.RegisterValidation("SetNetworkProfileStatusEnumType",  isSetNetworkProfileStatusEnumType)
-	Validate.RegisterValidation("SetVariableStatusEnumType",  isSetVariableStatusEnumType)
-	Validate.RegisterValidation("TransactionEventEnumType",  isTransactionEventEnumType)
-	Validate.RegisterValidation("TriggerMessageStatusEnumType",  isTriggerMessageStatusEnumType)
-	Validate.RegisterValidation("TriggerReasonEnumType",  isTriggerReasonEnumType)
-	Validate.RegisterValidation("UnlockStatusEnumType",  isUnlockStatusEnumType)
-	Validate.RegisterValidation("UnpublishFirmwareStatusEnumType",  isUnpublishFirmwareStatusEnumType)
-	Validate.RegisterValidation("UpdateEnumType",  isUpdateEnumType)
-	Validate.RegisterValidation("UpdateFirmwareStatusEnumType",  isUpdateFirmwareStatusEnumType)
-	Validate.RegisterValidation("UpdateFirmwareStatusEnumType",  isUpdateFirmwareStatusEnumType)
-	Validate.RegisterValidation("UploadLogStatusEnumType",  isUploadLogStatusEnumType)
-	Validate.RegisterValidation("VPNEnumType",  isVPNEnumType)				
+	Validate.RegisterValidation("NotifyEVChargingNeedsStatusEnumType", isNotifyEVChargingNeedsStatusEnumType)
+	Validate.RegisterValidation("OCPPInterfaceEnumType", isOCPPInterfaceEnumType)
+	Validate.RegisterValidation("OCPPTransportEnumType", isOCPPTransportEnumType)
+	Validate.RegisterValidation("OCPPVersionEnumType", isOCPPVersionEnumType)
+	Validate.RegisterValidation("OperationalStatusEnumType", isOperationalStatusEnumType)
+	Validate.RegisterValidation("PhaseEnumType", isPhaseEnumType)
+	Validate.RegisterValidation("PublishFirmwareStatusEnumType", isPublishFirmwareStatusEnumType)
+	Validate.RegisterValidation("ReadingContextEnumType", isReadingContextEnumType)
+	Validate.RegisterValidation("ReasonEnumType", isReasonEnumType)
+	Validate.RegisterValidation("RecurrencyKindEnumType", isRecurrencyKindEnumType)
+	Validate.RegisterValidation("RegistrationStatusEnumType", isRegistrationStatusEnumType)
+	Validate.RegisterValidation("ReportBaseEnumType", isReportBaseEnumType)
+	Validate.RegisterValidation("RequestStartStopStatusEnumType", isRequestStartStopStatusEnumType)
+	Validate.RegisterValidation("ReservationUpdateStatusEnumType", isReservationUpdateStatusEnumType)
+	Validate.RegisterValidation("ReserveNowStatusEnumType", isReserveNowStatusEnumType)
+	Validate.RegisterValidation("ResetEnumType", isResetEnumType)
+	Validate.RegisterValidation("ResetStatusEnumType", isResetStatusEnumType)
+	Validate.RegisterValidation("SendLocalListStatusEnumType", isSendLocalListStatusEnumType)
+	Validate.RegisterValidation("SetMonitoringStatusEnumType", isSetMonitoringStatusEnumType)
+	Validate.RegisterValidation("SetNetworkProfileStatusEnumType", isSetNetworkProfileStatusEnumType)
+	Validate.RegisterValidation("SetVariableStatusEnumType", isSetVariableStatusEnumType)
+	Validate.RegisterValidation("TransactionEventEnumType", isTransactionEventEnumType)
+	Validate.RegisterValidation("TriggerMessageStatusEnumType", isTriggerMessageStatusEnumType)
+	Validate.RegisterValidation("TriggerReasonEnumType", isTriggerReasonEnumType)
+	Validate.RegisterValidation("UnlockStatusEnumType", isUnlockStatusEnumType)
+	Validate.RegisterValidation("UnpublishFirmwareStatusEnumType", isUnpublishFirmwareStatusEnumType)
+	Validate.RegisterValidation("UpdateEnumType", isUpdateEnumType)
+	Validate.RegisterValidation("UpdateFirmwareStatusEnumType", isUpdateFirmwareStatusEnumType)
+	Validate.RegisterValidation("UpdateFirmwareStatusEnumType", isUpdateFirmwareStatusEnumType)
+	Validate.RegisterValidation("UploadLogStatusEnumType", isUploadLogStatusEnumType)
+	Validate.RegisterValidation("VPNEnumType", isVPNEnumType)
 
 }
-
 
 func IsISO8601Date(fl validator.FieldLevel) bool {
-    ISO8601DateRegexString := "^(?:[1-9]\\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?(?:Z|[+-][01]\\d:[0-5]\\d)$"
-    ISO8601DateRegex := regexp.MustCompile(ISO8601DateRegexString)
-  	return ISO8601DateRegex.MatchString(fl.Field().String())
+	ISO8601DateRegexString := "^(?:[1-9]\\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?(?:Z|[+-][01]\\d:[0-5]\\d)$"
+	ISO8601DateRegex := regexp.MustCompile(ISO8601DateRegexString)
+	return ISO8601DateRegex.MatchString(fl.Field().String())
 }
-
 
 func isAPNAuthenticationEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -140,7 +136,7 @@ func isAPNAuthenticationEnumType(fl validator.FieldLevel) bool {
 	default:
 		return false
 	}
-}	
+}
 
 func isAttributeEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -152,12 +148,11 @@ func isAttributeEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isAuthorizationStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
-		"Accepted", 
-		"Blocked", 
+		"Accepted",
+		"Blocked",
 		"ConcurrentTx",
 		"Expired",
 		"Invalid",
@@ -170,12 +165,11 @@ func isAuthorizationStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isAuthorizeCertificateStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
-		"Accepted", 
-		"SignatureError", 
+		"Accepted",
+		"SignatureError",
 		"CertificateExpired",
 		"NoCertificateAvailable",
 		"CertChainError",
@@ -187,8 +181,8 @@ func isAuthorizeCertificateStatusEnumType(fl validator.FieldLevel) bool {
 func isBootReasonEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
-		"ApplicationReset", 
-		"FirmwareUpdate", 
+		"ApplicationReset",
+		"FirmwareUpdate",
 		"LocalReset",
 		"PowerUp",
 		"RemoteReset",
@@ -199,7 +193,6 @@ func isBootReasonEnumType(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, enum)
 }
-
 
 func isCancelReservationStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -221,7 +214,6 @@ func isCertificateActionEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isCertificateSignedStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -241,7 +233,6 @@ func isCertificateSigningUseEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isChangeAvailabilityStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -263,7 +254,6 @@ func isChargingLimitSourceEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isChargingProfileKindEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -274,7 +264,6 @@ func isChargingProfileKindEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isChargingProfilePurposeEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -284,7 +273,6 @@ func isChargingProfilePurposeEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isChargingProfileStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -318,7 +306,6 @@ func isChargingStateEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isClearCacheStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -329,7 +316,6 @@ func isClearCacheStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isClearChargingProfileStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -339,7 +325,6 @@ func isClearChargingProfileStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isClearMessageStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -432,7 +417,6 @@ func isCustomerInformationStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isDataEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
@@ -468,7 +452,6 @@ func isDeleteCertificateStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isDisplayMessageStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
@@ -491,7 +474,6 @@ func isEnergyTransferModeEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isEventNotificationEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -544,7 +526,6 @@ func isGenericDeviceModelStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isGenericStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -620,7 +601,6 @@ func isGetVariableStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isHashAlgorithmEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -630,7 +610,6 @@ func isHashAlgorithmEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isIdTokenEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -667,7 +646,6 @@ func isInstallCertificateUseEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isIso15118EVCertificateStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -677,7 +655,6 @@ func isIso15118EVCertificateStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isLocationEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -691,7 +668,6 @@ func isLocationEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isLogEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -701,7 +677,6 @@ func isLogEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isLogStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -755,7 +730,6 @@ func isMessageFormatEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isMessagePriorityEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -766,7 +740,6 @@ func isMessagePriorityEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isMessageStateEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -776,7 +749,6 @@ func isMessageStateEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isMessageTriggerEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -818,7 +790,6 @@ func isMonitoringBaseEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isMonitoringCriterionEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -828,7 +799,6 @@ func isMonitoringCriterionEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isMutabilityEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -865,8 +835,6 @@ func isOCPPInterfaceEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
-
 func isOCPPTransportEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -877,8 +845,6 @@ func isOCPPTransportEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
-
 func isOCPPVersionEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -888,7 +854,6 @@ func isOCPPVersionEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isOperationalStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -934,7 +899,6 @@ func isPublishFirmwareStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isReadingContextEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	cases := []string{
@@ -976,7 +940,6 @@ func isReasonEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isRecurrencyKindEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -986,7 +949,6 @@ func isRecurrencyKindEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isRegistrationStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -998,7 +960,6 @@ func isRegistrationStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isReportBaseEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1008,7 +969,6 @@ func isReportBaseEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isRequestStartStopStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1020,7 +980,6 @@ func isRequestStartStopStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isReservationUpdateStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1030,7 +989,6 @@ func isReservationUpdateStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isReserveNowStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1044,7 +1002,6 @@ func isReserveNowStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isResetEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1054,7 +1011,6 @@ func isResetEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isResetStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1066,7 +1022,6 @@ func isResetStatusEnumType(fl validator.FieldLevel) bool {
 	}
 }
 
-
 func isSendLocalListStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1076,7 +1031,6 @@ func isSendLocalListStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isSetMonitoringStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1091,7 +1045,6 @@ func isSetMonitoringStatusEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
 func isSetNetworkProfileStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1101,7 +1054,6 @@ func isSetNetworkProfileStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isSetVariableStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1115,7 +1067,6 @@ func isSetVariableStatusEnumType(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, enum)
 }
-
 
 func isTransactionEventEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1136,7 +1087,6 @@ func isTriggerMessageStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isTriggerReasonEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1166,8 +1116,6 @@ func isTriggerReasonEnumType(fl validator.FieldLevel) bool {
 	return contains(cases, enum)
 }
 
-
-
 func isUnlockStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
 	switch enum {
@@ -1176,7 +1124,7 @@ func isUnlockStatusEnumType(fl validator.FieldLevel) bool {
 	default:
 		return false
 	}
-}	
+}
 
 func isUnpublishFirmwareStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1187,7 +1135,6 @@ func isUnpublishFirmwareStatusEnumType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
 
 func isUpdateEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
@@ -1210,7 +1157,6 @@ func isUpdateFirmwareStatusEnumType(fl validator.FieldLevel) bool {
 	}
 	return contains(cases, enum)
 }
-
 
 func isUploadLogStatusEnumType(fl validator.FieldLevel) bool {
 	enum := fl.Field().String()
