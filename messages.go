@@ -5,207 +5,214 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/aliml92/ocpp/log"
+	log "github.com/aliml92/ocpp/logger"
 	"github.com/aliml92/ocpp/v16"
-	// "github.com/aliml92/ocpp/v201"
+	"github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 )
 
-var reqmap = map[string]func(*json.RawMessage) (Payload, error){
-	"BootNotification":              ureq[v16.BootNotificationReq],
-	"Authorize":                     ureq[v16.AuthorizeReq],
-	"DataTransfer":                  ureq[v16.DataTransferReq],
-	"DiagnosticsStatusNotification": ureq[v16.DiagnosticsStatusNotificationReq],
-	"FirmwareStatusNotification":    ureq[v16.FirmwareStatusNotificationReq],
-	"Heartbeat":                     ureq[v16.HeartbeatReq],
-	"MeterValues":                   ureq[v16.MeterValuesReq],
-	"StartTransaction":              ureq[v16.StartTransactionReq],
-	"StatusNotification":            ureq[v16.StatusNotificationReq],
-	"StopTransaction":               ureq[v16.StopTransactionReq],
-	"CanCelReservation":             ureq[v16.CancelReservationReq],
-	"ChangeAvailability":            ureq[v16.ChangeAvailabilityReq],
-	"ChangeConfiguration":           ureq[v16.ChangeConfigurationReq],
-	"ClearCache":                    ureq[v16.ClearCacheReq],
-	"ClearChargingProfile":          ureq[v16.ClearChargingProfileReq],
-	"GetCompositeSchedule":          ureq[v16.GetCompositeScheduleReq],
-	"GetConfiguration":              ureq[v16.GetConfigurationReq],
-	"GetDiagnostics":                ureq[v16.GetDiagnosticsReq],
-	"GetLocalListVersion":           ureq[v16.GetLocalListVersionReq],
-	"RemoteStartTransaction":        ureq[v16.RemoteStartTransactionReq],
-	"RemoteStopTransaction":         ureq[v16.RemoteStopTransactionReq],
-	"ReserveNow":                    ureq[v16.ReserveNowReq],
-	"Reset":                         ureq[v16.ResetReq],
-	"SendLocalList":                 ureq[v16.SendLocalListReq],
-	"SetChargingProfile":            ureq[v16.SetChargingProfileReq],
-	"TriggerMessage":                ureq[v16.TriggerMessageReq],
-	"UnlockConnector":               ureq[v16.UnlockConnectorReq],
-	"UpdateFirmware":                ureq[v16.UpdateFirmwareReq],
+var reqmapv16, resmapv16, reqmapv201, resmapv201   map[string]func(*json.RawMessage) (Payload, error)
+
+func init(){
+	reqmapv16 = map[string]func(*json.RawMessage) (Payload, error){
+		"BootNotification":              ureqV16[v16.BootNotificationReq],
+		"Authorize":                     ureqV16[v16.AuthorizeReq],
+		"DataTransfer":                  ureqV16[v16.DataTransferReq],
+		"DiagnosticsStatusNotification": ureqV16[v16.DiagnosticsStatusNotificationReq],
+		"FirmwareStatusNotification":    ureqV16[v16.FirmwareStatusNotificationReq],
+		"Heartbeat":                     ureqV16[v16.HeartbeatReq],
+		"MeterValues":                   ureqV16[v16.MeterValuesReq],
+		"StartTransaction":              ureqV16[v16.StartTransactionReq],
+		"StatusNotification":            ureqV16[v16.StatusNotificationReq],
+		"StopTransaction":               ureqV16[v16.StopTransactionReq],
+		"CanCelReservation":             ureqV16[v16.CancelReservationReq],
+		"ChangeAvailability":            ureqV16[v16.ChangeAvailabilityReq],
+		"ChangeConfiguration":           ureqV16[v16.ChangeConfigurationReq],
+		"ClearCache":                    ureqV16[v16.ClearCacheReq],
+		"ClearChargingProfile":          ureqV16[v16.ClearChargingProfileReq],
+		"GetCompositeSchedule":          ureqV16[v16.GetCompositeScheduleReq],
+		"GetConfiguration":              ureqV16[v16.GetConfigurationReq],
+		"GetDiagnostics":                ureqV16[v16.GetDiagnosticsReq],
+		"GetLocalListVersion":           ureqV16[v16.GetLocalListVersionReq],
+		"RemoteStartTransaction":        ureqV16[v16.RemoteStartTransactionReq],
+		"RemoteStopTransaction":         ureqV16[v16.RemoteStopTransactionReq],
+		"ReserveNow":                    ureqV16[v16.ReserveNowReq],
+		"Reset":                         ureqV16[v16.ResetReq],
+		"SendLocalList":                 ureqV16[v16.SendLocalListReq],
+		"SetChargingProfile":            ureqV16[v16.SetChargingProfileReq],
+		"TriggerMessage":                ureqV16[v16.TriggerMessageReq],
+		"UnlockConnector":               ureqV16[v16.UnlockConnectorReq],
+		"UpdateFirmware":                ureqV16[v16.UpdateFirmwareReq],
+	}
+
+	resmapv16 = map[string]func(*json.RawMessage) (Payload, error){
+		"BootNotification":              uresV16[v16.BootNotificationConf],
+		"Authorize":                     uresV16[v16.AuthorizeConf],
+		"DataTransfer":                  uresV16[v16.DataTransferConf],
+		"DiagnosticsStatusNotification": uresV16[v16.DiagnosticsStatusNotificationConf],
+		"FirmwareStatusNotification":    uresV16[v16.FirmwareStatusNotificationConf],
+		"Heartbeat":                     uresV16[v16.HeartbeatConf],
+		"MeterValues":                   uresV16[v16.MeterValuesConf],
+		"StartTransaction":              uresV16[v16.StartTransactionConf],
+		"StatusNotification":            uresV16[v16.StatusNotificationConf],
+		"StopTransaction":               uresV16[v16.StopTransactionConf],
+		"CancelReservation":             uresV16[v16.CancelReservationConf],
+		"ChangeAvailability":            uresV16[v16.ChangeAvailabilityConf],
+		"ChangeConfiguration":           uresV16[v16.ChangeConfigurationConf],
+		"ClearCache":                    uresV16[v16.ClearCacheConf],
+		"ClearChargingProfile":          uresV16[v16.ClearChargingProfileConf],
+		"GetCompositeSchedule":          uresV16[v16.GetCompositeScheduleConf],
+		"GetConfiguration":              uresV16[v16.GetConfigurationConf],
+		"GetDiagnostics":                uresV16[v16.GetDiagnosticsConf],
+		"GetLocalListVersion":           uresV16[v16.GetLocalListVersionConf],
+		"RemoteStartTransaction":        uresV16[v16.RemoteStartTransactionConf],
+		"RemoteStopTransaction":         uresV16[v16.RemoteStopTransactionConf],
+		"ReserveNow":                    uresV16[v16.ReserveNowConf],
+		"Reset":                         uresV16[v16.ResetConf],
+		"SendLocalList":                 uresV16[v16.SendLocalListConf],
+		"SetChargingProfile":            uresV16[v16.SetChargingProfileConf],
+		"TriggerMessage":                uresV16[v16.TriggerMessageConf],
+		"UnlockConnector":               uresV16[v16.UnlockConnectorConf],
+		"UpdateFirmware":                uresV16[v16.UpdateFirmwareConf],
+	}
+
+	reqmapv201 = map[string]func(*json.RawMessage) (Payload, error){
+		"Authorize":                     	ureqV201[v201.AuthorizeReq],
+		"BootNotification":              	ureqV201[v201.BootNotificationReq],
+		"CancelReservation":             	ureqV201[v201.CancelReservationReq],
+		"CertificateSigned":			 	ureqV201[v201.CertificateSignedReq],
+		"ChangeAvailability":            	ureqV201[v201.ChangeAvailabilityReq],
+		"ClearCache":                    	ureqV201[v201.ClearCacheReq],
+		"ClearChargingProfile":          	ureqV201[v201.ClearChargingProfileReq],
+		"ClearDisplayMessage":           	ureqV201[v201.ClearDisplayMessageReq],
+		"ClearedChargingLimit":          	ureqV201[v201.ClearedChargingLimitReq],
+		"ClearVariableMonitoring":       	ureqV201[v201.ClearVariableMonitoringReq],
+		"CostUpdated":                   	ureqV201[v201.CostUpdatedReq],
+		"CustomerInformation":           	ureqV201[v201.CustomerInformationReq],
+		"DataTransfer":                  	ureqV201[v201.DataTransferReq],
+		"DeleteCertificate":             	ureqV201[v201.DeleteCertificateReq],
+		"FirmwareStatusNotification":    	ureqV201[v201.FirmwareStatusNotificationReq],
+		"Get15118EVCertificate":         	ureqV201[v201.Get15118EVCertificateReq],
+		"GetBaseReport":                 	ureqV201[v201.GetBaseReportReq],
+		"GetCertificateStatus":          	ureqV201[v201.GetCertificateStatusReq],
+		"GetChargingProfiles":            	ureqV201[v201.GetChargingProfilesReq],
+		"GetCompositeSchedule":          	ureqV201[v201.GetCompositeScheduleReq],
+		"GetDisplayMessages":            	ureqV201[v201.GetDisplayMessagesReq],
+		"GetInstalledCertificateIds":      	ureqV201[v201.GetInstalledCertificateIdsReq],
+		"GetLocalListVersion":           	ureqV201[v201.GetLocalListVersionReq],
+		"GetLog":							ureqV201[v201.GetLogReq],
+		"GetMonitoringReport":           	ureqV201[v201.GetMonitoringReportReq],
+		"GetReport":                     	ureqV201[v201.GetReportReq],
+		"GetTransactionStatus":          	ureqV201[v201.GetTransactionStatusReq],
+		"GetVariables":                  	ureqV201[v201.GetVariablesReq],
+		"Heartbeat":                     	ureqV201[v201.HeartbeatReq],
+		"InstallCertificate":            	ureqV201[v201.InstallCertificateReq],
+		"LogStatusNotification":         	ureqV201[v201.LogStatusNotificationReq],
+		"MeterValues":                   	ureqV201[v201.MeterValuesReq],
+		"NotifyChargingLimit":           	ureqV201[v201.NotifyChargingLimitReq],
+		"NotifyCustomerInformation":     	ureqV201[v201.NotifyCustomerInformationReq],
+		"NotifyDisplayMessages":         	ureqV201[v201.NotifyDisplayMessagesReq],
+		"NotifyEVChargingNeeds":         	ureqV201[v201.NotifyEVChargingNeedsReq],
+		"NotifyEVChargingSchedule":        	ureqV201[v201.NotifyEVChargingScheduleReq],
+		"NotifyEvent":                   	ureqV201[v201.NotifyEventReq],
+		"NotifyMonitoringReport":        	ureqV201[v201.NotifyMonitoringReportReq],
+		"NotifyReport":                  	ureqV201[v201.NotifyReportReq],
+		"PublishFirmware":               	ureqV201[v201.PublishFirmwareReq],
+		"PublishFirmawareStatusNotification": ureqV201[v201.PublishFirmwareStatusNotificationReq],
+		"ReportChargingProfiles":        	ureqV201[v201.ReportChargingProfilesReq],
+		"RequestStartTransaction":       	ureqV201[v201.RequestStartTransactionReq],
+		"RequestStopTransaction":        	ureqV201[v201.RequestStopTransactionReq],
+		"ReservationStatusUpdate":       	ureqV201[v201.ReservationStatusUpdateReq],
+		"ReserveNow":                    	ureqV201[v201.ReserveNowReq],
+		"Reset":                         	ureqV201[v201.ResetReq],
+		"SecurityEventNotification":     	ureqV201[v201.SecurityEventNotificationReq],
+		"SendLocalList":                 	ureqV201[v201.SendLocalListReq],
+		"SetChargingProfile":            	ureqV201[v201.SetChargingProfileReq],
+		"SetDisplayMessage":             	ureqV201[v201.SetDisplayMessageReq],
+		"SetMonitoringBase":             	ureqV201[v201.SetMonitoringBaseReq],
+		"SetMonitoringLevel":            	ureqV201[v201.SetMonitoringLevelReq],
+		"SetNetworkProfile":             	ureqV201[v201.SetNetworkProfileReq],
+		"SetVariableMonitoring":         	ureqV201[v201.SetVariableMonitoringReq],
+		"SetVariables":                  	ureqV201[v201.SetVariablesReq],
+		"SignCertificate":               	ureqV201[v201.SignCertificateReq],
+		"StatusNotification":            	ureqV201[v201.StatusNotificationReq],
+		"TransactionEvent":			  		ureqV201[v201.TransactionEventReq],
+		"TriggerMessage":                	ureqV201[v201.TriggerMessageReq],
+		"UnlockConnector":               	ureqV201[v201.UnlockConnectorReq],
+		"UnpublishFirmware":             	ureqV201[v201.UnpublishFirmwareReq],
+		"UpdateFirmware":                	ureqV201[v201.UpdateFirmwareReq],
+	}
+
+	resmapv201 = map[string]func(*json.RawMessage) (Payload, error){
+		"Authorize":                     	uresV201[v201.AuthorizeRes],
+		"BootNotification":              	uresV201[v201.BootNotificationRes],
+		"CancelReservation":             	uresV201[v201.CancelReservationRes],
+		"CertificateSigned":			 	uresV201[v201.CertificateSignedRes],
+		"ChangeAvailability":            	uresV201[v201.ChangeAvailabilityRes],
+		"ClearCache":                    	uresV201[v201.ClearCacheRes],
+		"ClearChargingProfile":          	uresV201[v201.ClearChargingProfileRes],
+		"ClearDisplayMessage":           	uresV201[v201.ClearDisplayMessageRes],
+		"ClearedChargingLimit":          	uresV201[v201.ClearedChargingLimitRes],
+		"ClearVariableMonitoring":       	uresV201[v201.ClearVariableMonitoringRes],
+		"CostUpdated":                   	uresV201[v201.CostUpdatedRes],
+		"CustomerInformation":           	uresV201[v201.CustomerInformationRes],
+		"DataTransfer":                  	uresV201[v201.DataTransferRes],
+		"DeleteCertificate":             	uresV201[v201.DeleteCertificateRes],
+		"FirmwareStatusNotification":    	uresV201[v201.FirmwareStatusNotificationRes],
+		"Get15118EVCertificate":         	uresV201[v201.Get15118EVCertificateRes],
+		"GetBaseReport":                 	uresV201[v201.GetBaseReportRes],
+		"GetCertificateStatus":          	uresV201[v201.GetCertificateStatusRes],
+		"GetChargingProfiles":            	uresV201[v201.GetChargingProfilesRes],
+		"GetCompositeSchedule":          	uresV201[v201.GetCompositeScheduleRes],
+		"GetDisplayMessages":            	uresV201[v201.GetDisplayMessagesRes],
+		"GetInstalledCertificateIds":      	uresV201[v201.GetInstalledCertificateIdsRes],
+		"GetLocalListVersion":           	uresV201[v201.GetLocalListVersionRes],
+		"GetLog":							uresV201[v201.GetLogRes],
+		"GetMonitoringReport":           	uresV201[v201.GetMonitoringReportRes],
+		"GetReport":                     	uresV201[v201.GetReportRes],
+		"GetTransactionStatus":          	uresV201[v201.GetTransactionStatusRes],
+		"GetVariables":                  	uresV201[v201.GetVariablesRes],
+		"Heartbeat":                     	uresV201[v201.HeartbeatRes],
+		"InstallCertificate":            	uresV201[v201.InstallCertificateRes],
+		"LogStatusNotification":         	uresV201[v201.LogStatusNotificationRes],
+		"MeterValues":                   	uresV201[v201.MeterValuesRes],
+		"NotifyChargingLimit":           	uresV201[v201.NotifyChargingLimitRes],
+		"NotifyCustomerInformation":     	uresV201[v201.NotifyCustomerInformationRes],
+		"NotifyDisplayMessages":         	uresV201[v201.NotifyDisplayMessagesRes],
+		"NotifyEVChargingNeeds":         	uresV201[v201.NotifyEVChargingNeedsRes],
+		"NotifyEVChargingSchedule":        	uresV201[v201.NotifyEVChargingScheduleRes],
+		"NotifyEvent":                   	uresV201[v201.NotifyEventRes],
+		"NotifyMonitoringReport":        	uresV201[v201.NotifyMonitoringReportRes],
+		"NotifyReport":                  	uresV201[v201.NotifyReportRes],
+		"PublishFirmware":               	uresV201[v201.PublishFirmwareRes],
+		"PublishFirmawareStatusNotification": uresV201[v201.PublishFirmwareStatusNotificationRes],
+		"ReportChargingProfiles":        	uresV201[v201.ReportChargingProfilesRes],
+		"RequestStartTransaction":       	uresV201[v201.RequestStartTransactionRes],
+		"RequestStopTransaction":        	uresV201[v201.RequestStopTransactionRes],
+		"ReservationStatusUpdate":       	uresV201[v201.ReservationStatusUpdateRes],
+		"ReserveNow":                    	uresV201[v201.ReserveNowRes],
+		"Reset":                         	uresV201[v201.ResetRes],
+		"SecurityEventNotification":     	uresV201[v201.SecurityEventNotificationRes],
+		"SendLocalList":                 	uresV201[v201.SendLocalListRes],
+		"SetChargingProfile":            	uresV201[v201.SetChargingProfileRes],
+		"SetDisplayMessage":             	uresV201[v201.SetDisplayMessageRes],
+		"SetMonitoringBase":             	uresV201[v201.SetMonitoringBaseRes],
+		"SetMonitoringLevel":            	uresV201[v201.SetMonitoringLevelRes],
+		"SetNetworkProfile":             	uresV201[v201.SetNetworkProfileRes],
+		"SetVariableMonitoring":         	uresV201[v201.SetVariableMonitoringRes],
+		"SetVariables":                  	uresV201[v201.SetVariablesRes],
+		"SignCertificate":               	uresV201[v201.SignCertificateRes],
+		"StatusNotification":            	uresV201[v201.StatusNotificationRes],
+		"TransactionEvent":			  		uresV201[v201.TransactionEventRes],
+		"TriggerMessage":                	uresV201[v201.TriggerMessageRes],
+		"UnlockConnector":               	uresV201[v201.UnlockConnectorRes],
+		"UnpublishFirmware":             	uresV201[v201.UnpublishFirmwareRes],
+		"UpdateFirmware":                	uresV201[v201.UpdateFirmwareRes],
+	}
 }
 
-var confmap = map[string]func(*json.RawMessage) (Payload, error){
-	"BootNotification":              uconf[v16.BootNotificationConf],
-	"Authorize":                     uconf[v16.AuthorizeConf],
-	"DataTransfer":                  uconf[v16.DataTransferConf],
-	"DiagnosticsStatusNotification": uconf[v16.DiagnosticsStatusNotificationConf],
-	"FirmwareStatusNotification":    uconf[v16.FirmwareStatusNotificationConf],
-	"Heartbeat":                     uconf[v16.HeartbeatConf],
-	"MeterValues":                   uconf[v16.MeterValuesConf],
-	"StartTransaction":              uconf[v16.StartTransactionConf],
-	"StatusNotification":            uconf[v16.StatusNotificationConf],
-	"StopTransaction":               uconf[v16.StopTransactionConf],
-	"CancelReservation":             uconf[v16.CancelReservationConf],
-	"ChangeAvailability":            uconf[v16.ChangeAvailabilityConf],
-	"ChangeConfiguration":           uconf[v16.ChangeConfigurationConf],
-	"ClearCache":                    uconf[v16.ClearCacheConf],
-	"ClearChargingProfile":          uconf[v16.ClearChargingProfileConf],
-	"GetCompositeSchedule":          uconf[v16.GetCompositeScheduleConf],
-	"GetConfiguration":              uconf[v16.GetConfigurationConf],
-	"GetDiagnostics":                uconf[v16.GetDiagnosticsConf],
-	"GetLocalListVersion":           uconf[v16.GetLocalListVersionConf],
-	"RemoteStartTransaction":        uconf[v16.RemoteStartTransactionConf],
-	"RemoteStopTransaction":         uconf[v16.RemoteStopTransactionConf],
-	"ReserveNow":                    uconf[v16.ReserveNowConf],
-	"Reset":                         uconf[v16.ResetConf],
-	"SendLocalList":                 uconf[v16.SendLocalListConf],
-	"SetChargingProfile":            uconf[v16.SetChargingProfileConf],
-	"TriggerMessage":                uconf[v16.TriggerMessageConf],
-	"UnlockConnector":               uconf[v16.UnlockConnectorConf],
-	"UpdateFirmware":                uconf[v16.UpdateFirmwareConf],
-}
 
-// var reqmapv201 = map[string]func(*json.RawMessage) (Payload, error){
-// 	"Authorize":                     	ureq[v201.AuthorizeReq],
-// 	"BootNotification":              	ureq[v201.BootNotificationReq],
-// 	"CancelReservation":             	ureq[v201.CancelReservationReq],
-// 	"CertificateSigned":			 	ureq[v201.CertificateSignedReq],
-// 	"ChangeAvailability":            	ureq[v201.ChangeAvailabilityReq],
-// 	"ClearCache":                    	ureq[v201.ClearCacheReq],
-// 	"ClearChargingProfile":          	ureq[v201.ClearChargingProfileReq],
-// 	"ClearDisplayMessage":           	ureq[v201.ClearDisplayMessageReq],
-// 	"ClearedChargingLimit":          	ureq[v201.ClearedChargingLimitReq],
-// 	"ClearVariableMonitoring":       	ureq[v201.ClearVariableMonitoringReq],
-// 	"CostUpdated":                   	ureq[v201.CostUpdatedReq],
-// 	"CustomerInformation":           	ureq[v201.CustomerInformationReq],
-// 	"DataTransfer":                  	ureq[v201.DataTransferReq],
-// 	"DeleteCertificate":             	ureq[v201.DeleteCertificateReq],
-// 	"FirmwareStatusNotification":    	ureq[v201.FirmwareStatusNotificationReq],
-// 	"Get15118EVCertificate":         	ureq[v201.Get15118EVCertificateReq],
-// 	"GetBaseReport":                 	ureq[v201.GetBaseReportReq],
-// 	"GetCertificateStatus":          	ureq[v201.GetCertificateStatusReq],
-// 	"GetChargingProfiles":            	ureq[v201.GetChargingProfilesReq],
-// 	"GetCompositeSchedule":          	ureq[v201.GetCompositeScheduleReq],
-// 	"GetDisplayMessages":            	ureq[v201.GetDisplayMessagesReq],
-// 	"GetInstalledCertificateIds":      	ureq[v201.GetInstalledCertificateIdsReq],
-// 	"GetLocalListVersion":           	ureq[v201.GetLocalListVersionReq],
-// 	"GetLog":							ureq[v201.GetLogReq],
-// 	"GetMonitoringReport":           	ureq[v201.GetMonitoringReportReq],
-// 	"GetReport":                     	ureq[v201.GetReportReq],
-// 	"GetTransactionStatus":          	ureq[v201.GetTransactionStatusReq],
-// 	"GetVariables":                  	ureq[v201.GetVariablesReq],
-// 	"Heartbeat":                     	ureq[v201.HeartbeatReq],
-// 	"InstallCertificate":            	ureq[v201.InstallCertificateReq],
-// 	"LogStatusNotification":         	ureq[v201.LogStatusNotificationReq],
-// 	"MeterValues":                   	ureq[v201.MeterValuesReq],
-// 	"NotifyChargingLimit":           	ureq[v201.NotifyChargingLimitReq],
-// 	"NotifyCustomerInformation":     	ureq[v201.NotifyCustomerInformationReq],
-// 	"NotifyDisplayMessages":         	ureq[v201.NotifyDisplayMessagesReq],
-// 	"NotifyEVChargingNeeds":         	ureq[v201.NotifyEVChargingNeedsReq],
-// 	"NotifyEVChargingSchedule":        	ureq[v201.NotifyEVChargingScheduleReq],
-// 	"NotifyEvent":                   	ureq[v201.NotifyEventReq],
-// 	"NotifyMonitoringReport":        	ureq[v201.NotifyMonitoringReportReq],
-// 	"NotifyReport":                  	ureq[v201.NotifyReportReq],
-// 	"PublishFirmware":               	ureq[v201.PublishFirmwareReq],
-// 	"PublishFirmawareStatusNotification": ureq[v201.PublishFirmwareStatusNotificationReq],
-// 	"ReportChargingProfiles":        	ureq[v201.ReportChargingProfilesReq],
-// 	"RequestStartTransaction":       	ureq[v201.RequestStartTransactionReq],
-// 	"RequestStopTransaction":        	ureq[v201.RequestStopTransactionReq],
-// 	"ReservationStatusUpdate":       	ureq[v201.ReservationStatusUpdateReq],
-// 	"ReserveNow":                    	ureq[v201.ReserveNowReq],
-// 	"Reset":                         	ureq[v201.ResetReq],
-// 	"SecurityEventNotification":     	ureq[v201.SecurityEventNotificationReq],
-// 	"SendLocalList":                 	ureq[v201.SendLocalListReq],
-// 	"SetChargingProfile":            	ureq[v201.SetChargingProfileReq],
-// 	"SetDisplayMessage":             	ureq[v201.SetDisplayMessageReq],
-// 	"SetMonitoringBase":             	ureq[v201.SetMonitoringBaseReq],
-// 	"SetMonitoringLevel":            	ureq[v201.SetMonitoringLevelReq],
-// 	"SetNetworkProfile":             	ureq[v201.SetNetworkProfileReq],
-// 	"SetVariableMonitoring":         	ureq[v201.SetVariableMonitoringReq],
-// 	"SetVariables":                  	ureq[v201.SetVariablesReq],
-// 	"SignCertificate":               	ureq[v201.SignCertificateReq],
-// 	"StatusNotification":            	ureq[v201.StatusNotificationReq],
-// 	"TransactionEvent":			  		ureq[v201.TransactionEventReq],
-// 	"TriggerMessage":                	ureq[v201.TriggerMessageReq],
-// 	"UnlockConnector":               	ureq[v201.UnlockConnectorReq],
-// 	"UnpublishFirmware":             	ureq[v201.UnpublishFirmwareReq],
-// 	"UpdateFirmware":                	ureq[v201.UpdateFirmwareReq],
-// }
 
-// var resmapv201 = map[string]func(*json.RawMessage) (Payload, error){
-// 	"Authorize":                     	uconf[v201.AuthorizeRes],
-// 	"BootNotification":              	uconf[v201.BootNotificationRes],
-// 	"CancelReservation":             	uconf[v201.CancelReservationRes],
-// 	"CertificateSigned":			 	uconf[v201.CertificateSignedRes],
-// 	"ChangeAvailability":            	uconf[v201.ChangeAvailabilityRes],
-// 	"ClearCache":                    	uconf[v201.ClearCacheRes],
-// 	"ClearChargingProfile":          	uconf[v201.ClearChargingProfileRes],
-// 	"ClearDisplayMessage":           	uconf[v201.ClearDisplayMessageRes],
-// 	"ClearedChargingLimit":          	uconf[v201.ClearedChargingLimitRes],
-// 	"ClearVariableMonitoring":       	uconf[v201.ClearVariableMonitoringRes],
-// 	"CostUpdated":                   	uconf[v201.CostUpdatedRes],
-// 	"CustomerInformation":           	uconf[v201.CustomerInformationRes],
-// 	"DataTransfer":                  	uconf[v201.DataTransferRes],
-// 	"DeleteCertificate":             	uconf[v201.DeleteCertificateRes],
-// 	"FirmwareStatusNotification":    	uconf[v201.FirmwareStatusNotificationRes],
-// 	"Get15118EVCertificate":         	uconf[v201.Get15118EVCertificateRes],
-// 	"GetBaseReport":                 	uconf[v201.GetBaseReportRes],
-// 	"GetCertificateStatus":          	uconf[v201.GetCertificateStatusRes],
-// 	"GetChargingProfiles":            	uconf[v201.GetChargingProfilesRes],
-// 	"GetCompositeSchedule":          	uconf[v201.GetCompositeScheduleRes],
-// 	"GetDisplayMessages":            	uconf[v201.GetDisplayMessagesRes],
-// 	"GetInstalledCertificateIds":      	uconf[v201.GetInstalledCertificateIdsRes],
-// 	"GetLocalListVersion":           	uconf[v201.GetLocalListVersionRes],
-// 	"GetLog":							uconf[v201.GetLogRes],
-// 	"GetMonitoringReport":           	uconf[v201.GetMonitoringReportRes],
-// 	"GetReport":                     	uconf[v201.GetReportRes],
-// 	"GetTransactionStatus":          	uconf[v201.GetTransactionStatusRes],
-// 	"GetVariables":                  	uconf[v201.GetVariablesRes],
-// 	"Heartbeat":                     	uconf[v201.HeartbeatRes],
-// 	"InstallCertificate":            	uconf[v201.InstallCertificateRes],
-// 	"LogStatusNotification":         	uconf[v201.LogStatusNotificationRes],
-// 	"MeterValues":                   	uconf[v201.MeterValuesRes],
-// 	"NotifyChargingLimit":           	uconf[v201.NotifyChargingLimitRes],
-// 	"NotifyCustomerInformation":     	uconf[v201.NotifyCustomerInformationRes],
-// 	"NotifyDisplayMessages":         	uconf[v201.NotifyDisplayMessagesRes],
-// 	"NotifyEVChargingNeeds":         	uconf[v201.NotifyEVChargingNeedsRes],
-// 	"NotifyEVChargingSchedule":        	uconf[v201.NotifyEVChargingScheduleRes],
-// 	"NotifyEvent":                   	uconf[v201.NotifyEventRes],
-// 	"NotifyMonitoringReport":        	uconf[v201.NotifyMonitoringReportRes],
-// 	"NotifyReport":                  	uconf[v201.NotifyReportRes],
-// 	"PublishFirmware":               	uconf[v201.PublishFirmwareRes],
-// 	"PublishFirmawareStatusNotification": uconf[v201.PublishFirmwareStatusNotificationRes],
-// 	"ReportChargingProfiles":        	uconf[v201.ReportChargingProfilesRes],
-// 	"RequestStartTransaction":       	uconf[v201.RequestStartTransactionRes],
-// 	"RequestStopTransaction":        	uconf[v201.RequestStopTransactionRes],
-// 	"ReservationStatusUpdate":       	uconf[v201.ReservationStatusUpdateRes],
-// 	"ReserveNow":                    	uconf[v201.ReserveNowRes],
-// 	"Reset":                         	uconf[v201.ResetRes],
-// 	"SecurityEventNotification":     	uconf[v201.SecurityEventNotificationRes],
-// 	"SendLocalList":                 	uconf[v201.SendLocalListRes],
-// 	"SetChargingProfile":            	uconf[v201.SetChargingProfileRes],
-// 	"SetDisplayMessage":             	uconf[v201.SetDisplayMessageRes],
-// 	"SetMonitoringBase":             	uconf[v201.SetMonitoringBaseRes],
-// 	"SetMonitoringLevel":            	uconf[v201.SetMonitoringLevelRes],
-// 	"SetNetworkProfile":             	uconf[v201.SetNetworkProfileRes],
-// 	"SetVariableMonitoring":         	uconf[v201.SetVariableMonitoringRes],
-// 	"SetVariables":                  	uconf[v201.SetVariablesRes],
-// 	"SignCertificate":               	uconf[v201.SignCertificateRes],
-// 	"StatusNotification":            	uconf[v201.StatusNotificationRes],
-// 	"TransactionEvent":			  		uconf[v201.TransactionEventRes],
-// 	"TriggerMessage":                	uconf[v201.TriggerMessageRes],
-// 	"UnlockConnector":               	uconf[v201.UnlockConnectorRes],
-// 	"UnpublishFirmware":             	uconf[v201.UnpublishFirmwareRes],
-// 	"UpdateFirmware":                	uconf[v201.UpdateFirmwareRes],
-// }
 
 type OCPPError struct {
 	id    string
@@ -239,9 +246,7 @@ func (call *Call) createCallResult(r Payload) *[]byte {
 // Creates a CallError from a received Call
 // TODO: organize error codes
 func (call *Call) createCallError(err error) *[]byte {
-	var id string
-	var code string
-	var cause string
+	var id, code, cause string
 	var ocppErr *OCPPError
 	if errors.As(err, &ocppErr) {
 		id = ocppErr.id
@@ -318,7 +323,7 @@ func (e *TimeoutError) Error() string {
 
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}]
-func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
+func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 	var rm []json.RawMessage //  raw message
 	var mti uint8            //  MessageTypeId
 	var ui string            //  UniqueId
@@ -384,7 +389,7 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 		}
 		// print the rm
 		// fmt.Println(rm)
-		p, err = unmarshalReq(a, &rm[3])
+		p, err = unmarshalReq(a, &rm[3], proto)
 		var ocppErr *OCPPError
 		if err != nil {
 			if errors.As(err, &ocppErr) {
@@ -424,8 +429,15 @@ func unpack(b *[]byte) (*Call, *CallResult, *CallError, error) {
 }
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
-func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	a, ok := reqmap[mAction]
+func unmarshalReq(mAction string, rawPayload *json.RawMessage, proto string) (Payload, error) {
+	var a func(*json.RawMessage) (Payload, error)
+	var ok bool
+	switch proto {
+	case ocppV16:
+		a, ok = reqmapv16[mAction]
+	case ocppV201:
+		a, ok = reqmapv201[mAction]	
+	}
 	if !ok {
 		e := &OCPPError{
 			code:  "NotImplemented",
@@ -437,7 +449,7 @@ func unmarshalReq(mAction string, rawPayload *json.RawMessage) (Payload, error) 
 }
 
 // Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
-func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
+func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
 	err := json.Unmarshal(*rawPayload, &p)
@@ -449,7 +461,7 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 		log.L.Error(err)
 		return nil, e
 	}
-	err = validate.Struct(*p)
+	err = validateV16.Struct(*p)
 	if err != nil {
 		// TODO: construct more detailed error
 		e := &OCPPError{
@@ -463,8 +475,47 @@ func ureq[T any](rawPayload *json.RawMessage) (Payload, error) {
 	return payload, nil
 }
 
-func unmarshalConf(mAction string, rawPayload *json.RawMessage) (Payload, error) {
-	a, ok := confmap[mAction]
+
+// Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
+func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
+	var p *T
+	var payload Payload
+	err := json.Unmarshal(*rawPayload, &p)
+	if err != nil {
+		e := &OCPPError{
+			code:  "TypeConstraintViolationError",
+			cause: "Call Payload is not valid",
+		}
+		log.L.Error(err)
+		return nil, e
+	}
+	err = validateV201.Struct(*p)
+	if err != nil {
+		// TODO: construct more detailed error
+		e := &OCPPError{
+			code:  "PropertyConstraintViolationError",
+			cause: "Call Payload is not valid",
+		}
+		log.L.Error(err)
+		return nil, e
+	}
+	payload = p
+	return payload, nil
+}
+
+
+func unmarshalResV16(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+	a, ok := resmapv16[mAction]
+	if !ok {
+		err := errors.New("invalid action")
+		return nil, err
+	}
+	return a(rawPayload)
+}
+
+
+func unmarshalResV201(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+	a, ok := resmapv201[mAction]
 	if !ok {
 		err := errors.New("invalid action")
 		return nil, err
@@ -473,14 +524,31 @@ func unmarshalConf(mAction string, rawPayload *json.RawMessage) (Payload, error)
 }
 
 // Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
-func uconf[T any](rawPayload *json.RawMessage) (Payload, error) {
+func uresV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
 	err := json.Unmarshal(*rawPayload, &p)
 	if err != nil {
 		return nil, err
 	}
-	err = validate.Struct(*p)
+	err = validateV16.Struct(*p)
+	if err != nil {
+		return nil, err
+	}
+	payload = p
+	return payload, nil
+}
+
+
+// Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
+func uresV201[T any](rawPayload *json.RawMessage) (Payload, error) {
+	var p *T
+	var payload Payload
+	err := json.Unmarshal(*rawPayload, &p)
+	if err != nil {
+		return nil, err
+	}
+	err = validateV201.Struct(*p)
 	if err != nil {
 		return nil, err
 	}

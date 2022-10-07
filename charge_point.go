@@ -6,13 +6,40 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/aliml92/ocpp/log"
+	log "github.com/aliml92/ocpp/logger"
 	"github.com/aliml92/ocpp/v16"
+	"github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
-var validate = v16.Validate
+
+
+const (
+
+	ocppV16 = "ocpp1.6"
+	ocppV201 = "ocpp2.0.1"
+
+	// Time allowed to wait until corresponding ocpp call result received
+	ocppWait = 30 * time.Second
+
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pigWait = 60 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+
+)
+
+
+var validateV16 = v16.Validate
+var validateV201 = v201.Validate
 var server *Server
 var client *Client
 
@@ -22,27 +49,52 @@ var client *Client
 type Payload interface{}
 
 type TimeoutConfig struct {
-	OcppTimeout time.Duration // ocpp response timeout in seconds
-	WriteWait   time.Duration // time allowed to write a message to the peer
-	PingWait    time.Duration // time allowed to read the next pong message from the peer
-	PongWait    time.Duration // pong wait in seconds
-	PingPeriod  time.Duration // ping period in seconds
+
+	// ocpp response timeout in seconds
+	ocppWait 	time.Duration
+	
+	// time allowed to write a message to the peer
+	writeWait   time.Duration 
+
+	// time allowed to read the next pong message from the peer
+	pingWait    time.Duration 
+
+	// pong wait in seconds
+	pongWait    time.Duration 
+
+	// ping period in seconds
+	pingPeriod  time.Duration 
 }
 
 // ChargePoint Represents a connected ChargePoint (also known as a Charging Station)
 type ChargePoint struct {
-	Proto         string          // OCPP protocol version
-	Conn          *websocket.Conn // the websocket connection
-	Id            string          // chargePointId
-	Out           chan *[]byte    // outgoing message channel
-	In            chan *[]byte    // incoming message channel
-	Mu            sync.Mutex      // mutex ensures that only one message is sent at a time
-	Cr            chan *CallResult
-	Ce            chan *CallError
+	// OCPP protocol version
+	proto         string     
+	
+	// the websocket connection
+	conn          *websocket.Conn 
+
+	// chargePointId
+	Id            string  
+	
+	// outgoing message channel
+	out           chan *[]byte 
+	
+	// incoming message channel
+	in            chan *[]byte 
+	
+	// mutex ensures that only one message is sent at a time
+	mu            sync.Mutex      
+	cr            chan *CallResult
+	ce            chan *CallError
 	Extras        map[string]interface{}
-	TimeoutConfig TimeoutConfig
+	tc 	  	  TimeoutConfig
 	isServer      bool
-	pingIn        chan []byte // ping in channel              #server specific
+
+	unmarshalRes func(a string, r *json.RawMessage) (Payload, error)
+	
+	// ping in channel           
+	pingIn        chan []byte
 	closeC        chan websocket.CloseError
 	forceWClose   chan error
 }
@@ -52,107 +104,30 @@ func (cp *ChargePoint) Shutdown() {
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
-	cp.TimeoutConfig = config
+	cp.tc = config
 }
 
-// CSMS acts as main handler for ChargePoints
-type Server struct {
-	Chargepoints   sync.Map                                       // keeps track of all connected ChargePoints
-	ActionHandlers map[string]func(*ChargePoint, Payload) Payload // register implemented action handler functions
-	AfterHandlers  map[string]func(*ChargePoint, Payload)         // register after-action habdler functions
-	TimeoutConfig  TimeoutConfig                                  // timeout configuration
-}
 
-// create new CSMS instance acting as main handler for ChargePoints
-func NewServer() *Server {
-	server = &Server{
-		Chargepoints:   sync.Map{},
-		ActionHandlers: make(map[string]func(*ChargePoint, Payload) Payload),
-		AfterHandlers:  make(map[string]func(*ChargePoint, Payload)),
-		TimeoutConfig: TimeoutConfig{
-			OcppTimeout: 30 * time.Second,
-			WriteWait:   10 * time.Second,
-			PingWait:    30 * time.Second,
-		},
-	}
-	return server
-}
 
-func (c *Server) SetTimeoutConfig(config TimeoutConfig) {
-	c.TimeoutConfig = config
-}
+
 
 func (c *ChargePoint) getReadTimeout() time.Time {
-	if c.TimeoutConfig.PingWait == 0 {
+	if c.tc.pingWait == 0 {
 		return time.Time{}
 	}
-	return time.Now().Add(c.TimeoutConfig.PingWait)
+	return time.Now().Add(c.tc.pingWait)
 }
 
-type Client struct {
-	ActionHandlers map[string]func(*ChargePoint, Payload) Payload // register implemented action handler functions
-	AfterHandlers  map[string]func(*ChargePoint, Payload)         // register after-action habdler functions
-	TimeoutConfig  TimeoutConfig                                  // timeout configuration
-}
 
-// create new Client instance
-func NewClient() *Client {
-	client = &Client{
-		ActionHandlers: make(map[string]func(*ChargePoint, Payload) Payload),
-		AfterHandlers:  make(map[string]func(*ChargePoint, Payload)),
-		TimeoutConfig: TimeoutConfig{
-			OcppTimeout: 30 * time.Second,
-			WriteWait:   10 * time.Second,
-			PongWait:    30 * time.Second,
-			PingPeriod:  25 * time.Second,
-		},
-	}
-	return client
-}
-
-func (c *Client) SetTimeoutConfig(config TimeoutConfig) {
-	c.TimeoutConfig = config
-}
-
-func (c *Client) getReadTimeout() time.Time {
-	if c.TimeoutConfig.PongWait == 0 {
-		return time.Time{}
-	}
-	return time.Now().Add(c.TimeoutConfig.PongWait)
-}
-
-// register action handler function
-func (csms *Server) On(action string, f func(*ChargePoint, Payload) Payload) *Server {
-	csms.ActionHandlers[action] = f
-	return csms
-}
-
-// register after-action handler function
-func (csms *Server) After(action string, f func(*ChargePoint, Payload)) *Server {
-	csms.AfterHandlers[action] = f
-	return csms
-}
-
-// register action handler function
-func (c *Client) On(action string, f func(*ChargePoint, Payload) Payload) *Client {
-	c.ActionHandlers[action] = f
-	return c
-}
-
-// register after-action handler function
-func (c *Client) After(action string, f func(*ChargePoint, Payload)) *Client {
-	c.AfterHandlers[action] = f
-	return c
-}
 
 // websocket reader to receive messages
-func (cp *ChargePoint) cliReader() {
-	cp.Conn.SetPongHandler(func(appData string) error {
+func (cp *ChargePoint) clientReader() {
+	cp.conn.SetPongHandler(func(appData string) error {
 		log.L.Debug("pong <- ")
-		return cp.Conn.SetReadDeadline(client.getReadTimeout())
+		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	for {
-		messageType, msg, err := cp.Conn.ReadMessage()
+		messageType, msg, err := cp.conn.ReadMessage()
 		log.L.Debugf("messageType: %d", messageType)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
@@ -161,22 +136,27 @@ func (cp *ChargePoint) cliReader() {
 			cp.forceWClose <- err
 			return
 		}
-		call, callResult, callError, err := unpack(&msg)
+		call, callResult, callError, err := unpack(&msg, cp.proto)
 		if err != nil {
-			cp.Out <- call.createCallError(err)
+			cp.out <- call.createCallError(err)
 			log.L.Error(err)
 		}
 		if call != nil {
-			handler, ok := client.ActionHandlers[call.Action]
+			handler, ok := client.actionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				err = validate.Struct(responsePayload)
+				switch cp.proto {
+				case ocppV16:
+					err = validateV16.Struct(responsePayload)
+				case ocppV201:
+					err = validateV201.Struct(responsePayload)	
+				}
 				if err != nil {
 					log.L.Error(err)
 				} else {
-					cp.Out <- call.createCallResult(responsePayload)
+					cp.out <- call.createCallResult(responsePayload)
 					time.Sleep(time.Second)
-					if afterHandler, ok := client.AfterHandlers[call.Action]; ok {
+					if afterHandler, ok := client.afterHandlers[call.Action]; ok {
 						go afterHandler(cp, call.Payload)
 					}
 				}
@@ -186,28 +166,28 @@ func (cp *ChargePoint) cliReader() {
 					code:  "NotSupported",
 					cause: fmt.Sprintf("Action %s is not supported", call.Action),
 				}
-				cp.Out <- call.createCallError(err)
+				cp.out <- call.createCallError(err)
 				log.L.Errorf("No handler for action %s", call.Action)
 			}
 		}
 		if callResult != nil {
 			log.L.Debug(callResult)
-			cp.Cr <- callResult
+			cp.cr <- callResult
 		}
 		if callError != nil {
 			log.L.Debug(callError)
-			cp.Ce <- callError
+			cp.ce <- callError
 		}
 
 	}
 }
 
 // websocket writer to send messages
-func (cp *ChargePoint) cliWriter() {
+func (cp *ChargePoint) clientWriter() {
 	defer func() {
-		_ = cp.Conn.Close()
+		_ = cp.conn.Close()
 	}()
-	switch client.TimeoutConfig.PingPeriod {
+	switch cp.tc.pingPeriod {
 	case 0:
 		for {
 			select {
@@ -215,18 +195,18 @@ func (cp *ChargePoint) cliWriter() {
 				return
 			case closeErr := <-cp.closeC:
 				b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
-				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+				err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 				if err != nil && err != websocket.ErrCloseSent {
 					log.L.Error(err)
 				}
 				return
-			case message, ok := <-cp.Out:
-				_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.TimeoutConfig.WriteWait))
+			case message, ok := <-cp.out:
+				_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 				if !ok {
-					cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+					cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
 					return
 				}
-				w, err := cp.Conn.NextWriter(websocket.TextMessage)
+				w, err := cp.conn.NextWriter(websocket.TextMessage)
 				if err != nil {
 					log.L.Error(err)
 					return
@@ -243,17 +223,17 @@ func (cp *ChargePoint) cliWriter() {
 			}
 		}
 	default:
-		ticker := time.NewTicker(client.TimeoutConfig.PingPeriod)
+		ticker := time.NewTicker(client.pingPeriod)
 		defer ticker.Stop()
 		for {
 			select {
-			case message, ok := <-cp.Out:
-				_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.TimeoutConfig.WriteWait))
+			case message, ok := <-cp.out:
+				_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 				if !ok {
-					cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+					cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
 					return
 				}
-				w, err := cp.Conn.NextWriter(websocket.TextMessage)
+				w, err := cp.conn.NextWriter(websocket.TextMessage)
 				if err != nil {
 					log.L.Error(err)
 					return
@@ -268,8 +248,8 @@ func (cp *ChargePoint) cliWriter() {
 					return
 				}
 			case <-ticker.C:
-				_ = cp.Conn.SetWriteDeadline(time.Now().Add(client.TimeoutConfig.WriteWait))
-				if err := cp.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+				if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 					log.L.Error(err)
 					return
 				}
@@ -277,7 +257,7 @@ func (cp *ChargePoint) cliWriter() {
 				return
 			case closeErr := <-cp.closeC:
 				b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
-				err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+				err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 				if err != nil && err != websocket.ErrCloseSent {
 					log.L.Error(err)
 				}
@@ -287,19 +267,19 @@ func (cp *ChargePoint) cliWriter() {
 	}
 }
 
-func (cp *ChargePoint) srvReader() {
+func (cp *ChargePoint) serverReader() {
 	// var count int
-	cp.Conn.SetPingHandler(func(appData string) error {
+	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
 		log.L.Debug("ping <- ")
 		i := cp.getReadTimeout()
-		return cp.Conn.SetReadDeadline(i)
+		return cp.conn.SetReadDeadline(i)
 	})
 	defer func() {
-		_ = cp.Conn.Close()
+		_ = cp.conn.Close()
 	}()
 	for {
-		messageType, msg, err := cp.Conn.ReadMessage()
+		messageType, msg, err := cp.conn.ReadMessage()
 		log.L.Debugf("messageType: %d ", messageType)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
@@ -308,22 +288,27 @@ func (cp *ChargePoint) srvReader() {
 			cp.forceWClose <- err
 			return
 		}
-		call, callResult, callError, err := unpack(&msg)
+		call, callResult, callError, err := unpack(&msg, cp.proto)
 		if err != nil {
-			cp.Out <- call.createCallError(err)
+			cp.out <- call.createCallError(err)
 			log.L.Error(err)
 		}
 		if call != nil {
-			handler, ok := server.ActionHandlers[call.Action]
+			handler, ok := server.actionHandlers[call.Action]
 			if ok {
 				responsePayload := handler(cp, call.Payload)
-				err = validate.Struct(responsePayload)
+				switch cp.proto {
+				case ocppV16:
+					err = validateV16.Struct(responsePayload)
+				case ocppV201:
+					err = validateV201.Struct(responsePayload)	
+				}
 				if err != nil {
 					log.L.Error(err)
 				} else {
-					cp.Out <- call.createCallResult(responsePayload)
+					cp.out <- call.createCallResult(responsePayload)
 					time.Sleep(time.Second)
-					if afterHandler, ok := server.AfterHandlers[call.Action]; ok {
+					if afterHandler, ok := server.afterHandlers[call.Action]; ok {
 						go afterHandler(cp, call.Payload)
 					}
 				}
@@ -333,32 +318,32 @@ func (cp *ChargePoint) srvReader() {
 					code:  "NotSupported",
 					cause: fmt.Sprintf("action %s is not supported", call.Action),
 				}
-				cp.Out <- call.createCallError(err)
+				cp.out <- call.createCallError(err)
 				log.L.Debugf("no handler for action %s", call.Action)
 			}
 		}
 		if callResult != nil {
 			log.L.Debugf("call result <-: %v", callResult)
-			cp.Cr <- callResult
+			cp.cr <- callResult
 		}
 		if callError != nil {
 			log.L.Debugf("call err <-: %v", callError)
-			cp.Ce <- callError
+			cp.ce <- callError
 		}
 	}
 }
 
 // websocket writer to send messages
-func (cp *ChargePoint) srvWriter() {
+func (cp *ChargePoint) serverWriter() {
 	for {
 		select {
-		case message, ok := <-cp.Out:
-			err := cp.Conn.SetWriteDeadline(time.Now().Add(cp.TimeoutConfig.WriteWait))
+		case message, ok := <-cp.out:
+			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err != nil {
 				log.L.Error(err)
 			}
 			if !ok {
-				err := cp.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				err := cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
 					log.L.Error(err)
 				}
@@ -366,7 +351,7 @@ func (cp *ChargePoint) srvWriter() {
 				server.Chargepoints.Delete(cp.Id)
 				return
 			}
-			w, err := cp.Conn.NextWriter(websocket.TextMessage)
+			w, err := cp.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				log.L.Error(err)
 				server.Chargepoints.Delete(cp.Id)
@@ -386,11 +371,11 @@ func (cp *ChargePoint) srvWriter() {
 			}
 			log.L.Debugf("text msg -> %d", n)
 		case <-cp.pingIn:
-			err := cp.Conn.SetWriteDeadline(time.Now().Add(cp.TimeoutConfig.WriteWait))
+			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err != nil {
 				log.L.Error(err)
 			}
-			err = cp.Conn.WriteMessage(websocket.PongMessage, []byte{})
+			err = cp.conn.WriteMessage(websocket.PongMessage, []byte{})
 			if err != nil {
 				log.L.Error(err)
 				server.Chargepoints.Delete(cp.Id)
@@ -403,7 +388,7 @@ func (cp *ChargePoint) srvWriter() {
 		case closeErr := <-cp.closeC:
 			server.Chargepoints.Delete(cp.Id)
 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
-			err := cp.Conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 			if err != nil && err != websocket.ErrCloseSent {
 				log.L.Error(err)
 			}
@@ -422,12 +407,12 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 		p,
 	}
 	raw, _ := json.Marshal(call)
-	cp.Mu.Lock()
-	defer cp.Mu.Unlock()
-	cp.Out <- &raw
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	cp.out <- &raw
 	callResult, callError, err := cp.waitForResponse(id)
 	if callResult != nil {
-		resPayload, err := unmarshalConf(action, callResult.Payload)
+		resPayload, err := cp.unmarshalRes(action, callResult.Payload)
 		if err != nil {
 			log.L.Error(err)
 			return nil, err
@@ -442,20 +427,20 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 
 // waitForResponse waits for a response to a Call with id
 func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError, error) {
-	deadline := time.Now().Add(cp.TimeoutConfig.OcppTimeout)
+	deadline := time.Now().Add(cp.tc.ocppWait)
 	for {
 		select {
-		case r1 := <-cp.Cr:
+		case r1 := <-cp.cr:
 			if r1.UniqueId == uniqueId {
 				return r1, nil, nil
 			}
-		case r2 := <-cp.Ce:
+		case r2 := <-cp.ce:
 			if r2.UniqueId == uniqueId {
 				return nil, r2, nil
 			}
 		case <-time.After(time.Until(deadline)):
 			return nil, nil, &TimeoutError{
-				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.TimeoutConfig.OcppTimeout, uniqueId),
+				Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.tc.ocppWait, uniqueId),
 			}
 		}
 	}
@@ -464,29 +449,42 @@ func (cp *ChargePoint) waitForResponse(uniqueId string) (*CallResult, *CallError
 // NewChargepoint creates a new ChargePoint
 func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *ChargePoint {
 	cp := &ChargePoint{
-		Proto:       proto,
-		Conn:        conn,
+		proto:       proto,
+		conn:        conn,
 		Id:          id,
-		Out:         make(chan *[]byte),
-		In:          make(chan *[]byte),
-		Cr:          make(chan *CallResult),
-		Ce:          make(chan *CallError),
+		out:         make(chan *[]byte),
+		in:          make(chan *[]byte),
+		cr:          make(chan *CallResult),
+		ce:          make(chan *CallError),
 		Extras:      make(map[string]interface{}),
 		closeC:      make(chan websocket.CloseError, 1),
 		forceWClose: make(chan error, 1),
 	}
 
-	if isServer {
-		cp.TimeoutConfig = server.TimeoutConfig
+	switch isServer {
+	case true:
+		cp.tc.ocppWait = server.ocppWait
+		cp.tc.writeWait = server.writeWait
+		cp.tc.pingWait = server.pingWait
 		cp.pingIn = make(chan []byte)
 		cp.isServer = true
 		server.Chargepoints.Store(id, cp)
-		go cp.srvReader()
-		go cp.srvWriter()
-	} else {
-		cp.TimeoutConfig = client.TimeoutConfig
-		go cp.cliReader()
-		go cp.cliWriter()
+		go cp.serverReader()
+		go cp.serverWriter()
+	case false:
+		cp.tc.ocppWait = client.ocppWait
+		cp.tc.writeWait = client.writeWait
+		cp.tc.pongWait = client.pongWait
+		cp.tc.pingPeriod = client.pingPeriod
+		go cp.clientReader()
+		go cp.clientWriter()					
+	}
+
+	switch proto {
+	case ocppV16:
+		cp.unmarshalRes = unmarshalResV16
+	case ocppV201:
+		cp.unmarshalRes = unmarshalResV201	
 	}
 	return cp
 }
