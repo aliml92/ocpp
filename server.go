@@ -1,6 +1,7 @@
 package ocpp
 
 import (
+	"sync"
 	"time"
 )
 
@@ -40,9 +41,12 @@ type Server struct {
 
 
 	pingWait    time.Duration
+
+	mu 			sync.Mutex	
+
 }
 
-// create new CSMS instance acting as main handler for ChargePoints
+// create new CSMS instance actin1`g as main handler for ChargePoints
 func NewServer() *Server {
 	server = &Server{
 		chargepoints:   make(map[string]*ChargePoint),
@@ -75,3 +79,24 @@ func (s *Server) After(action string, f func(*ChargePoint, Payload)) *Server {
 	return s
 }
 
+func (s *Server) getHandler(action string) func(*ChargePoint, Payload) Payload {
+	return s.actionHandlers[action]
+}
+
+func (s *Server) getAfterHandler(action string) func(*ChargePoint, Payload) {
+	return s.afterHandlers[action]
+}
+
+
+func (s *Server) DeleteConn(id string) {
+	s.mu.Lock()
+	delete(s.chargepoints, id)
+	s.mu.Unlock()
+}
+
+
+func (s *Server) AddConn(cp *ChargePoint) {
+	s.mu.Lock()
+	server.chargepoints[cp.Id] = cp
+	s.mu.Unlock()
+}

@@ -45,7 +45,7 @@ func NewClient() *Client {
 		ocppWait: ocppWait,
 		writeWait: writeWait,
 		pongWait: pongWait,
-		pingPeriod: pigWait,
+		pingPeriod: pingPeriod,
 	}
 	return client
 }
@@ -59,13 +59,6 @@ func (c *Client) SetTimeoutConfig(config ClientTimeoutConfig) {
 }
 
 
-func (c *Client) getReadTimeout() time.Time {
-	if c.pongWait == 0 {
-		return time.Time{}
-	}
-	return time.Now().Add(c.pongWait)
-}
-
 
 
 // register action handler function
@@ -78,4 +71,12 @@ func (c *Client) On(action string, f func(*ChargePoint, Payload) Payload) *Clien
 func (c *Client) After(action string, f func(*ChargePoint, Payload)) *Client {
 	c.afterHandlers[action] = f
 	return c
+}
+
+func (c *Client) getHandler(action string) func(*ChargePoint, Payload) Payload {
+	return c.actionHandlers[action]
+}
+
+func (c *Client) getAfterHandler(action string) func(*ChargePoint, Payload) {
+	return c.afterHandlers[action]
 }
