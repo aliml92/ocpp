@@ -122,15 +122,16 @@ func (c *ChargePoint) getReadTimeout() time.Time {
 
 
 
-func (cp *ChargePoint) processIncoming(peer Peer) {
+func (cp *ChargePoint) processIncoming(peer Peer) bool {
 	messageType, msg, err := cp.conn.ReadMessage()
 	log.L.Debugf("messageType: %d", messageType)
 	if err != nil {
+		log.L.Debug(err)
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-			log.L.Error(err)
+			log.L.Debug(err)
 		}
 		cp.forceWClose <- err
-		return
+		return true
 	}
 	call, callResult, callError, err := unpack(&msg, cp.proto)
 	if err != nil {
@@ -174,6 +175,7 @@ func (cp *ChargePoint) processIncoming(peer Peer) {
 		log.L.Debug(callError)
 		cp.ce <- callError
 	}
+	return false
 }
 
 
@@ -186,7 +188,7 @@ func (cp *ChargePoint) clientReader() {
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	for {
-		cp.processIncoming(client)
+		if cp.processIncoming(client) { break }
 	}
 }
 
@@ -255,7 +257,7 @@ func (cp *ChargePoint) serverReader() {
 		_ = cp.conn.Close()
 	}()
 	for {
-		cp.processIncoming(server)
+		if cp.processIncoming(server) { break }
 	}
 }
 

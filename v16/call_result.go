@@ -6,7 +6,7 @@ type AuthorizeConf struct {
 
 type BootNotificationConf struct {
 	CurrentTime string `json:"currentTime" validate:"required,ISO8601date"`
-	Interval    *int   `json:"interval" validate:"required,gte=0"`
+	Interval    int   `json:"interval" validate:"required,gte=0"`
 	Status      string `json:"status" validate:"required,RegistrationStatus"`
 }
 
