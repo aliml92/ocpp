@@ -43,8 +43,7 @@ const (
 
 var validateV16 = v16.Validate
 var validateV201 = v201.Validate
-var server *Server
-var client *Client
+
 
 // add more
 
@@ -391,7 +390,6 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		cp.tc.pingWait = server.pingWait
 		cp.pingIn = make(chan []byte)
 		cp.isServer = true
-		server.AddConn(cp)
 		go cp.serverReader()
 		go cp.serverWriter()
 	case false:

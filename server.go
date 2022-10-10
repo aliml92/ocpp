@@ -1,14 +1,19 @@
 package ocpp
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 
 
-
+var server *Server
 
 type ServerTimeoutConfig struct {
 	// ocpp response timeout in seconds
@@ -43,11 +48,16 @@ type Server struct {
 
 	pingWait    time.Duration
 
-	mu 			sync.Mutex	
+	mu 			sync.Mutex
+	
+	upgrader    websocket.Upgrader
 
+	preUpgradeHandler func(w http.ResponseWriter, r *http.Request) bool
+
+	returnError func(err error)
 }
 
-// create new CSMS instance actin1`g as main handler for ChargePoints
+// create new CSMS instance acting as main handler for ChargePoints
 func NewServer() *Server {
 	server = &Server{
 		chargepoints:   make(map[string]*ChargePoint),
@@ -56,6 +66,9 @@ func NewServer() *Server {
 		ocppWait: ocppWait,
 		writeWait: writeWait,
 		pingWait: pigWait,
+		upgrader: websocket.Upgrader{
+			Subprotocols: []string{},
+		},
 	}
 	return server
 }
@@ -114,3 +127,61 @@ func (s *Server) AddConn(cp *ChargePoint) {
 	}
 	s.mu.Unlock()
 }
+
+
+func (s *Server) AddSubProtocol(protocol string) {
+	for _, p := range server.upgrader.Subprotocols {
+		if p == protocol {
+			return
+		}
+	}
+	s.upgrader.Subprotocols = append(s.upgrader.Subprotocols, protocol)
+}
+
+
+func (s *Server) SetCheckOriginHandler(f func(r *http.Request) bool) {
+	s.upgrader.CheckOrigin = f
+}
+
+
+func (s *Server) SetPreUpgradeHandler(f func(w http.ResponseWriter, r *http.Request) bool) {
+	s.preUpgradeHandler = f
+}
+
+
+// TODO: add more functionality
+func (s *Server) Start(addr string, path string, handler func(http.ResponseWriter, *http.Request)) {
+	if handler != nil {
+		http.HandleFunc(path, handler)
+	} else {
+		http.HandleFunc(path, defaultWebsocketHandler)
+	}
+	http.ListenAndServe(addr, nil)
+}
+
+func defaultWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+	preCheck := server.preUpgradeHandler
+	if preCheck != nil {
+		if preCheck(w, r) {
+			upgrade(w, r)
+		} else {
+			server.returnError(errors.New("cannot start server"))
+		}
+	} else {
+		upgrade(w, r)
+	}
+} 
+
+
+func upgrade(w http.ResponseWriter, r *http.Request) {
+	c, err := server.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		server.returnError(err)
+		return
+	}
+	p := strings.Split(r.URL.Path, "/")
+	id := p[len(p)-1]
+	cp := NewChargePoint(c, id, c.Subprotocol(), true)
+	server.AddConn(cp)
+}
+

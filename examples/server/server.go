@@ -10,7 +10,6 @@ import (
 	"github.com/aliml92/ocpp"
 	ocpplog "github.com/aliml92/ocpp/logger"
 	v16 "github.com/aliml92/ocpp/v16"
-	"github.com/gorilla/websocket"
 	_ "net/http/pprof"
 
 )
@@ -21,18 +20,7 @@ import (
 var csms *ocpp.Server
 
 
-// cp is a ChangePoint which handles single websocket connection for
-// for a connected charge point 
-// var cp *ocpp.ChargePoint
 
-
-// upgrader for websocket connection
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-	Subprotocols: []string{"ocpp1.6"},
-}
 
 
 // log replaces standard log
@@ -82,12 +70,12 @@ func main() {
 	// register charge-point-initiated action handlers
 	csms.On("BootNotification", BootNotificationHandler)
 	csms.After("BootNotification", SendGetLocalListVersion)
-	
-	http.HandleFunc("/", wsHandler)
-	
-	// start csms server
-	http.ListenAndServe("0.0.0.0:8999", nil)
-
+	csms.AddSubProtocol("ocpp1.6")
+	csms.SetCheckOriginHandler(func(r *http.Request) bool {
+		return true
+	})
+	csms.SetPreUpgradeHandler(customPreUpgradeHandler)
+	csms.Start("0.0.0.0:8999", "/ws/", nil)
 
 }
 
@@ -102,57 +90,25 @@ func SendGetLocalListVersion(cp *ocpp.ChargePoint, payload ocpp.Payload) {
 }
 
 
-// websocket handler
-// handles incoming websocket connections from charge points
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	
-	// ocpp protocol supported by current csms server
-	ssp := "ocpp1.6"
-
-	// check if charge point supports current ocpp protocol
-	subProtocol := r.Header.Get("Sec-WebSocket-Protocol")
-	if subProtocol == "" {
-		log.Debug("client hasn't requested any Subprotocol. Closing Connection")
-		return
-	}
-	if !strings.Contains(subProtocol, ssp) {
-		log.Debug("client has requested an unsupported Subprotocol. Closing Connection")
-		return
-	}
-
-
+// 
+func customPreUpgradeHandler(w http.ResponseWriter, r *http.Request) bool {
 	// check if charge point is providing basic authentication
 	u, p, ok := r.BasicAuth()
 	if !ok {
 		log.Debug("error parsing basic auth")
 		w.WriteHeader(401)
-		return
+		return false
 	}
-	id := strings.Split(r.URL.Path, "/")[2]
+	path := strings.Split(r.URL.Path, "/")
+	id := path[len(path)-1]
 	log.Debugf("%s is trying to connect with %s:%s", id, u, p)
 	if u != id {
 		log.Debug("username provided is correct: %s", u)
 		w.WriteHeader(401)
-		return
+		return false
 	}
-
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Error("cannot upgrade to websocket")
-		log.Error(err)
-		return
-	}
-
-
-	// create charge point
-	// with successfully connected websocket connection
-	// unique id 
-	// choice of ocpp protocol between charge point and csms server
-	// boolean value meaning that this charge point represents client or server side charge point
-	_ = ocpp.NewChargePoint(c, id, ssp, true)
+	return true
 }
-
-
 
 
 

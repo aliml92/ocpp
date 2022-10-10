@@ -1,9 +1,16 @@
 package ocpp
 
-import "time"
+import (
+	"encoding/base64"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/gorilla/websocket"
+)
 
 
-
+var client *Client
 
 type ClientTimeoutConfig struct {
 	// ocpp response timeout in seconds
@@ -22,6 +29,7 @@ type ClientTimeoutConfig struct {
 
 
 type Client struct {
+	Id string
 	// register implemented action handler functions
 	actionHandlers map[string]func(*ChargePoint, Payload) Payload 
 	// register after-action habdler functions
@@ -34,6 +42,10 @@ type Client struct {
 	pongWait     time.Duration
 
 	pingPeriod  time.Duration
+
+	header 		http.Header
+	
+	returnError func(error)
 }
 
 
@@ -46,6 +58,7 @@ func NewClient() *Client {
 		writeWait: writeWait,
 		pongWait: pongWait,
 		pingPeriod: pingPeriod,
+		header: http.Header{},
 	}
 	return client
 }
@@ -79,4 +92,32 @@ func (c *Client) getHandler(action string) func(*ChargePoint, Payload) Payload {
 
 func (c *Client) getAfterHandler(action string) func(*ChargePoint, Payload) {
 	return c.afterHandlers[action]
+}
+
+func (c *Client) AddSubProtocol(protocol string) {
+	c.header.Add("Sec-WebSocket-Protocol", protocol)
+}
+
+func (c *Client) AddBasicAuth(username string, password string) {
+	auth := username + ":" + password
+	enc := base64.StdEncoding.EncodeToString([]byte(auth))
+	c.header.Add("Authorization", "Basic "+ enc)
+}
+
+func (c *Client) Start(addr string, path string) (cp *ChargePoint, err error) {
+	urlStr, err := url.JoinPath(addr, path, c.Id)
+	if err != nil {
+		c.returnError(err)
+		return 
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(urlStr, c.header)
+	if err != nil {
+		return 
+	}
+	cp = NewChargePoint(conn, c.Id, conn.Subprotocol(), false)
+	return 
+}
+
+func (c *Client) SetID(id string) {
+	c.Id = id
 }
