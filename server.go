@@ -129,6 +129,18 @@ func (s *Server) AddConn(cp *ChargePoint) {
 }
 
 
+func (s *Server) GetConn(id string) *ChargePoint {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if cp, ok := s.chargepoints[id]; ok {
+		fmt.Printf("ChargePoint with id: %s exist\n", cp.Id)
+		return cp
+	}
+	return nil
+}
+
+
+
 func (s *Server) AddSubProtocol(protocol string) {
 	for _, p := range server.upgrader.Subprotocols {
 		if p == protocol {

@@ -14,67 +14,41 @@ import (
 
 )
 
-// csms serves as a main hub to set default configurations,
-// keep track of connected charge points, register handlers
-// for charge point initiated actions
+
 var csms *ocpp.Server
-
-
-
-
 
 // log replaces standard log
 var log *zap.SugaredLogger
 
 
-// initialize zap logger
-// for deveplopment only
-func initLogger() {
-	logger, _ := zap.NewDevelopment()
-	log = logger.Sugar()
-}
 
-
-
-// main function to bootstrap csms server
 func main() {
 
 	go func() {
 		log.Debug(http.ListenAndServe(":6060", nil))
 	}()
 
-	// initialize logger
-	initLogger()
+	logger, _ := zap.NewDevelopment()
+	log = logger.Sugar()
 	defer log.Sync()
 
 	// set ocpp library's logger to zap logger
 	ocpplog.SetLogger(log)
 
-
-
-
-
 	// start csms server with default configurations
 	csms = ocpp.NewServer()
 
-	// custom timeout configuration 
-	// config := ocpp.ServerTimeoutConfig{
-	// 	OcppWait: 30 * time.Second,
-	// 	WriteWait: 10 * time.Second,
-	// 	PingWait: 30 * time.Second,
-	// }
-	// // set timeout configuration
-	// csms.SetTimeoutConfig(config)
+
+
+	csms.AddSubProtocol("ocpp1.6")
+	csms.SetCheckOriginHandler(func(r *http.Request) bool { return true })
+	csms.SetPreUpgradeHandler(customPreUpgradeHandler)
+
 
 
 	// register charge-point-initiated action handlers
 	csms.On("BootNotification", BootNotificationHandler)
 	csms.After("BootNotification", SendGetLocalListVersion)
-	csms.AddSubProtocol("ocpp1.6")
-	csms.SetCheckOriginHandler(func(r *http.Request) bool {
-		return true
-	})
-	csms.SetPreUpgradeHandler(customPreUpgradeHandler)
 	csms.Start("0.0.0.0:8999", "/ws/", nil)
 
 }
@@ -92,7 +66,6 @@ func SendGetLocalListVersion(cp *ocpp.ChargePoint, payload ocpp.Payload) {
 
 // 
 func customPreUpgradeHandler(w http.ResponseWriter, r *http.Request) bool {
-	// check if charge point is providing basic authentication
 	u, p, ok := r.BasicAuth()
 	if !ok {
 		log.Debug("error parsing basic auth")
