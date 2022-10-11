@@ -101,7 +101,7 @@ func (c *Client) AddSubProtocol(protocol string) {
 func (c *Client) AddBasicAuth(username string, password string) {
 	auth := username + ":" + password
 	enc := base64.StdEncoding.EncodeToString([]byte(auth))
-	c.header.Add("Authorization", "Basic "+ enc)
+	c.header.Set("Authorization", "Basic "+ enc)
 }
 
 func (c *Client) Start(addr string, path string) (cp *ChargePoint, err error) {
