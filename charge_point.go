@@ -264,7 +264,7 @@ func (cp *ChargePoint) serverReader() {
 
 // websocket writer to send messages
 func (cp *ChargePoint) serverWriter() {
-	defer server.DeleteConn(cp.Id)
+	defer server.Delete(cp.Id)
 	for {
 		select {
 		case message, ok := <-cp.out:

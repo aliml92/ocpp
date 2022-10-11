@@ -102,7 +102,7 @@ func (s *Server) getAfterHandler(action string) func(*ChargePoint, Payload) {
 }
 
 
-func (s *Server) DeleteConn(id string) {
+func (s *Server) Delete(id string) {
 	s.mu.Lock()
 	// check if DeleteConn deletes 
 	if _, ok := s.chargepoints[id]; ok {
@@ -116,7 +116,7 @@ func (s *Server) DeleteConn(id string) {
 }
 
 
-func (s *Server) AddConn(cp *ChargePoint) {
+func (s *Server) Store(cp *ChargePoint) {
 	s.mu.Lock()
 	if _, ok := s.chargepoints[cp.Id]; !ok {
 		fmt.Printf("ChargePoint with id: %s does not exist\n", cp.Id)
@@ -129,14 +129,14 @@ func (s *Server) AddConn(cp *ChargePoint) {
 }
 
 
-func (s *Server) GetConn(id string) *ChargePoint {
+func (s *Server) Load(id string) (*ChargePoint, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if cp, ok := s.chargepoints[id]; ok {
 		fmt.Printf("ChargePoint with id: %s exist\n", cp.Id)
-		return cp
+		return cp, true
 	}
-	return nil
+	return nil, false
 }
 
 
@@ -194,6 +194,6 @@ func upgrade(w http.ResponseWriter, r *http.Request) {
 	p := strings.Split(r.URL.Path, "/")
 	id := p[len(p)-1]
 	cp := NewChargePoint(c, id, c.Subprotocol(), true)
-	server.AddConn(cp)
+	server.Store(cp)
 }
 
