@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aliml92/ocpp"
-	ocpplog "github.com/aliml92/ocpp/logger"
 	v16 "github.com/aliml92/ocpp/v16"
 	_ "net/http/pprof"
 
@@ -33,7 +32,7 @@ func main() {
 	defer log.Sync()
 
 	// set ocpp library's logger to zap logger
-	ocpplog.SetLogger(log)
+	ocpp.SetLogger(log)
 
 	// start csms server with default configurations
 	csms = ocpp.NewServer()

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/aliml92/ocpp/logger"
 	"github.com/aliml92/ocpp/v16"
 	"github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
@@ -357,7 +356,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "JSON must be an array of range [3,5]",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, nil, nil, e
 	}
 	err = json.Unmarshal(rm[0], &mti)
@@ -458,7 +457,7 @@ func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	err = validateV16.Struct(*p)
@@ -468,7 +467,7 @@ func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	payload = p
@@ -486,7 +485,7 @@ func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	err = validateV201.Struct(*p)
@@ -496,7 +495,7 @@ func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	payload = p
