@@ -98,7 +98,7 @@ func (c *Client) AddSubProtocol(protocol string) {
 	c.header.Add("Sec-WebSocket-Protocol", protocol)
 }
 
-func (c *Client) AddBasicAuth(username string, password string) {
+func (c *Client) SetBasicAuth(username string, password string) {
 	auth := username + ":" + password
 	enc := base64.StdEncoding.EncodeToString([]byte(auth))
 	c.header.Set("Authorization", "Basic "+ enc)
