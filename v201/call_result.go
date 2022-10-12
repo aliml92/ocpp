@@ -7,7 +7,7 @@ type AuthorizeRes struct {
 
 type BootNotificationRes struct {
 	CurrentTime string         `json:"currentTime" validate:"required,ISO8601date"` 
-	Interval    *int           `json:"interval" validate:"required,gte=0"`
+	Interval    int           `json:"interval" validate:"required"`
 	Status      string         `json:"status" validate:"required,RegistrationStatusEnumType"` 
 	StatusInfo  StatusInfoType `json:"statusInfo,omitempty" `
 }

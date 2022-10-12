@@ -28,7 +28,7 @@ type ChangeAvailabilityReq struct {
 type ClearCacheReq struct{}
 
 type ClearChargingProfileReq struct {
-	ChargingProfileId       *int                     `json:"chargingProfileId,omitempty"`
+	ChargingProfileId       int                     `json:"chargingProfileId,omitempty"`
 	ChargingProfileCriteria ClearChargingProfileType `json:"chargingProfileCriteria,omitempty"`
 }
 
@@ -51,7 +51,7 @@ type CostUpdatedReq struct {
 }
 
 type CustomerInformationReq struct {
-	RequestId           *int                    `json:"requestId" validate:"required"`
+	RequestId           int                    `json:"requestId" validate:"required"`
 	Report              bool                    `json:"report" validate:"required"`
 	Clear               bool                    `json:"clear" validate:"required"`
 	CustomerIdentifier  string                  `json:"customerIdentifier,omitempty" validate:"omitempty,max=64"`
@@ -71,7 +71,7 @@ type DeleteCertificateReq struct {
 
 type FirmwareStatusNotificationReq struct {
 	Status    string `json:"status" validate:"required,FirmwareStatusEnumType"`
-	RequestId *int   `json:"requestId,omitempty" `
+	RequestId int   `json:"requestId,omitempty" `
 }
 
 type Get15118EVCertificateReq struct {
@@ -96,14 +96,14 @@ type GetChargingProfilesReq struct {
 }
 
 type GetCompositeScheduleReq struct {
-	Duration         *int   `json:"duration" validate:"required"`
+	Duration         int   `json:"duration" validate:"required"`
 	ChargingRateUnit string `json:"chargingRateUnit,omitempty" validate:"omitempty,ChargingRateUnitEnumType"`
 	EvseId           *int   `json:"evseId" validate:"required"`
 }
 
 type GetDisplayMessagesReq struct {
 	Id        []int  `json:"id,omitempty" validate:"omitempty,dive,required"`
-	RequestId *int   `json:"requestId" validate:"required"`
+	RequestId int   `json:"requestId" validate:"required"`
 	Priority  string `json:"priority,omitempty" validate:"omitempty,MessagePriorityEnumType"`
 	State     string `json:"state,omitempty" validate:"omitempty,MessageStateEnumType"`
 }
@@ -116,20 +116,20 @@ type GetLocalListVersionReq struct{}
 
 type GetLogReq struct {
 	LogType       string            `json:"logType" validate:"required,LogEnumType"`
-	RequestId     *int              `json:"requestId" validate:"required"`
-	Retries       *int              `json:"retries,omitempty"`
-	RetryInterval *int              `json:"retryInterval,omitempty"`
+	RequestId     int              `json:"requestId" validate:"required"`
+	Retries       int              `json:"retries,omitempty"`
+	RetryInterval int              `json:"retryInterval,omitempty"`
 	Log           LogParametersType `json:"log" validate:"required"`
 }
 
 type GetMonitoringReportReq struct {
-	RequestId          *int                    `json:"requestId" validate:"required"`
+	RequestId          int                    `json:"requestId" validate:"required"`
 	MonitoringCriteria []string                `json:"monitoringCriteria,omitempty" validate:"omitempty,max=3,dive,required,MonitoringCriteriaEnumType"`
 	ComponentVariable  []ComponentVariableType `json:"componentVariable,omitempty" validate:"omitempty,dive,required"`
 }
 
 type GetReportReq struct {
-	RequestId         *int                    `json:"requestId" validate:"required"`
+	RequestId         int                    `json:"requestId" validate:"required"`
 	ComponentCriteria []string                `json:"componentCriteria,omitempty" validate:"omitempty,max=4,dive,required,ComponentCriteriaEnumType"`
 	ComponentVariable []ComponentVariableType `json:"componentVariable,omitempty" validate:"omitempty,dive,required"`
 }
@@ -151,7 +151,7 @@ type InstallCertificateReq struct {
 
 type LogStatusNotificationReq struct {
 	Status    string `json:"status" validate:"required,UploadLogStatusEnumType"`
-	RequestId *int   `json:"requestId,omitempty"`
+	RequestId int   `json:"requestId,omitempty"`
 }
 
 type MeterValuesReq struct {
@@ -170,11 +170,11 @@ type NotifyCustomerInformationReq struct {
 	Tbc         bool   `json:"tbc,omitempty"`
 	SeqNo       *int   `json:"seqNo" validate:"required,gte=0"`
 	GeneratedAt string `json:"generatedAt" validate:"required,ISO8601date"`
-	RequestId   *int   `json:"requestId" validate:"required"`
+	RequestId   int   `json:"requestId" validate:"required"`
 }
 
 type NotifyDisplayMessagesReq struct {
-	RequestId   *int              `json:"requestId" validate:"required"`
+	RequestId   int              `json:"requestId" validate:"required"`
 	Tbc         bool              `json:"tbc,omitempty"`
 	MessageInfo []MessageInfoType `json:"messageInfo,omitempty" validate:"omitempty,dive,required"`
 }
@@ -199,7 +199,7 @@ type NotifyEventReq struct {
 }
 
 type NotifyMonitoringReportReq struct {
-	RequestId   *int                 `json:"requestId" validate:"required"`
+	RequestId   int                 `json:"requestId" validate:"required"`
 	Tbc         bool                 `json:"tbc,omitempty"`
 	SeqNo       *int                 `json:"seqNo" validate:"required,gte=0"`
 	GeneratedAt string               `json:"generatedAt" validate:"required,ISO8601date"`
@@ -207,7 +207,7 @@ type NotifyMonitoringReportReq struct {
 }
 
 type NotifyReportReq struct {
-	RequestId   *int             `json:"requestId" validate:"required"`
+	RequestId   int             `json:"requestId" validate:"required"`
 	GeneratedAt string           `json:"generatedAt" validate:"required,ISO8601date"`
 	Tbc         bool             `json:"tbc,omitempty"`
 	SeqNo       *int             `json:"seqNo" validate:"required,gte=0"`
@@ -216,20 +216,20 @@ type NotifyReportReq struct {
 
 type PublishFirmwareReq struct {
 	Location      string `json:"location" validate:"required,max=512"`
-	Retries       *int   `json:"retries,omitempty"`
+	Retries       int   `json:"retries,omitempty"`
 	CheckSum      string `json:"checkSum" validate:"required,max=32"`
-	RequestId     *int   `json:"requestId" validate:"required"`
-	RetryInterval *int   `json:"retryInterval,omitempty"`
+	RequestId     int   `json:"requestId" validate:"required"`
+	RetryInterval int   `json:"retryInterval,omitempty"`
 }
 
 type PublishFirmwareStatusNotificationReq struct {
 	Status    string   `json:"status" validate:"required,PublishFirmwareStatusEnumType"`
 	Location  []string `json:"location,omitempty" validate:"omitempty,dive,required,max=512"`
-	RequestId *int     `json:"requestId,omitempty"`
+	RequestId int     `json:"requestId,omitempty"`
 }
 
 type ReportChargingProfilesReq struct {
-	RequestId           *int                  `json:"requestId" validate:"required"`
+	RequestId           int                  `json:"requestId" validate:"required"`
 	ChargingLimitSource string                `json:"chargingLimitSource" validate:"required,ChargingLimitSourceEnumType"`
 	Tbc                 bool                  `json:"tbc,omitempty"`
 	EvseId              *int                  `json:"evseId" validate:"required,gte=0"`
@@ -238,7 +238,7 @@ type ReportChargingProfilesReq struct {
 
 type RequestStartTransactionReq struct {
 	EvseId          *int                `json:"evseId,omitempty" validate:"omitempty,gt=0"`
-	RemoteStartId   *int                `json:"remoteStartId" validate:"required"`
+	RemoteStartId   int                `json:"remoteStartId" validate:"required"`
 	IdToken         IdTokenType         `json:"idToken" validate:"required"`
 	ChargingProfile ChargingProfileType `json:"chargingProfile,omitempty"`
 	GroupIdToken    IdTokenType         `json:"groupIdToken,omitempty"`
@@ -249,12 +249,12 @@ type RequestStopTransactionReq struct {
 }
 
 type ReservationStatusUpdateReq struct {
-	ReservationId           *int   `json:"reservationId" validate:"required"`
+	ReservationId           int   `json:"reservationId" validate:"required"`
 	ReservationUpdateStatus string `json:"reservationUpdateStatus" validate:"required,ReservationUpdateStatusEnumType"`
 }
 
 type ReserveNowReq struct {
-	Id             *int        `json:"id" validate:"required"`
+	Id             int        `json:"id" validate:"required"`
 	ExpiryDateTime string      `json:"expiryDateTime" validate:"required,ISO8601date"`
 	ConnectorType  string      `json:"connectorType,omitempty" validate:"omitempty,ConnectorEnumType"`
 	EvseId         *int        `json:"evseId,omitempty"`
@@ -297,7 +297,7 @@ type SetMonitoringLevelReq struct {
 }
 
 type SetNetworkProfileReq struct {
-	ConfigurationSlot *int                         `json:"configurationSlot" validate:"required"`
+	ConfigurationSlot int                         `json:"configurationSlot" validate:"required"`
 	ConnectionData    NetworkConnectionProfileType `json:"connectionData" validate:"required"`
 }
 
@@ -325,11 +325,11 @@ type TransactionEventReq struct {
 	EventType          string           `json:"eventType" validate:"required,TransactionEventTypeEnumType"`
 	Timestamp          string           `json:"timestamp" validate:"required,ISO8601date"`
 	TriggerReason      string           `json:"triggerReason" validate:"required,TriggerReasonEnumType"`
-	SeqNo              *int             `json:"seqNo" validate:"required"`
+	SeqNo              int             `json:"seqNo" validate:"required"`
 	Offline            bool             `json:"offline,omitempty"`
-	NumberOfPhasesUsed *int             `json:"numberOfPhasesUsed,omitempty"`
-	CableMaxCurrent    *int             `json:"cableMaxCurrent,omitempty"`
-	ReservationId      *int             `json:"reservationId,omitempty"`
+	NumberOfPhasesUsed int             `json:"numberOfPhasesUsed,omitempty"`
+	CableMaxCurrent    int             `json:"cableMaxCurrent,omitempty"`
+	ReservationId      int             `json:"reservationId,omitempty"`
 	TransactionInfo    TransactionType  `json:"transactionInfo" validate:"required"`
 	IdToken            IdTokenType      `json:"idToken,omitempty"`
 	Evse               EVSEType         `json:"evse,omitempty"`
@@ -351,8 +351,8 @@ type UnpublishFirmwareReq struct {
 }
 
 type UpdateFirmwareReq struct {
-	Retries       *int         `json:"retries,omitempty"`
-	RetryInterval *int         `json:"retryInterval,omitempty"`
-	RequestId     *int         `json:"requestId" validate:"required"`
+	Retries       int         `json:"retries,omitempty"`
+	RetryInterval int         `json:"retryInterval,omitempty"`
+	RequestId     int         `json:"requestId" validate:"required"`
 	Firmware      FirmwareType `json:"firmware" validate:"required"`
 }
