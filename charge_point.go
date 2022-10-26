@@ -99,10 +99,10 @@ type ChargePoint struct {
 	cr            chan *CallResult
 	ce            chan *CallError
 	Extras        map[string]interface{}
-	tc 	  	  TimeoutConfig
+	tc 	  	  	  TimeoutConfig
 	isServer      bool
 
-	unmarshalRes func(a string, r *json.RawMessage) (Payload, error)
+	unmarshalRes func(a string, r json.RawMessage) (Payload, error)
 	
 	// ping in channel           
 	pingIn        chan []byte
@@ -141,7 +141,7 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 		cp.forceWClose <- err
 		return true
 	}
-	call, callResult, callError, err := unpack(&msg, cp.proto)
+	call, callResult, callError, err := unpack(msg, cp.proto)
 	if err != nil {
 		cp.out <- call.createCallError(err)
 		log.Error(err)
@@ -254,7 +254,6 @@ func (cp *ChargePoint) clientWriter() {
 
 
 func (cp *ChargePoint) serverReader() {
-	// var count int
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
 		log.Debug("ping <- ")
