@@ -103,28 +103,19 @@ func (s *Server) getAfterHandler(action string) func(*ChargePoint, Payload) {
 
 
 func (s *Server) Delete(id string) {
-	s.mu.Lock()
-	// check if DeleteConn deletes 
-	if _, ok := s.chargepoints[id]; ok {
-		fmt.Printf("ChargePoint with id: %s exist\n", id)
+	s.mu.Lock() 
+	if cp, ok := s.chargepoints[id]; ok {
+		cp.connected = false
 	}
 	delete(s.chargepoints, id)
-	if _, ok := s.chargepoints[id]; !ok {
-		fmt.Printf("ChargePoint with id: %s deleted\n", id)
-	}
 	s.mu.Unlock()
 }
 
 
+
 func (s *Server) Store(cp *ChargePoint) {
 	s.mu.Lock()
-	if _, ok := s.chargepoints[cp.Id]; !ok {
-		fmt.Printf("ChargePoint with id: %s does not exist\n", cp.Id)
-	}
 	server.chargepoints[cp.Id] = cp
-	if _, ok := s.chargepoints[cp.Id]; ok {
-		fmt.Printf("ChargePoint with id: %s added\n", cp.Id)
-	}
 	s.mu.Unlock()
 }
 

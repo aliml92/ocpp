@@ -2,6 +2,7 @@ package ocpp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -18,6 +19,9 @@ func init(){
 }
 
 func SetLogger(logger logger.Logger) {
+	if logger == nil {
+		panic("logger cannot be nil")
+	}
 	log = logger
 }
 
@@ -90,10 +94,10 @@ type ChargePoint struct {
 	Id            string  
 	
 	// outgoing message channel
-	out           chan *[]byte 
+	out           chan []byte 
 	
 	// incoming message channel
-	in            chan *[]byte 
+	in            chan []byte 
 	
 	// mutex ensures that only one message is sent at a time
 	mu            sync.Mutex      
@@ -109,6 +113,7 @@ type ChargePoint struct {
 	pingIn        chan []byte
 	closeC        chan websocket.CloseError
 	forceWClose   chan error
+	connected 	  bool	
 }
 
 func (cp *ChargePoint) Shutdown() {
@@ -192,6 +197,9 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 
 // websocket reader to receive messages
 func (cp *ChargePoint) clientReader() {
+	defer func ()  {
+		cp.connected = false
+	}()
 	cp.conn.SetPongHandler(func(appData string) error {
 		log.Debug("pong <- ")
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
@@ -225,7 +233,7 @@ func (cp *ChargePoint) clientWriter() {
 				log.Error(err)
 				return
 			}
-			_, err = w.Write(*message)
+			_, err = w.Write(message)
 			if err != nil {
 				log.Error(err)
 				return
@@ -255,6 +263,7 @@ func (cp *ChargePoint) clientWriter() {
 
 
 func (cp *ChargePoint) serverReader() {
+	defer server.Delete(cp.Id)
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
 		log.Debug("ping <- ")
@@ -294,7 +303,7 @@ func (cp *ChargePoint) serverWriter() {
 				log.Error(err)
 				return
 			}
-			n, err := w.Write(*message)
+			n, err := w.Write(message)
 			if err != nil {
 				log.Error(err)
 				return
@@ -330,6 +339,9 @@ func (cp *ChargePoint) serverWriter() {
 
 // Call sends a message to peer
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
+	if !cp.connected {
+		return nil, errors.New("charge point not connected") 
+	} 
 	id := uuid.New().String()
 	call := [4]interface{}{
 		2,
@@ -340,7 +352,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	raw, _ := json.Marshal(call)
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	cp.out <- &raw
+	cp.out <- raw
 	callResult, callError, err := cp.waitForResponse(id)
 	if callResult != nil {
 		resPayload, err := cp.unmarshalRes(action, callResult.Payload)
@@ -383,8 +395,8 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		proto:       proto,
 		conn:        conn,
 		Id:          id,
-		out:         make(chan *[]byte),
-		in:          make(chan *[]byte),
+		out:         make(chan []byte),
+		in:          make(chan []byte),
 		cr:          make(chan *CallResult),
 		ce:          make(chan *CallError),
 		Extras:      make(map[string]interface{}),

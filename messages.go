@@ -232,19 +232,19 @@ type Call struct {
 }
 
 // Create CallResult from a received Call
-func (call *Call) createCallResult(r Payload) *[]byte {
+func (call *Call) createCallResult(r Payload) []byte {
 	out := [3]interface{}{
 		3,
 		call.UniqueId,
 		r,
 	}
 	raw, _ := json.Marshal(out)
-	return &raw
+	return raw
 }
 
 // Creates a CallError from a received Call
 // TODO: organize error codes
-func (call *Call) createCallError(err error) *[]byte {
+func (call *Call) createCallError(err error) []byte {
 	var id, code, cause string
 	var ocppErr *OCPPError
 	if errors.As(err, &ocppErr) {
@@ -294,7 +294,7 @@ type CallError struct {
 	ErrorDetails     interface{}
 }
 
-func (ce *CallError) marshal() *[]byte {
+func (ce *CallError) marshal() []byte {
 	ed := ce.ErrorDetails.(string)
 	out := [5]interface{}{
 		4,
@@ -304,7 +304,7 @@ func (ce *CallError) marshal() *[]byte {
 		`{"cause":` + ed + `}`,
 	}
 	raw, _ := json.Marshal(out)
-	return &raw
+	return raw
 }
 
 func (ce *CallError) Error() string {
