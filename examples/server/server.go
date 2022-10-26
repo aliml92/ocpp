@@ -47,9 +47,24 @@ func main() {
 
 	// register charge-point-initiated action handlers
 	csms.On("BootNotification", BootNotificationHandler)
-	csms.After("BootNotification", SendGetLocalListVersion)
+	csms.After("BootNotification", SendChangeConfigration)
 	csms.Start("0.0.0.0:8999", "/ws/", nil)
+	
 
+}
+
+func SendChangeConfigration(cp *ocpp.ChargePoint, payload ocpp.Payload) {
+	var req ocpp.Payload = v16.ChangeConfigurationReq{
+		Key: "WebSocketPingInterval",
+		Value: "0",
+	}
+	time.Sleep(25 * time.Second)
+	res, err := cp.Call("ChangeConfiguration", req)
+	if err != nil {
+		log.Debug(err)
+	}
+	cp.DisablePingPong()
+	log.Debug(res)
 }
 
 

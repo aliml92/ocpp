@@ -93,6 +93,14 @@ func (s *Server) After(action string, f func(*ChargePoint, Payload)) *Server {
 	return s
 }
 
+
+func (s *Server) IsConnected(id string) bool {
+	if cp, ok := s.chargepoints[id]; ok {
+		return cp.connected
+	}
+	return false 
+}  
+
 func (s *Server) getHandler(action string) func(*ChargePoint, Payload) Payload {
 	return s.actionHandlers[action]
 }

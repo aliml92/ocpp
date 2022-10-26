@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -44,7 +45,8 @@ func main() {
 	client.SetBasicAuth(id, "dummypass")
 	client.On("ChangeAvailability", ChangeAvailabilityHandler)
 	client.On("GetLocalListVersion", GetLocalListVersionHandler)
-
+	client.On("ChangeConfiguration", ChangeConfigurationHandler)
+	
 	cp, err := client.Start("ws://localhost:8999", "/ws")
 	if err != nil {
 		fmt.Printf("error dialing: %v\n", err)
@@ -52,13 +54,18 @@ func main() {
 	}
 	sendBootNotification(cp)
 	defer cp.Shutdown()
-	select {}
+	log.Debugf("charge point status %v", cp.IsConnected())
+	time.Sleep(300 * time.Second)
+	log.Debugf("charge point status %v", cp.IsConnected())
 }
 
 func ChangeConfigurationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.ChangeConfigurationReq)
 	log.Debugf("ChangeConfigurationReq: %v\n", req)
 	confData[req.Key] = req.Value
+	if req.Key == "WebSocketPingInterval" && req.Value == "0" {
+		cp.DisablePingPong()
+	}
 	var res ocpp.Payload = &v16.ChangeConfigurationConf{
 		Status: "Accepted",
 	}

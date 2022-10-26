@@ -37,16 +37,16 @@ const (
 	ocppV201 = "ocpp2.0.1"
 
 	// Time allowed to wait until corresponding ocpp call result received
-	ocppWait = 30 * time.Second
+	ocppWait = 20 * time.Second
 
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pigWait = 60 * time.Second
+	pigWait = 20 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 20 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -113,17 +113,43 @@ type ChargePoint struct {
 	pingIn        chan []byte
 	closeC        chan websocket.CloseError
 	forceWClose   chan error
-	connected 	  bool	
+	connected 	  bool
+	tick          <-chan time.Time	
 }
 
+func (cp *ChargePoint) IsConnected() bool {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	return cp.connected
+}
+
+
 func (cp *ChargePoint) Shutdown() {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	cp.closeC <- websocket.CloseError{Code: websocket.CloseNormalClosure, Text: ""}
 }
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	cp.tc = config
 }
 
+
+func (cp *ChargePoint) DisablePingPong() {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	if cp.isServer {
+		log.Debug("server ping handler is disabled")
+		cp.conn.SetPingHandler(nil)
+		return 
+	}
+	cp.tc.pingPeriod = 0
+	cp.tick = cp.getReadTimeout()
+	cp.conn.SetPongHandler(nil)
+	log.Debug("client pong handler is disabled")
+}
 
 
 func (c *ChargePoint) getReadTimeout() time.Time {
@@ -197,6 +223,7 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 
 // websocket reader to receive messages
 func (cp *ChargePoint) clientReader() {
+	log.Debug("pass once")
 	defer func ()  {
 		cp.connected = false
 	}()
@@ -214,10 +241,9 @@ func (cp *ChargePoint) clientWriter() {
 	defer func() {
 		_ = cp.conn.Close()
 	}()
-	var tick <-chan time.Time
 	if cp.tc.pingPeriod != 0 {
 		ticker := time.NewTicker(cp.tc.pingPeriod)
-		tick = ticker.C
+		cp.tick = ticker.C
 		defer ticker.Stop()
 	}
 	for {
@@ -242,12 +268,13 @@ func (cp *ChargePoint) clientWriter() {
 				log.Error(err)
 				return
 			}
-		case <-tick:
+		case <-cp.tick:
 			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				log.Error(err)
 				return
 			}
+			log.Debug("ping ->")
 		case <-cp.forceWClose:
 			return
 		case closeErr := <-cp.closeC:
@@ -263,6 +290,7 @@ func (cp *ChargePoint) clientWriter() {
 
 
 func (cp *ChargePoint) serverReader() {
+	log.Debug("pass once")
 	defer server.Delete(cp.Id)
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
@@ -300,7 +328,7 @@ func (cp *ChargePoint) serverWriter() {
 			}
 			w, err := cp.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.Error(err)
+				log.Debug(err)
 				return
 			}
 			n, err := w.Write(message)
@@ -336,6 +364,8 @@ func (cp *ChargePoint) serverWriter() {
 		}
 	}
 }
+
+
 
 // Call sends a message to peer
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
@@ -402,6 +432,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		Extras:      make(map[string]interface{}),
 		closeC:      make(chan websocket.CloseError, 1),
 		forceWClose: make(chan error, 1),
+		connected:   true ,
 	}
 
 	switch isServer {
