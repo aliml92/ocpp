@@ -51,10 +51,7 @@ var validateV201 = v201.Validate
 var log logger.Logger
 
 
-func SetLogger(newLogger logger.Logger) {
-	log = newLogger
-}
-// add more
+
 
 // Payload used as a container is for both Call and CallResult' Payload
 type Payload interface{}
