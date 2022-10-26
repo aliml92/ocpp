@@ -6,12 +6,17 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/aliml92/ocpp/logger"
+	"github.com/aliml92/ocpp/logger"
 	"github.com/aliml92/ocpp/v16"
 	"github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
+
+func init(){
+	log = &logger.EmptyLogger{}
+}
+
 
 type Peer interface {
 	getHandler(string) func(*ChargePoint, Payload) Payload
@@ -43,6 +48,7 @@ const (
 
 var validateV16 = v16.Validate
 var validateV201 = v201.Validate
+var log logger.Logger
 
 
 
@@ -90,10 +96,10 @@ type ChargePoint struct {
 	cr            chan *CallResult
 	ce            chan *CallError
 	Extras        map[string]interface{}
-	tc 	  	  TimeoutConfig
+	tc 	  	  	  TimeoutConfig
 	isServer      bool
 
-	unmarshalRes func(a string, r *json.RawMessage) (Payload, error)
+	unmarshalRes func(a string, r json.RawMessage) (Payload, error)
 	
 	// ping in channel           
 	pingIn        chan []byte
@@ -123,19 +129,19 @@ func (c *ChargePoint) getReadTimeout() time.Time {
 
 func (cp *ChargePoint) processIncoming(peer Peer) bool {
 	messageType, msg, err := cp.conn.ReadMessage()
-	log.L.Debugf("messageType: %d", messageType)
+	log.Debugf("messageType: %d", messageType)
 	if err != nil {
-		log.L.Debug(err)
+		log.Debug(err)
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-			log.L.Debug(err)
+			log.Debug(err)
 		}
 		cp.forceWClose <- err
 		return true
 	}
-	call, callResult, callError, err := unpack(&msg, cp.proto)
+	call, callResult, callError, err := unpack(msg, cp.proto)
 	if err != nil {
 		cp.out <- call.createCallError(err)
-		log.L.Error(err)
+		log.Error(err)
 	}
 	if call != nil {
 		handler := peer.getHandler(call.Action)
@@ -148,7 +154,7 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 				err = validateV201.Struct(responsePayload)	
 			}
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 			} else {
 				cp.out <- call.createCallResult(responsePayload)
 				time.Sleep(time.Second)
@@ -163,15 +169,15 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 				cause: fmt.Sprintf("Action %s is not supported", call.Action),
 			}
 			cp.out <- call.createCallError(err)
-			log.L.Errorf("No handler for action %s", call.Action)
+			log.Errorf("No handler for action %s", call.Action)
 		}
 	}
 	if callResult != nil {
-		log.L.Debug(callResult)
+		log.Debug(callResult)
 		cp.cr <- callResult
 	}
 	if callError != nil {
-		log.L.Debug(callError)
+		log.Debug(callError)
 		cp.ce <- callError
 	}
 	return false
@@ -183,7 +189,7 @@ func (cp *ChargePoint) processIncoming(peer Peer) bool {
 // websocket reader to receive messages
 func (cp *ChargePoint) clientReader() {
 	cp.conn.SetPongHandler(func(appData string) error {
-		log.L.Debug("pong <- ")
+		log.Debug("pong <- ")
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	for {
@@ -212,22 +218,22 @@ func (cp *ChargePoint) clientWriter() {
 			}
 			w, err := cp.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 			_, err = w.Write(*message)
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 			if err := w.Close(); err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 		case <-tick:
 			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 		case <-cp.forceWClose:
@@ -236,7 +242,7 @@ func (cp *ChargePoint) clientWriter() {
 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
 			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 			if err != nil && err != websocket.ErrCloseSent {
-				log.L.Error(err)
+				log.Error(err)
 			}
 			return
 		}
@@ -245,10 +251,9 @@ func (cp *ChargePoint) clientWriter() {
 
 
 func (cp *ChargePoint) serverReader() {
-	// var count int
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
-		log.L.Debug("ping <- ")
+		log.Debug("ping <- ")
 		i := cp.getReadTimeout()
 		return cp.conn.SetReadDeadline(i)
 	})
@@ -270,49 +275,49 @@ func (cp *ChargePoint) serverWriter() {
 		case message, ok := <-cp.out:
 			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 			}
 			if !ok {
 				err := cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
-					log.L.Error(err)
+					log.Error(err)
 				}
-				log.L.Debug("close msg ->")
+				log.Debug("close msg ->")
 				return
 			}
 			w, err := cp.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 			n, err := w.Write(*message)
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
 			if err := w.Close(); err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
-			log.L.Debugf("text msg -> %d", n)
+			log.Debugf("text msg -> %d", n)
 		case <-cp.pingIn:
 			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 			}
 			err = cp.conn.WriteMessage(websocket.PongMessage, []byte{})
 			if err != nil {
-				log.L.Error(err)
+				log.Error(err)
 				return
 			}
-			log.L.Debug("pong ->")
+			log.Debug("pong ->")
 		case <-cp.forceWClose:
 			return
 		case closeErr := <-cp.closeC:
 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
 			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
 			if err != nil && err != websocket.ErrCloseSent {
-				log.L.Error(err)
+				log.Error(err)
 			}
 			return
 		}
@@ -336,7 +341,7 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	if callResult != nil {
 		resPayload, err := cp.unmarshalRes(action, callResult.Payload)
 		if err != nil {
-			log.L.Error(err)
+			log.Error(err)
 			return nil, err
 		}
 		return resPayload, nil

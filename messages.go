@@ -5,16 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/aliml92/ocpp/logger"
 	"github.com/aliml92/ocpp/v16"
 	"github.com/aliml92/ocpp/v201"
 	"github.com/google/uuid"
 )
 
-var reqmapv16, resmapv16, reqmapv201, resmapv201   map[string]func(*json.RawMessage) (Payload, error)
+var reqmapv16, resmapv16, reqmapv201, resmapv201   map[string]func(json.RawMessage) (Payload, error)
 
 func init(){
-	reqmapv16 = map[string]func(*json.RawMessage) (Payload, error){
+	reqmapv16 = map[string]func(json.RawMessage) (Payload, error){
 		"BootNotification":              ureqV16[v16.BootNotificationReq],
 		"Authorize":                     ureqV16[v16.AuthorizeReq],
 		"DataTransfer":                  ureqV16[v16.DataTransferReq],
@@ -45,7 +44,7 @@ func init(){
 		"UpdateFirmware":                ureqV16[v16.UpdateFirmwareReq],
 	}
 
-	resmapv16 = map[string]func(*json.RawMessage) (Payload, error){
+	resmapv16 = map[string]func(json.RawMessage) (Payload, error){
 		"BootNotification":              uresV16[v16.BootNotificationConf],
 		"Authorize":                     uresV16[v16.AuthorizeConf],
 		"DataTransfer":                  uresV16[v16.DataTransferConf],
@@ -76,7 +75,7 @@ func init(){
 		"UpdateFirmware":                uresV16[v16.UpdateFirmwareConf],
 	}
 
-	reqmapv201 = map[string]func(*json.RawMessage) (Payload, error){
+	reqmapv201 = map[string]func(json.RawMessage) (Payload, error){
 		"Authorize":                     	ureqV201[v201.AuthorizeReq],
 		"BootNotification":              	ureqV201[v201.BootNotificationReq],
 		"CancelReservation":             	ureqV201[v201.CancelReservationReq],
@@ -143,7 +142,7 @@ func init(){
 		"UpdateFirmware":                	ureqV201[v201.UpdateFirmwareReq],
 	}
 
-	resmapv201 = map[string]func(*json.RawMessage) (Payload, error){
+	resmapv201 = map[string]func(json.RawMessage) (Payload, error){
 		"Authorize":                     	uresV201[v201.AuthorizeRes],
 		"BootNotification":              	uresV201[v201.BootNotificationRes],
 		"CancelReservation":             	uresV201[v201.CancelReservationRes],
@@ -283,7 +282,7 @@ func (call *Call) createCallError(err error) *[]byte {
 type CallResult struct {
 	MessageTypeId uint8
 	UniqueId      string
-	Payload       *json.RawMessage
+	Payload       json.RawMessage
 }
 
 // CallError represents OCPP CallError
@@ -323,7 +322,7 @@ func (e *TimeoutError) Error() string {
 
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}]
-func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
+func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 	var rm []json.RawMessage //  raw message
 	var mti uint8            //  MessageTypeId
 	var ui string            //  UniqueId
@@ -332,7 +331,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 	var c *Call
 	var cr *CallResult
 	var ce *CallError
-	err := json.Unmarshal(*b, &rm)
+	err := json.Unmarshal(b, &rm)
 	if err != nil {
 		e := &OCPPError{
 			id:    "",
@@ -357,7 +356,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "JSON must be an array of range [3,5]",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, nil, nil, e
 	}
 	err = json.Unmarshal(rm[0], &mti)
@@ -389,7 +388,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 		}
 		// print the rm
 		// fmt.Println(rm)
-		p, err = unmarshalReq(a, &rm[3], proto)
+		p, err = unmarshalReq(a, rm[3], proto)
 		var ocppErr *OCPPError
 		if err != nil {
 			if errors.As(err, &ocppErr) {
@@ -406,7 +405,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 
 	}
 	if mti == 3 {
-		p := &rm[2]
+		p := rm[2]
 		cr = &CallResult{
 			MessageTypeId: mti,
 			UniqueId:      ui,
@@ -415,7 +414,7 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 	}
 	if mti == 4 {
 		var me [5]interface{}
-		_ = json.Unmarshal(*b, &me)
+		_ = json.Unmarshal(b, &me)
 		ce = &CallError{
 			MessageTypeId:    mti,
 			UniqueId:         ui,
@@ -429,8 +428,8 @@ func unpack(b *[]byte, proto string) (*Call, *CallResult, *CallError, error) {
 }
 
 // Converts raw CP initiated Call Payload to a corresponding Payload struct
-func unmarshalReq(mAction string, rawPayload *json.RawMessage, proto string) (Payload, error) {
-	var a func(*json.RawMessage) (Payload, error)
+func unmarshalReq(mAction string, rawPayload json.RawMessage, proto string) (Payload, error) {
+	var a func(json.RawMessage) (Payload, error)
 	var ok bool
 	switch proto {
 	case ocppV16:
@@ -449,16 +448,16 @@ func unmarshalReq(mAction string, rawPayload *json.RawMessage, proto string) (Pa
 }
 
 // Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
-func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
+func ureqV16[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
-	err := json.Unmarshal(*rawPayload, &p)
+	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		e := &OCPPError{
 			code:  "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	err = validateV16.Struct(*p)
@@ -468,7 +467,7 @@ func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	payload = p
@@ -477,16 +476,16 @@ func ureqV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 
 
 // Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
-func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
+func ureqV201[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
-	err := json.Unmarshal(*rawPayload, &p)
+	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		e := &OCPPError{
 			code:  "TypeConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	err = validateV201.Struct(*p)
@@ -496,7 +495,7 @@ func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
 			code:  "PropertyConstraintViolationError",
 			cause: "Call Payload is not valid",
 		}
-		log.L.Error(err)
+		log.Error(err)
 		return nil, e
 	}
 	payload = p
@@ -504,7 +503,7 @@ func ureqV201[T any](rawPayload *json.RawMessage) (Payload, error) {
 }
 
 
-func unmarshalResV16(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+func unmarshalResV16(mAction string, rawPayload json.RawMessage) (Payload, error) {
 	a, ok := resmapv16[mAction]
 	if !ok {
 		err := errors.New("invalid action")
@@ -514,7 +513,7 @@ func unmarshalResV16(mAction string, rawPayload *json.RawMessage) (Payload, erro
 }
 
 
-func unmarshalResV201(mAction string, rawPayload *json.RawMessage) (Payload, error) {
+func unmarshalResV201(mAction string, rawPayload json.RawMessage) (Payload, error) {
 	a, ok := resmapv201[mAction]
 	if !ok {
 		err := errors.New("invalid action")
@@ -524,10 +523,10 @@ func unmarshalResV201(mAction string, rawPayload *json.RawMessage) (Payload, err
 }
 
 // Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
-func uresV16[T any](rawPayload *json.RawMessage) (Payload, error) {
+func uresV16[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
-	err := json.Unmarshal(*rawPayload, &p)
+	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -541,10 +540,10 @@ func uresV16[T any](rawPayload *json.RawMessage) (Payload, error) {
 
 
 // Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
-func uresV201[T any](rawPayload *json.RawMessage) (Payload, error) {
+func uresV201[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p *T
 	var payload Payload
-	err := json.Unmarshal(*rawPayload, &p)
+	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		return nil, err
 	}

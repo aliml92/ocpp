@@ -93,7 +93,7 @@ type ClearChargingProfileReq struct {
 
 type GetCompositeScheduleReq struct {
 	ConnectorId      *int   `json:"connectorId,omitempty" validate:"omitempty,gte=0"`
-	Duration         *int   `json:"duration" validate:"required,gte=0"`
+	Duration         int   `json:"duration" validate:"required,gt=0"`
 	ChargingRateUnit string `json:"chargingRateUnit,omitempty" validate:"omitempty,ChargingRateUnit"`
 }
 
@@ -103,8 +103,8 @@ type GetConfigurationReq struct {
 
 type GetDiagnosticsReq struct {
 	Location      string `json:"location" validate:"required"`
-	Retries       *int   `json:"retries,omitempty" validate:"omitempty,gte=0"`
-	RetryInterval *int   `json:"retryInterval,omitempty" validate:"omitempty,gte=0"`
+	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 	StartTime     string `json:"startTime,omitempty" validate:"omitempty,ISO8601date"`
 	StopTime      string `json:"stopTime,omitempty" validate:"omitempty,ISO8601date"`
 }
@@ -155,9 +155,9 @@ type UnlockConnectorReq struct {
 
 type UpdateFirmwareReq struct {
 	Location      string `json:"location" validate:"required"`
-	Retries       *int   `json:"retries,omitempty" validate:"omitempty,gte=0"`
+	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
 	RetrieveDate  string `json:"retrieveDate" validate:"required,ISO8601date"`
-	RetryInterval *int   `json:"retryInterval,omitempty" validate:"omitempty,gte=0"`
+	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 }
 
 // OCPP 1.6 security whitepaper edition 2 implementation
@@ -182,8 +182,8 @@ type GetInstalledCertificateIdsReq struct {
 type GetLogReq struct {
 	LogType       string `json:"logType" validate:"required,LogEnumType"`
 	RequestId     int    `json:"requestId" validate:"required"`
-	Retries       *int   `json:"retries,omitempty" validate:"omitempty,gte=0"`
-	RetryInterval *int   `json:"retryInterval,omitempty" validate:"omitempty,gte=0"`
+	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 	Log           string `json:"log" validate:"required,LogParametersType"`
 }
 
@@ -214,8 +214,8 @@ type SignedFirmwareStatusNotificationReq struct {
 }
 
 type SignedUpdateFirmwareReq struct {
-	Retries       *int   `json:"retries,omitempty" validate:"omitempty,gte=0"`
-	RetryInterval *int   `json:"retryInterval,omitempty" validate:"omitempty,gte=0"`
+	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 	RequestId     int    `json:"requestId" validate:"required"`
 	Firmware      string `json:"firmware" validate:"required,FirewareType"`
 }

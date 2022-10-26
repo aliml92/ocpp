@@ -60,7 +60,7 @@ type ChargingProfileCriterionType struct {
 }
 
 type ChargingProfileType struct {
-	Id                     *int                 `json:"id" validate:"required"`
+	Id                     int                 `json:"id" validate:"required"`
 	StackLevel             *int                 `json:"stackLevel" validate:"required"`
 	ChargingProfilePurpose string               `json:"chargingProfilePurpose" validate:"required,ChargingProfilePurposeEnumType"`
 	ChargingProfileKind    string               `json:"chargingProfileKind" validate:"required,ChargingProfileKindEnumType"`
@@ -79,9 +79,9 @@ type ChargingSchedulePeriodType struct {
 }
 
 type ChargingScheduleType struct {
-	Id                     *int                         `json:"id" validate:"required"`
+	Id                     int                         `json:"id" validate:"required"`
 	StartSchedule          string                       `json:"startSchedule,omitempty" validate:"omitempty,ISO8601date"`
-	Duration               *int                         `json:"duration,omitempty"`
+	Duration               int                         `json:"duration,omitempty"`
 	ChargingRateUnit       string                       `json:"chargingRateUnit" validate:"required,ChargingRateUnitEnumType"`
 	MinChargingRate        float32                      `json:"minChargingRate,omitempty"`
 	ChargingSchedulePeriod []ChargingSchedulePeriodType `json:"chargingSchedulePeriod" validate:"required,min=1,max=1024,dive,required"`
@@ -121,7 +121,7 @@ type ComponentVariableType struct {
 
 type CompositeScheduleType struct {
 	EvseId                 *int                         `json:"evseId" validate:"required,gte=0"`
-	Duration               *int                         `json:"duration" validate:"required"`
+	Duration               int                         `json:"duration" validate:"required"`
 	ScheduleStart          string                       `json:"scheduleStart" validate:"required,ISO8601date"`
 	ChargingRateUnit       string                       `json:"chargingRateUnit" validate:"required,ChargingRateUnitEnumType"`
 	ChargingSchedulePeriod []ChargingSchedulePeriodType `json:"chargingSchedulePeriod" validate:"required,min=1,dive,required"`
@@ -135,7 +135,7 @@ type ConsumptionCostType struct {
 type CostType struct {
 	CostKind         string `json:"costKind" validate:"required,CostKindEnumType"`
 	Amount           int    `json:"amount" validate:"required"`
-	AmountMultiplier int    `json:"amountMultiplier,omitempty" validate:"omitempty,gte=-3,lte=3"`
+	AmountMultiplier *int   `json:"amountMultiplier,omitempty" validate:"omitempty,gte=-3,lte=3"`
 }
 
 type DCChargingParametersType struct {
@@ -150,16 +150,16 @@ type DCChargingParametersType struct {
 }
 
 type EventDataType struct {
-	EventId               *int          `json:"eventId" validate:"required"`
+	EventId               int          `json:"eventId" validate:"required"`
 	Timestamp             string        `json:"timestamp" validate:"required,ISO8601date"`
 	Trigger               string        `json:"trigger" validate:"required,TriggerEnumType"`
-	Cause                 *int          `json:"cause,omitempty"`
+	Cause                 int          `json:"cause,omitempty"`
 	ActualValue           string        `json:"actualValue" validate:"required,max=2500"`
 	TechCode              string        `json:"techCode,omitempty" validate:"omitempty,max=50"`
 	TechInfo              string        `json:"techInfo,omitempty" validate:"omitempty,max=500"`
 	Cleared               bool          `json:"cleared,omitempty"`
 	TransactionId         string        `json:"transactionId,omitempty" validate:"omitempty,max=36"`
-	VariableMonitoringId  *int          `json:"variableMonitoringId,omitempty"`
+	VariableMonitoringId  int          `json:"variableMonitoringId,omitempty"`
 	EventNotificationType string        `json:"eventNotificationType" validate:"required,EventNotificationTypeEnumType"`
 	Component             ComponentType `json:"component" validate:"required"`
 	Variable              VariableType  `json:"variable" validate:"required"`
@@ -223,7 +223,7 @@ type MessageContentType struct {
 }
 
 type MessageInfoType struct {
-	Id            *int               `json:"id" validate:"required"`
+	Id            int               `json:"id" validate:"required"`
 	Priority      string             `json:"priority" validate:"required,MessagePriorityEnumType"`
 	State         string             `json:"state,omitempty" validate:"omitempty,MessageStateEnumType"`
 	StartDateTime string             `json:"startDateTime,omitempty" validate:"omitempty,ISO8601date"`
@@ -254,7 +254,7 @@ type NetworkConnectionProfileType struct {
 	OcppTransport   string  `json:"ocppTransport" validate:"required,OCPPTransportEnumType"`
 	OcppCsmsUrl     string  `json:"ocppCsmsUrl" validate:"required,max=512"`
 	MessageTimeout  int     `json:"messageTimeout" validate:"required"`
-	SecurityProfile *int    `json:"securityProfile" validate:"required"`
+	SecurityProfile int    `json:"securityProfile" validate:"required"`
 	OcppInterface   string  `json:"ocppInterface" validate:"required,OCPPInterfaceEnumType"`
 	Vpn             VPNType `json:"vpn,omitempty"`
 	Apn             APNType `json:"apn,omitempty"`
@@ -269,8 +269,8 @@ type OCSPRequestDataType struct {
 }
 
 type RelativeTimeIntervalType struct {
-	Start *int `json:"start" validate:"required"`
-	End   *int `json:"end,omitempty"`
+	Start int `json:"start" validate:"required"`
+	End   int `json:"end,omitempty"`
 }
 
 type ReportDataType struct {
@@ -281,15 +281,15 @@ type ReportDataType struct {
 }
 
 type SalesTariffEntryType struct {
-	EPriceLevel          *int                     `json:"ePriceLevel,omitempty"`
+	EPriceLevel          int                     `json:"ePriceLevel,omitempty"`
 	RelativeTimeInterval RelativeTimeIntervalType `json:"relativeTimeInterval" validate:"required"`
 	ConsumptionCost      ConsumptionCostType      `json:"consumptionCost,omitempty" validate:"omitempty,max=3,dive,required"`
 }
 
 type SalesTariffType struct {
-	Id                     *int                   `json:"id" validate:"required"`
+	Id                     int                   `json:"id" validate:"required"`
 	SalesTariffDescription string                 `json:"salesTariffDescription,omitempty" validate:"omitempty,max=512"`
-	NumEPriceLevels        *int                   `json:"numEPriceLevels,omitempty"`
+	NumEPriceLevels        int                   `json:"numEPriceLevels,omitempty"`
 	SalesTariffEntry       []SalesTariffEntryType `json:"salesTariffEntry" validate:"required,gte=1,lte=1024,dive,required"`
 }
 
@@ -304,7 +304,7 @@ type SampledValueType struct {
 }
 
 type SetMonitoringDataType struct {
-	Id          *int          `json:"id,omitempty"`
+	Id          int          `json:"id,omitempty"`
 	Transaction bool          `json:"transaction,omitempty"`
 	Value       float32       `json:"value" validate:"required"`
 	Type        string        `json:"type" validate:"required,MonitoringEnumType"`
@@ -314,7 +314,7 @@ type SetMonitoringDataType struct {
 }
 
 type SetMonitoringResultType struct {
-	Id         *int           `json:"id,omitempty"`
+	Id         int           `json:"id,omitempty"`
 	Status     string         `json:"status" validate:"required,SetMonitoringStatusEnumType"`
 	Type       string         `json:"type" validate:"required,MonitoringEnumType"`
 	Severity   *int           `json:"severity" validate:"required,gte=0,lte=9"`
@@ -355,7 +355,7 @@ type TransactionType struct {
 	ChargingState     string `json:"chargingState,omitempty" validate:"omitempty,ChargingStateEnumType"`
 	TimeSpentCharging int    `json:"timeSpentCharging,omitempty"`
 	StoppedReason     string `json:"stoppedReason,omitempty" validate:"omitempty,ReasonEnumType"`
-	RemoteStartId     *int   `json:"remoteStartId,omitempty"`
+	RemoteStartId     int   `json:"remoteStartId,omitempty"`
 }
 
 type UnitOfMeasureType struct {
@@ -381,7 +381,7 @@ type VariableCharacteristicsType struct {
 }
 
 type VariableMonitoringType struct {
-	Id          *int    `json:"id" validate:"required"`
+	Id          int    `json:"id" validate:"required"`
 	Transaction bool    `json:"transaction" validate:"required"`
 	Value       float32 `json:"value" validate:"required"`
 	Type        string  `json:"type" validate:"required,MonitorEnumType"`
