@@ -17,6 +17,10 @@ func init(){
 	log = &logger.EmptyLogger{}
 }
 
+func SetLogger(logger logger.Logger) {
+	log = logger
+}
+
 
 type Peer interface {
 	getHandler(string) func(*ChargePoint, Payload) Payload
