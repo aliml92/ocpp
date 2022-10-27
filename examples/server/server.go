@@ -64,8 +64,9 @@ func SendChangeConfigration(cp *ocpp.ChargePoint, payload ocpp.Payload) {
 	if err != nil {
 		log.Debug(err)
 	}
-	cp.ResetPingPong(10)
+	// cp.ResetPingPong(10)
 	// cp.ResetPingPong(0)
+	cp.EnableServerPing(10)
 	log.Debug(res)
 }
 

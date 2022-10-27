@@ -114,7 +114,9 @@ type ChargePoint struct {
 	closeC        chan websocket.CloseError
 	forceWClose   chan error
 	connected 	  bool
-	ticker        *time.Ticker	
+	ticker        *time.Ticker
+	tickerC       <-chan time.Time 	
+	serverPing	  bool	  	
 }
 
 func (cp *ChargePoint) IsConnected() bool {
@@ -137,47 +139,29 @@ func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
 }
 
 
-// func (cp *ChargePoint) DisablePingPong() {
-// 	cp.mu.Lock()
-// 	defer cp.mu.Unlock()
-// 	if cp.isServer {
-// 		log.Debug("server ping handler is disabled")
-// 		cp.tc.pingWait = 0
-// 		cp.conn.SetPingHandler(func(appData string) error {
-// 			cp.pingIn <- []byte(appData)
-// 			log.Debug("ping <- ")
-// 			return cp.conn.SetReadDeadline(cp.getReadTimeout())
-// 		})
-// 		return 
-// 	}
-// 	log.Debug("client pong handler is disabled")
-// 	cp.ticker.Stop()
-// 	cp.tc.pongWait = 0
-// 	cp.conn.SetPongHandler(func(appData string) error {
-// 		log.Debug("pong <- ")
-// 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
-// 	})
-// }
 
-
-func (cp *ChargePoint) ResetPingPong(t int) {
+func (cp *ChargePoint) ResetPingPong(t int) (err error) {
+	if t < 0 {
+		err = errors.New("interval cannot be less than 0")
+		return
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 	if cp.isServer {
-		log.Debug("server ping handler is reconfigured")
+		log.Debug("ping/pong reconfigured")
 		cp.tc.pingWait = time.Duration(t) * time.Second
 		cp.conn.SetPingHandler(func(appData string) error {
 			cp.pingIn <- []byte(appData)
-			log.Debug("ping <- ")
+			log.Debug("<- ping")
 			return cp.conn.SetReadDeadline(cp.getReadTimeout())
 		})
 		return 
 	}
-	log.Debug("client pong handler is reconfigured")
+	log.Debug("ping/pong reconfigured")
 	cp.tc.pongWait = time.Duration(t) * time.Second
 	cp.tc.pingPeriod = (cp.tc.pongWait * 9) / 10
 	cp.conn.SetPongHandler(func(appData string) error {
-		log.Debug("pong <- ")
+		log.Debug("<- pong")
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	if t == 0 {
@@ -185,26 +169,77 @@ func (cp *ChargePoint) ResetPingPong(t int) {
 	} else {
 		cp.ticker.Reset(cp.tc.pingPeriod)
 	}
+	return
 }
 
-func (c *ChargePoint) getReadTimeout() time.Time {
-	if c.isServer {
-		if c.tc.pingWait == 0 {
+func (cp *ChargePoint) EnableServerPing(t int) (err error){
+	if t <= 0 {
+		err = errors.New("interval must be greater than 0")
+		return
+	}
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	cp.serverPing = true
+	if cp.isServer {
+		log.Debug("server ping enabled")
+		cp.tc.pongWait = time.Duration(t) * time.Second
+		cp.tc.pingPeriod = (cp.tc.pongWait * 9) / 10
+		cp.conn.SetPingHandler(nil)
+		cp.ticker = time.NewTicker(cp.tc.pingPeriod)
+		cp.tickerC = cp.ticker.C
+		cp.conn.SetPongHandler(func(appData string) error {
+			log.Debug("<- pong")
+			return cp.conn.SetReadDeadline(cp.getReadTimeout())
+		})
+		return 
+	}
+	log.Debug("server ping enabled")
+	cp.ticker.Stop()
+	cp.tickerC = nil
+	cp.conn.SetPongHandler(nil)
+	cp.tc.pingWait = time.Duration(t) * time.Second
+	cp.pingIn = make(chan []byte)
+	cp.conn.SetPingHandler(func(appData string) error {
+		cp.pingIn <- []byte(appData)
+		log.Debug("<- ping")
+		return cp.conn.SetReadDeadline(cp.getReadTimeout())
+	})
+	return
+}
+
+
+
+
+func (cp *ChargePoint) getReadTimeout() time.Time {
+	if cp.serverPing {
+		if cp.isServer {
+			if cp.tc.pongWait == 0 {
+				return time.Time{}
+			}
+			return time.Now().Add(cp.tc.pongWait)
+		}
+		if cp.tc.pingWait == 0 {
 			return time.Time{}
 		}
-		return time.Now().Add(c.tc.pingWait)
+		return time.Now().Add(cp.tc.pingWait)
 	}
-	if c.tc.pongWait == 0 {
+	if cp.isServer {
+		if cp.tc.pingWait == 0 {
+			return time.Time{}
+		}
+		return time.Now().Add(cp.tc.pingWait)
+	}
+	if cp.tc.pongWait == 0 {
 		return time.Time{}
 	}
-	return time.Now().Add(c.tc.pongWait)
+	return time.Now().Add(cp.tc.pongWait)
 	
 }
 
 
 
 
-func (cp *ChargePoint) processIncoming(peer Peer) bool {
+func (cp *ChargePoint) processIncoming(peer Peer)  bool {
 	messageType, msg, err := cp.conn.ReadMessage()
 	log.Debugf("messageType: %d", messageType)
 	if err != nil {
@@ -270,7 +305,7 @@ func (cp *ChargePoint) clientReader() {
 		cp.connected = false
 	}()
 	cp.conn.SetPongHandler(func(appData string) error {
-		log.Debug("pong <- ")
+		log.Debug("<- pong")
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	for {
@@ -278,63 +313,142 @@ func (cp *ChargePoint) clientReader() {
 	}
 }
 
-// websocket writer to send messages
+func (cp *ChargePoint) processOutgoing() (br bool) {
+	select {
+	case message, ok := <-cp.out:
+		err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+		if err != nil {
+			log.Error(err)
+		}
+		if !ok {
+			err := cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
+			if err != nil {
+				log.Error(err)
+			}
+			log.Debug("close msg ->")
+			return
+		}
+		w, err := cp.conn.NextWriter(websocket.TextMessage)
+		if err != nil {
+			log.Debug(err)
+			return
+		}
+		n, err := w.Write(message)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if err := w.Close(); err != nil {
+			log.Error(err)
+			return
+		}
+		log.Debugf("text msg -> %d", n)
+		return true
+	case <-cp.pingIn:
+		err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+		if err != nil {
+			log.Error(err)
+		}
+		err = cp.conn.WriteMessage(websocket.PongMessage, []byte{})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Debug("pong ->")
+		return true	
+	case <-cp.tickerC:
+		_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+		if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			log.Error(err)
+			return
+		}
+		log.Debug("ping ->")
+		return true
+	case <-cp.forceWClose:
+		return
+	case closeErr := <-cp.closeC:
+		b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
+		err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+		if err != nil && err != websocket.ErrCloseSent {
+			log.Error(err)
+		}
+		return
+	}		
+}
+
 func (cp *ChargePoint) clientWriter() {
 	defer func() {
 		_ = cp.conn.Close()
 	}()
 	if cp.tc.pingPeriod != 0 {
 		cp.ticker = time.NewTicker(cp.tc.pingPeriod)
+		cp.tickerC = cp.ticker.C
 		defer cp.ticker.Stop()
 	}
 	for {
-		select {
-		case message, ok := <-cp.out:
-			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
-			if !ok {
-				cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-			w, err := cp.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			_, err = w.Write(message)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			if err := w.Close(); err != nil {
-				log.Error(err)
-				return
-			}
-		case <-cp.ticker.C:
-			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
-			if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				log.Error(err)
-				return
-			}
-			log.Debug("ping ->")
-		case <-cp.forceWClose:
-			return
-		case closeErr := <-cp.closeC:
-			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
-			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-			if err != nil && err != websocket.ErrCloseSent {
-				log.Error(err)
-			}
-			return
-		}
-	}	
+		if !cp.processOutgoing() { break }
+	}
 }
+
+
+
+// websocket writer to send messages
+// func (cp *ChargePoint) clientWriter() {
+// 	defer func() {
+// 		_ = cp.conn.Close()
+// 	}()
+// 	if cp.tc.pingPeriod != 0 {
+// 		cp.ticker = time.NewTicker(cp.tc.pingPeriod)
+// 		defer cp.ticker.Stop()
+// 	}
+// 	for {
+// 		select {
+// 		case message, ok := <-cp.out:
+// 			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+// 			if !ok {
+// 				cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
+// 				return
+// 			}
+// 			w, err := cp.conn.NextWriter(websocket.TextMessage)
+// 			if err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			_, err = w.Write(message)
+// 			if err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			if err := w.Close(); err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 		case <-cp.ticker.C:
+// 			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+// 			if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			log.Debug("ping ->")
+// 		case <-cp.forceWClose:
+// 			return
+// 		case closeErr := <-cp.closeC:
+// 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
+// 			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+// 			if err != nil && err != websocket.ErrCloseSent {
+// 				log.Error(err)
+// 			}
+// 			return
+// 		}
+// 	}	
+// }
 
 
 func (cp *ChargePoint) serverReader() {
 	log.Debug("pass once")
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
-		log.Debug("ping <- ")
+		log.Debug("<- ping")
 		i := cp.getReadTimeout()
 		return cp.conn.SetReadDeadline(i)
 	})
@@ -347,64 +461,70 @@ func (cp *ChargePoint) serverReader() {
 	}
 }
 
-
-
-// websocket writer to send messages
 func (cp *ChargePoint) serverWriter() {
 	defer server.Delete(cp.Id)
 	for {
-		select {
-		case message, ok := <-cp.out:
-			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
-			if err != nil {
-				log.Error(err)
-			}
-			if !ok {
-				err := cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				if err != nil {
-					log.Error(err)
-				}
-				log.Debug("close msg ->")
-				return
-			}
-			w, err := cp.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				log.Debug(err)
-				return
-			}
-			n, err := w.Write(message)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			if err := w.Close(); err != nil {
-				log.Error(err)
-				return
-			}
-			log.Debugf("text msg -> %d", n)
-		case <-cp.pingIn:
-			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
-			if err != nil {
-				log.Error(err)
-			}
-			err = cp.conn.WriteMessage(websocket.PongMessage, []byte{})
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			log.Debug("pong ->")
-		case <-cp.forceWClose:
-			return
-		case closeErr := <-cp.closeC:
-			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
-			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
-			if err != nil && err != websocket.ErrCloseSent {
-				log.Error(err)
-			}
-			return
-		}
+		if !cp.processOutgoing() { break }
 	}
 }
+
+
+// websocket writer to send messages
+// func (cp *ChargePoint) serverWriter() {
+// 	defer server.Delete(cp.Id)
+// 	for {
+// 		select {
+// 		case message, ok := <-cp.out:
+// 			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+// 			if err != nil {
+// 				log.Error(err)
+// 			}
+// 			if !ok {
+// 				err := cp.conn.WriteMessage(websocket.CloseMessage, []byte{})
+// 				if err != nil {
+// 					log.Error(err)
+// 				}
+// 				log.Debug("close msg ->")
+// 				return
+// 			}
+// 			w, err := cp.conn.NextWriter(websocket.TextMessage)
+// 			if err != nil {
+// 				log.Debug(err)
+// 				return
+// 			}
+// 			n, err := w.Write(message)
+// 			if err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			if err := w.Close(); err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			log.Debugf("text msg -> %d", n)
+// 		case <-cp.pingIn:
+// 			err := cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
+// 			if err != nil {
+// 				log.Error(err)
+// 			}
+// 			err = cp.conn.WriteMessage(websocket.PongMessage, []byte{})
+// 			if err != nil {
+// 				log.Error(err)
+// 				return
+// 			}
+// 			log.Debug("pong ->")
+// 		case <-cp.forceWClose:
+// 			return
+// 		case closeErr := <-cp.closeC:
+// 			b := websocket.FormatCloseMessage(closeErr.Code, closeErr.Text)
+// 			err := cp.conn.WriteControl(websocket.CloseMessage, b, time.Now().Add(time.Second))
+// 			if err != nil && err != websocket.ErrCloseSent {
+// 				log.Error(err)
+// 			}
+// 			return
+// 		}
+// 	}
+// }
 
 
 
@@ -483,6 +603,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		cp.tc.pingWait = server.pingWait
 		cp.pingIn = make(chan []byte)
 		cp.isServer = true
+		cp.tickerC = nil
 		go cp.serverReader()
 		go cp.serverWriter()
 	case false:

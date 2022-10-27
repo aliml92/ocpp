@@ -74,7 +74,8 @@ func ChangeConfigurationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Paylo
 	confData[req.Key] = req.Value
 	if req.Key == "WebSocketPingInterval" {
 		t, _ := strconv.Atoi(req.Value)
-		cp.ResetPingPong(t)
+		// cp.ResetPingPong(t)
+		cp.EnableServerPing(t)
 	}
 	var res ocpp.Payload = &v16.ChangeConfigurationConf{
 		Status: "Accepted",
