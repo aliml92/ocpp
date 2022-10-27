@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	_ "net/http/pprof"
@@ -55,16 +56,25 @@ func main() {
 	sendBootNotification(cp)
 	defer cp.Shutdown()
 	log.Debugf("charge point status %v", cp.IsConnected())
-	time.Sleep(300 * time.Second)
+	time.Sleep(10 * time.Second)
+	sendAuthorize(cp)
 	log.Debugf("charge point status %v", cp.IsConnected())
+	time.Sleep(3 * time.Second)
+	sendAuthorize(cp)
+	log.Debugf("charge point status %v", cp.IsConnected())
+	time.Sleep(3 * time.Second)
+	sendAuthorize(cp)
+	log.Debugf("charge point status %v", cp.IsConnected())
+	select {}
 }
 
 func ChangeConfigurationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.ChangeConfigurationReq)
 	log.Debugf("ChangeConfigurationReq: %v\n", req)
 	confData[req.Key] = req.Value
-	if req.Key == "WebSocketPingInterval" && req.Value == "0" {
-		cp.DisablePingPong()
+	if req.Key == "WebSocketPingInterval" {
+		t, _ := strconv.Atoi(req.Value)
+		cp.ResetPingPong(t)
 	}
 	var res ocpp.Payload = &v16.ChangeConfigurationConf{
 		Status: "Accepted",
@@ -102,4 +112,17 @@ func sendBootNotification(c *ocpp.ChargePoint) {
 		return
 	}
 	fmt.Printf("BootNotificationConf: %v\n", res)
+}
+
+
+func sendAuthorize(c *ocpp.ChargePoint) {
+	req := &v16.AuthorizeReq{
+		IdTag: "safdasdfdsa",
+	}
+	res, err := c.Call("Authorize", req)
+	if err != nil {
+		fmt.Printf("error dialing: %v\n", err)
+		return
+	}
+	fmt.Printf("AuthorizeConf: %v\n", res)
 }

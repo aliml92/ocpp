@@ -65,7 +65,7 @@ func NewServer() *Server {
 		afterHandlers:  make(map[string]func(*ChargePoint, Payload)),
 		ocppWait: ocppWait,
 		writeWait: writeWait,
-		pingWait: pigWait,
+		pingWait: pingWait,
 		upgrader: websocket.Upgrader{
 			Subprotocols: []string{},
 		},

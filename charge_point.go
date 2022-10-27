@@ -43,10 +43,10 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pigWait = 20 * time.Second
+	pingWait = 30 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 20 * time.Second
+	pongWait = 30 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -114,7 +114,7 @@ type ChargePoint struct {
 	closeC        chan websocket.CloseError
 	forceWClose   chan error
 	connected 	  bool
-	tick          <-chan time.Time	
+	ticker        *time.Ticker	
 }
 
 func (cp *ChargePoint) IsConnected() bool {
@@ -137,26 +137,68 @@ func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
 }
 
 
-func (cp *ChargePoint) DisablePingPong() {
+// func (cp *ChargePoint) DisablePingPong() {
+// 	cp.mu.Lock()
+// 	defer cp.mu.Unlock()
+// 	if cp.isServer {
+// 		log.Debug("server ping handler is disabled")
+// 		cp.tc.pingWait = 0
+// 		cp.conn.SetPingHandler(func(appData string) error {
+// 			cp.pingIn <- []byte(appData)
+// 			log.Debug("ping <- ")
+// 			return cp.conn.SetReadDeadline(cp.getReadTimeout())
+// 		})
+// 		return 
+// 	}
+// 	log.Debug("client pong handler is disabled")
+// 	cp.ticker.Stop()
+// 	cp.tc.pongWait = 0
+// 	cp.conn.SetPongHandler(func(appData string) error {
+// 		log.Debug("pong <- ")
+// 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
+// 	})
+// }
+
+
+func (cp *ChargePoint) ResetPingPong(t int) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 	if cp.isServer {
-		log.Debug("server ping handler is disabled")
-		cp.conn.SetPingHandler(nil)
+		log.Debug("server ping handler is reconfigured")
+		cp.tc.pingWait = time.Duration(t) * time.Second
+		cp.conn.SetPingHandler(func(appData string) error {
+			cp.pingIn <- []byte(appData)
+			log.Debug("ping <- ")
+			return cp.conn.SetReadDeadline(cp.getReadTimeout())
+		})
 		return 
 	}
-	cp.tc.pingPeriod = 0
-	cp.tick = cp.getReadTimeout()
-	cp.conn.SetPongHandler(nil)
-	log.Debug("client pong handler is disabled")
+	log.Debug("client pong handler is reconfigured")
+	cp.tc.pongWait = time.Duration(t) * time.Second
+	cp.tc.pingPeriod = (cp.tc.pongWait * 9) / 10
+	cp.conn.SetPongHandler(func(appData string) error {
+		log.Debug("pong <- ")
+		return cp.conn.SetReadDeadline(cp.getReadTimeout())
+	})
+	if t == 0 {
+		cp.ticker.Stop()
+	} else {
+		cp.ticker.Reset(cp.tc.pingPeriod)
+	}
 }
 
-
 func (c *ChargePoint) getReadTimeout() time.Time {
-	if c.tc.pingWait == 0 {
+	if c.isServer {
+		if c.tc.pingWait == 0 {
+			return time.Time{}
+		}
+		return time.Now().Add(c.tc.pingWait)
+	}
+	if c.tc.pongWait == 0 {
 		return time.Time{}
 	}
-	return time.Now().Add(c.tc.pingWait)
+	return time.Now().Add(c.tc.pongWait)
+	
 }
 
 
@@ -242,9 +284,8 @@ func (cp *ChargePoint) clientWriter() {
 		_ = cp.conn.Close()
 	}()
 	if cp.tc.pingPeriod != 0 {
-		ticker := time.NewTicker(cp.tc.pingPeriod)
-		cp.tick = ticker.C
-		defer ticker.Stop()
+		cp.ticker = time.NewTicker(cp.tc.pingPeriod)
+		defer cp.ticker.Stop()
 	}
 	for {
 		select {
@@ -268,7 +309,7 @@ func (cp *ChargePoint) clientWriter() {
 				log.Error(err)
 				return
 			}
-		case <-cp.tick:
+		case <-cp.ticker.C:
 			_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 			if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				log.Error(err)
@@ -291,7 +332,6 @@ func (cp *ChargePoint) clientWriter() {
 
 func (cp *ChargePoint) serverReader() {
 	log.Debug("pass once")
-	defer server.Delete(cp.Id)
 	cp.conn.SetPingHandler(func(appData string) error {
 		cp.pingIn <- []byte(appData)
 		log.Debug("ping <- ")
@@ -300,6 +340,7 @@ func (cp *ChargePoint) serverReader() {
 	})
 	defer func() {
 		_ = cp.conn.Close()
+		server.Delete(cp.Id)
 	}()
 	for {
 		if cp.processIncoming(server) { break }

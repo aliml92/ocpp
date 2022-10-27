@@ -7,10 +7,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/aliml92/ocpp"
-	v16 "github.com/aliml92/ocpp/v16"
 	_ "net/http/pprof"
 
+	"github.com/aliml92/ocpp"
+	v16 "github.com/aliml92/ocpp/v16"
 )
 
 
@@ -47,6 +47,7 @@ func main() {
 
 	// register charge-point-initiated action handlers
 	csms.On("BootNotification", BootNotificationHandler)
+	csms.On("Authorize", AuthorizationHandler)
 	csms.After("BootNotification", SendChangeConfigration)
 	csms.Start("0.0.0.0:8999", "/ws/", nil)
 	
@@ -56,14 +57,15 @@ func main() {
 func SendChangeConfigration(cp *ocpp.ChargePoint, payload ocpp.Payload) {
 	var req ocpp.Payload = v16.ChangeConfigurationReq{
 		Key: "WebSocketPingInterval",
-		Value: "0",
+		Value: "10",
 	}
-	time.Sleep(25 * time.Second)
+	time.Sleep(5 * time.Second)
 	res, err := cp.Call("ChangeConfiguration", req)
 	if err != nil {
 		log.Debug(err)
 	}
-	cp.DisablePingPong()
+	cp.ResetPingPong(10)
+	// cp.ResetPingPong(0)
 	log.Debug(res)
 }
 
@@ -111,3 +113,14 @@ func BootNotificationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload 
 	return res
 }
 
+func AuthorizationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
+	time.Sleep(time.Second * 2)
+	req := p.(*v16.AuthorizeReq)
+	log.Debugf("\nid: %s\nAuthorizeReq: %v", cp.Id, req)
+	var res ocpp.Payload = &v16.AuthorizeConf{
+		IdTagInfo: v16.IdTagInfo{
+			Status: "Accepted",
+		},
+	}
+	return res
+}
