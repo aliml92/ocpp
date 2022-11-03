@@ -322,7 +322,7 @@ func (e *TimeoutError) Error() string {
 
 // Converts raw byte to one of the ocpp messages or an error if the message is not valid
 // [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}]
-func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
+func unpack(b []byte, proto string) (*Call, interface{}, error) {
 	var rm []json.RawMessage //  raw message
 	var mti uint8            //  MessageTypeId
 	var ui string            //  UniqueId
@@ -339,7 +339,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			cause: "Invalid JSON format",
 		}
 
-		return nil, nil, nil, e
+		return nil, nil, e
 	}
 	err = json.Unmarshal(rm[1], &ui)
 	if err != nil {
@@ -348,7 +348,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "Message does not contain UniqueId",
 		}
-		return nil, nil, nil, e
+		return nil, nil, e
 	}
 	if 3 > len(rm) || len(rm) > 5 {
 		e := &OCPPError{
@@ -357,7 +357,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			cause: "JSON must be an array of range [3,5]",
 		}
 		log.Error(err)
-		return nil, nil, nil, e
+		return nil, nil, e
 	}
 	err = json.Unmarshal(rm[0], &mti)
 	if err != nil {
@@ -366,7 +366,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			code:  "PropertyConstraintViolation",
 			cause: fmt.Sprintf("MessageTypeId: %v is not valid", rm[0]),
 		}
-		return nil, nil, nil, e
+		return nil, nil,  e
 	}
 	if 2 > mti || mti > 4 {
 		e := &OCPPError{
@@ -374,7 +374,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			code:  "ProtocolError",
 			cause: "Message does not contain MessageTypeId",
 		}
-		return nil, nil, nil, e
+		return nil, nil,  e
 	}
 	if mti == 2 {
 		err = json.Unmarshal(rm[2], &a)
@@ -384,7 +384,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 				code:  "ProtocolError",
 				cause: "Message does not contain Action",
 			}
-			return nil, nil, nil, e
+			return nil, nil, e
 		}
 		// print the rm
 		// fmt.Println(rm)
@@ -394,7 +394,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			if errors.As(err, &ocppErr) {
 				ocppErr.id = ui
 			}
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		c = &Call{
 			MessageTypeId: mti,
@@ -404,6 +404,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 		}
 
 	}
+	var crOrce interface{}
 	if mti == 3 {
 		p := rm[2]
 		cr = &CallResult{
@@ -411,6 +412,7 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			UniqueId:      ui,
 			Payload:       p,
 		}
+		crOrce = cr
 	}
 	if mti == 4 {
 		var me [5]interface{}
@@ -422,8 +424,9 @@ func unpack(b []byte, proto string) (*Call, *CallResult, *CallError, error) {
 			ErrorDescription: me[3].(string),
 			ErrorDetails:     me[4],
 		}
+		crOrce = ce
 	}
-	return c, cr, ce, nil
+	return c, crOrce, nil
 
 }
 

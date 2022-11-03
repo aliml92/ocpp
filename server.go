@@ -55,6 +55,8 @@ type Server struct {
 	preUpgradeHandler func(w http.ResponseWriter, r *http.Request) bool
 
 	returnError func(err error)
+
+	callQuequeSize int
 }
 
 // create new CSMS instance acting as main handler for ChargePoints
@@ -196,3 +198,13 @@ func upgrade(w http.ResponseWriter, r *http.Request) {
 	server.Store(cp)
 }
 
+func (s *Server) SetCallQueueSize(size int) {
+	s.callQuequeSize = size
+}  
+
+func (s *Server) getCallQueueSize() int {
+	s.mu.Lock()
+	size := s.callQuequeSize
+	s.mu.Unlock()
+	return size
+}

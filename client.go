@@ -46,6 +46,8 @@ type Client struct {
 	header 		http.Header
 	
 	returnError func(error)
+
+	callQuequeSize int
 }
 
 
@@ -62,6 +64,12 @@ func NewClient() *Client {
 	}
 	return client
 }
+
+
+func (c *Client) SetCallQueueSize(size int) {
+	c.callQuequeSize = size
+}  
+
 
 
 func (c *Client) SetTimeoutConfig(config ClientTimeoutConfig) {
