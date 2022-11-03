@@ -452,7 +452,7 @@ func unmarshalReq(mAction string, rawPayload json.RawMessage, proto string) (Pay
 
 // Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
 func ureqV16[T any](rawPayload json.RawMessage) (Payload, error) {
-	var p *T
+	var p T
 	var payload Payload
 	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
@@ -463,7 +463,7 @@ func ureqV16[T any](rawPayload json.RawMessage) (Payload, error) {
 		log.Error(err)
 		return nil, e
 	}
-	err = validateV16.Struct(*p)
+	err = validateV16.Struct(p)
 	if err != nil {
 		// TODO: construct more detailed error
 		e := &OCPPError{
@@ -473,14 +473,14 @@ func ureqV16[T any](rawPayload json.RawMessage) (Payload, error) {
 		log.Error(err)
 		return nil, e
 	}
-	payload = p
+	payload = &p
 	return payload, nil
 }
 
 
 // Unmarshal Payload to a struct of type T, e.g. BootNotificationReq
 func ureqV201[T any](rawPayload json.RawMessage) (Payload, error) {
-	var p *T
+	var p T
 	var payload Payload
 	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
@@ -491,7 +491,7 @@ func ureqV201[T any](rawPayload json.RawMessage) (Payload, error) {
 		log.Error(err)
 		return nil, e
 	}
-	err = validateV201.Struct(*p)
+	err = validateV201.Struct(p)
 	if err != nil {
 		// TODO: construct more detailed error
 		e := &OCPPError{
@@ -501,7 +501,7 @@ func ureqV201[T any](rawPayload json.RawMessage) (Payload, error) {
 		log.Error(err)
 		return nil, e
 	}
-	payload = p
+	payload = &p
 	return payload, nil
 }
 
@@ -527,33 +527,33 @@ func unmarshalResV201(mAction string, rawPayload json.RawMessage) (Payload, erro
 
 // Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
 func uresV16[T any](rawPayload json.RawMessage) (Payload, error) {
-	var p *T
+	var p T
 	var payload Payload
 	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		return nil, err
 	}
-	err = validateV16.Struct(*p)
+	err = validateV16.Struct(p)
 	if err != nil {
 		return nil, err
 	}
-	payload = p
+	payload = &p
 	return payload, nil
 }
 
 
 // Unmarshal Raw Payload to a struct of type T, e.g. ChangeAvailabilityConf
 func uresV201[T any](rawPayload json.RawMessage) (Payload, error) {
-	var p *T
+	var p T
 	var payload Payload
 	err := json.Unmarshal(rawPayload, &p)
 	if err != nil {
 		return nil, err
 	}
-	err = validateV201.Struct(*p)
+	err = validateV201.Struct(p)
 	if err != nil {
 		return nil, err
 	}
-	payload = p
+	payload = &p
 	return payload, nil
 }
