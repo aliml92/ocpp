@@ -2,21 +2,17 @@ package main
 
 import (
 	"fmt"
-	"time"
-	// "time"
-	// "net/http"
 
-	// "strconv"
-	// "time"
 
-	// _ "net/http/pprof"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/aliml92/ocpp"
 	v16 "github.com/aliml92/ocpp/v16"
 	"go.uber.org/zap"
 )
 
-var confData map[string]string
+
 
 var client *ocpp.Client
 
@@ -31,16 +27,16 @@ func initLogger() {
 }
 
 func main() {
-	// go func() {
-	// 	log.Debugln(http.ListenAndServe("localhost:5050", nil))
-	// }()
+	go func() {
+		log.Debugln(http.ListenAndServe("localhost:5050", nil))
+	}()
 	// initialize logger
 	initLogger()
 	defer log.Sync()
 
 	// set ocpp library's logger to zap logger
 	ocpp.SetLogger(log)
-	confData = make(map[string]string)
+
 	// create client
 	client = ocpp.NewClient()
 	id := "client00"
@@ -48,10 +44,10 @@ func main() {
 	client.AddSubProtocol("ocpp1.6")
 	client.SetBasicAuth(id, "dummypass")
 	client.SetCallQueueSize(32)
-	// client.On("ChangeAvailability", ChangeAvailabilityHandler)
-	// client.On("GetLocalListVersion", GetLocalListVersionHandler)
+	client.On("ChangeAvailability", ChangeAvailabilityHandler)
+	client.On("GetLocalListVersion", GetLocalListVersionHandler)
 	client.On("ChangeConfiguration", ChangeConfigurationHandler)
-	
+
 	cp, err := client.Start("ws://localhost:8999", "/ws")
 	if err != nil {
 		fmt.Printf("error dialing: %v\n", err)
@@ -60,52 +56,37 @@ func main() {
 	sendBootNotification(cp)
 	defer cp.Shutdown()
 	log.Debugf("charge point status %v", cp.IsConnected())
-	// time.Sleep(10 * time.Second)
-	// sendAuthorize(cp)
-	// log.Debugf("charge point status %v", cp.IsConnected())
-	// time.Sleep(3 * time.Second)
-	// sendAuthorize(cp)
-	// log.Debugf("charge point status %v", cp.IsConnected())
-	// time.Sleep(3 * time.Second)
-	// sendAuthorize(cp)
-	// log.Debugf("charge point status %v", cp.IsConnected())
 	select {}
 }
 
 func ChangeConfigurationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
 	req := p.(*v16.ChangeConfigurationReq)
 	log.Debugf("ChangeConfigurationReq: %v\n", req)
-	confData[req.Key] = req.Value
-	// if req.Key == "WebSocketPingInterval" {
-		// t, _ := strconv.Atoi(req.Value)
-		// cp.ResetPingPong(t)
-		// cp.EnableServerPing(t)
-	// }
-	time.Sleep(2 * time.Second)
+
 	var res ocpp.Payload = &v16.ChangeConfigurationConf{
 		Status: "Accepted",
 	}
 	return res
 }
 
-// Later use
-// func ChangeAvailabilityHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
-// 	req := p.(*v16.ChangeAvailabilityReq)
-// 	log.Debugf("ChangeAvailability: %v\n", req)
-// 	var res ocpp.Payload = &v16.ChangeAvailabilityConf{
-// 		Status: "Accepted",
-// 	}
-// 	return res
-// }
 
-// func GetLocalListVersionHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
-// 	req := p.(*v16.GetLocalListVersionReq)
-// 	log.Debugf("GetLocalListVersionReq: %v\n", req)
-// 	var res ocpp.Payload = &v16.GetLocalListVersionConf{
-// 		ListVersion: 1,
-// 	}
-// 	return res
-// }
+func ChangeAvailabilityHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
+	req := p.(*v16.ChangeAvailabilityReq)
+	log.Debugf("ChangeAvailability: %v\n", req)
+	var res ocpp.Payload = &v16.ChangeAvailabilityConf{
+		Status: "Accepted",
+	}
+	return res
+}
+
+func GetLocalListVersionHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
+	req := p.(*v16.GetLocalListVersionReq)
+	log.Debugf("GetLocalListVersionReq: %v\n", req)
+	var res ocpp.Payload = &v16.GetLocalListVersionConf{
+		ListVersion: 1,
+	}
+	return res
+}
 
 func sendBootNotification(c *ocpp.ChargePoint) {
 	req := &v16.BootNotificationReq{
@@ -121,14 +102,3 @@ func sendBootNotification(c *ocpp.ChargePoint) {
 }
 
 
-// func sendAuthorize(c *ocpp.ChargePoint) {
-// 	req := &v16.AuthorizeReq{
-// 		IdTag: "safdasdfdsa",
-// 	}
-// 	res, err := c.Call("Authorize", req, 10)
-// 	if err != nil {
-// 		fmt.Printf("error dialing: %v\n", err)
-// 		return
-// 	}
-// 	fmt.Printf("AuthorizeConf: %v\n", res)
-// }

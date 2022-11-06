@@ -14,14 +14,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
-func init(){
+func init() {
 	log = &logger.EmptyLogger{}
 }
 
 const (
-
-	ocppV16 = "ocpp1.6"
+	ocppV16  = "ocpp1.6"
 	ocppV201 = "ocpp2.0.1"
 
 	// Time allowed to wait until corresponding ocpp call result received
@@ -38,7 +36,6 @@ const (
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
-
 )
 
 // TODO: refactor or wrap with function
@@ -54,84 +51,81 @@ func SetLogger(logger logger.Logger) {
 	log = logger
 }
 
-
 var ErrChargePointNotConnected = errors.New("charge point not connected")
 var ErrCallQuequeFull = errors.New("call queque full")
 var ErrChargePointDisconnected = errors.New("charge point disconnected unexpectedly")
 
-
 // ChargePoint Represents a connected ChargePoint (also known as a Charging Station)
 type ChargePoint struct {
 	// OCPP protocol version
-	proto         string     
-	
+	proto string
+
 	// the websocket connection
-	conn          *websocket.Conn 
+	conn *websocket.Conn
 
 	// chargePointId
-	Id            string  
-	
+	Id string
+
 	// outgoing message channel
-	out           chan []byte 
-	
+	out chan []byte
+
 	// incoming message channel
-	in            chan []byte 
-	
+	in chan []byte
+
 	// mutex ensures that only one message is sent at a time
-	mu            sync.Mutex
-	// crOrce carries CallResult or CallError      
-	ocppRespCh	  chan OcppMessage
-	// Extras is for future use to carry data between different actions	
-	Extras        map[string]interface{}
+	mu sync.Mutex
+	// crOrce carries CallResult or CallError
+	ocppRespCh chan OcppMessage
+	// Extras is for future use to carry data between different actions
+	Extras map[string]interface{}
 
 	// tc timeout config ensures a ChargePoint has its unique timeout configuration
-	tc 	  	  	  TimeoutConfig
+	tc TimeoutConfig
 
 	// isServer defines if a ChargePoint at server or client side
-	isServer      bool
+	isServer bool
 
 	// TODO:
-	validatePayloadFunc   func(s interface{}) error                          
+	validatePayloadFunc   func(s interface{}) error
 	unmarshalResponseFunc func(a string, r json.RawMessage) (Payload, error)
-	
-	// ping in channel           
-	pingIn        chan []byte
-	
-	// closeC used to close the websocket connection by user
-	closeC        chan websocket.CloseError
-	// TODO
-	forceWClose   chan error
-	connected 	  bool
-	// Followings used for sending ping messages
-	ticker        *time.Ticker
-	tickerC       <-chan time.Time 	
-	
-	// serverPing defines if ChargePoint is in server initiated ping mode
-	serverPing	  bool
 
-	stopC 		  chan struct{}
-	dispatcherIn  chan *callReq	 	
+	// ping in channel
+	pingIn chan []byte
+
+	// closeC used to close the websocket connection by user
+	closeC chan websocket.CloseError
+	// TODO
+	forceWClose chan error
+	connected   bool
+	// Followings used for sending ping messages
+	ticker  *time.Ticker
+	tickerC <-chan time.Time
+
+	// serverPing defines if ChargePoint is in server initiated ping mode
+	serverPing bool
+
+	stopC        chan struct{}
+	dispatcherIn chan *callReq
 }
 
 // TimeoutConfig is for setting timeout configs at ChargePoint level
 type TimeoutConfig struct {
 
 	// ocpp response timeout in seconds
-	ocppWait 	time.Duration
-	
+	ocppWait time.Duration
+
 	// time allowed to write a message to the peer
-	writeWait   time.Duration 
+	writeWait time.Duration
 
 	// time allowed to read the next pong message from the peer
-	pingWait    time.Duration 
+	pingWait time.Duration
 
 	// pong wait in seconds
-	pongWait    time.Duration 
+	pongWait time.Duration
 
 	// ping period in seconds
-	pingPeriod  time.Duration 
+	pingPeriod time.Duration
 }
-
 
 type TimeoutError struct {
 	Message string
@@ -143,9 +137,9 @@ func (e *TimeoutError) Error() string {
 
 // callReq is a container for calls
 type callReq struct {
-	id 		 	string
-	data  	 	[]byte
-	recvChan 	chan interface{}  
+	id       string
+	data     []byte
+	recvChan chan interface{}
 }
 
 // Payload used as a container is for both Call and CallResult' Payload
@@ -153,9 +147,8 @@ type Payload interface{}
 
 type Peer interface {
 	getHandler(string) func(*ChargePoint, Payload) Payload
-	getAfterHandler(string) func(*ChargePoint, Payload) 
+	getAfterHandler(string) func(*ChargePoint, Payload)
 }
-
 
 func (cp *ChargePoint) unmarshalResponse(a string, r json.RawMessage) (Payload, error) {
 	return cp.unmarshalResponseFunc(a, r)
@@ -164,7 +157,6 @@ func (cp *ChargePoint) unmarshalResponse(a string, r json.RawMessage) (Payload, 
 func (cp *ChargePoint) validatePayload(v interface{}) error {
 	return cp.validatePayloadFunc(v)
 }
-
 
 func (cp *ChargePoint) SetTimeoutConfig(config TimeoutConfig) {
 	cp.mu.Lock()
@@ -178,15 +170,13 @@ func (cp *ChargePoint) IsConnected() bool {
 	return cp.connected
 }
 
-
 func (cp *ChargePoint) Shutdown() {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 	cp.closeC <- websocket.CloseError{Code: websocket.CloseNormalClosure, Text: ""}
 }
 
-
-// ResetPingPong resets ping/pong configuration upon WebSocketPingInterval 
+// ResetPingPong resets ping/pong configuration upon WebSocketPingInterval
 func (cp *ChargePoint) ResetPingPong(t int) (err error) {
 	if t < 0 {
 		err = errors.New("interval cannot be less than 0")
@@ -202,7 +192,7 @@ func (cp *ChargePoint) ResetPingPong(t int) (err error) {
 			log.Debug("<- ping")
 			return cp.conn.SetReadDeadline(cp.getReadTimeout())
 		})
-		return 
+		return
 	}
 	log.Debug("ping/pong reconfigured")
 	cp.tc.pongWait = time.Duration(t) * time.Second
@@ -219,9 +209,8 @@ func (cp *ChargePoint) ResetPingPong(t int) (err error) {
 	return
 }
 
-
 // EnableServerPing enables server initiated pings
-func (cp *ChargePoint) EnableServerPing(t int) (err error){
+func (cp *ChargePoint) EnableServerPing(t int) (err error) {
 	if t <= 0 {
 		err = errors.New("interval must be greater than 0")
 		return
@@ -240,7 +229,7 @@ func (cp *ChargePoint) EnableServerPing(t int) (err error){
 			log.Debug("<- pong")
 			return cp.conn.SetReadDeadline(cp.getReadTimeout())
 		})
-		return 
+		return
 	}
 	log.Debug("server ping enabled")
 	cp.ticker.Stop()
@@ -256,11 +245,10 @@ func (cp *ChargePoint) EnableServerPing(t int) (err error){
 	return
 }
 
-
-// clientReader reads incoming websocket messages 
+// clientReader reads incoming websocket messages
 // and it runs as a goroutine on client-side charge point (physical device)
 func (cp *ChargePoint) clientReader() {
-	defer func ()  {
+	defer func() {
 		cp.connected = false
 	}()
 	cp.conn.SetPongHandler(func(appData string) error {
@@ -268,12 +256,13 @@ func (cp *ChargePoint) clientReader() {
 		return cp.conn.SetReadDeadline(cp.getReadTimeout())
 	})
 	for {
-		if cp.processIncoming(client) { break }
+		if cp.processIncoming(client) {
+			break
+		}
 	}
 }
 
-
-// clientWriter writes websocket messages 
+// clientWriter writes websocket messages
 // and it runs as a goroutine on client-side charge point (physical device)
 func (cp *ChargePoint) clientWriter() {
 	defer func() {
@@ -285,12 +274,13 @@ func (cp *ChargePoint) clientWriter() {
 		defer cp.ticker.Stop()
 	}
 	for {
-		if !cp.processOutgoing() { break }
+		if !cp.processOutgoing() {
+			break
+		}
 	}
 }
 
-
-// serverReader reads incoming websocket messages 
+// serverReader reads incoming websocket messages
 // and it runs as a goroutine on server-side charge point (virtual device)
 func (cp *ChargePoint) serverReader() {
 	cp.conn.SetPingHandler(func(appData string) error {
@@ -304,37 +294,38 @@ func (cp *ChargePoint) serverReader() {
 		server.Delete(cp.Id)
 	}()
 	for {
-		if cp.processIncoming(server) { break }
+		if cp.processIncoming(server) {
+			break
+		}
 	}
 }
 
-
-
-// serverWriter writes websocket messages 
+// serverWriter writes websocket messages
 // and it runs as a goroutine on server-side charge point (virtual device)
 func (cp *ChargePoint) serverWriter() {
 	defer server.Delete(cp.Id)
 	for {
-		if !cp.processOutgoing() { break }
+		if !cp.processOutgoing() {
+			break
+		}
 	}
 }
 
-
 // processIncoming processes incoming websocket messages
 // and is used for both types of charge points (client and server side)
-// 
+//
 // incoming messages normally can be of four kind from application perspective:
 //   - one of websocket close errors,
 //   - ocpp Call
 //   - ocpp CallResult
-//   - ocpp CallError  
+//   - ocpp CallError
 func (cp *ChargePoint) processIncoming(peer Peer) (br bool) {
 	messageType, msg, err := cp.conn.ReadMessage()
 	log.Debugf("messageType: %d", messageType)
 	if err != nil {
 		log.Debug(err)
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-			// TODO: handle specific logs 
+			// TODO: handle specific logs
 			log.Debug(err)
 		}
 		// stop websocket writer goroutine
@@ -344,32 +335,32 @@ func (cp *ChargePoint) processIncoming(peer Peer) (br bool) {
 		return true
 	}
 	ocppMsg, err := unpack(msg, cp.proto)
-	
+
 	// TODO: handle this situation carefully
-	// at this level, it is unknown if err.(*ocppError) is caused from a corrupt Call 
+	// at this level, it is unknown if err.(*ocppError) is caused from a corrupt Call
 	// this is very complicated case, because it could be any of corrupted Call, CallResult or CallError
 	// possible solution:
-	// 
+	//
 	//   -   if err.id is known to application (for example, id of waiting Call request in queque)
 	//       this means msg is a corrupted CallResult or CallError
 	//       and then the err can be dropped and pushed to logger
 	//   -   if err.id is "-1", there is a chance it could be a corrupted Call if call request queque is empty
-	//       only in this case, CallError can be constructed and send to the peer	 
+	//       only in this case, CallError can be constructed and send to the peer
 	if ocppMsg == nil && err != nil {
 		log.Error(err)
-		return 
+		return
 	}
 	if call, ok := ocppMsg.(*Call); ok {
 		if err != nil {
 			cp.out <- call.createCallError(err)
-			return 
+			return
 		}
 		handler := peer.getHandler(call.Action)
 		if handler != nil {
 			// TODO: possible feature additions
 			//   -  pushing an incoming Call into a queque
 			//   -  pass Context with timeout down to handler
-			//   -  or recover from panic and print error logs 
+			//   -  or recover from panic and print error logs
 			responsePayload := handler(cp, call.Payload)
 			err = cp.validatePayload(responsePayload)
 			if err != nil {
@@ -390,23 +381,23 @@ func (cp *ChargePoint) processIncoming(peer Peer) (br bool) {
 			}
 			cp.out <- call.createCallError(err)
 			log.Errorf("No handler for action %s", call.Action)
-		}		
+		}
 	} else {
 		select {
 		case cp.ocppRespCh <- ocppMsg:
-		default:	
-		}		
-	} 
+		default:
+		}
+	}
 	return false
 }
-
 
 // process outOutoing writes both ping/pong messages and ocpp messages
 // to websocket connection.
 // also listens on extra two channels:
 //   - forceWClose listens for signals upon websocket close erros on reader goroutine,
 //   - closeC is used for graceful shutdown
-// TODO: remove redundant err checking  
+//
+// TODO: remove redundant err checking
 func (cp *ChargePoint) processOutgoing() (br bool) {
 	select {
 	case message, ok := <-cp.out:
@@ -450,7 +441,7 @@ func (cp *ChargePoint) processOutgoing() (br bool) {
 			return
 		}
 		log.Debug("pong ->")
-		return true	
+		return true
 	case <-cp.tickerC:
 		_ = cp.conn.SetWriteDeadline(time.Now().Add(cp.tc.writeWait))
 		if err := cp.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
@@ -468,10 +459,8 @@ func (cp *ChargePoint) processOutgoing() (br bool) {
 			log.Error(err)
 		}
 		return
-	}		
+	}
 }
-
-
 
 // getReadTimeout is used to tweak websocket ping/pong functionality
 // and it is for both client-side and server-side connections
@@ -498,53 +487,52 @@ func (cp *ChargePoint) getReadTimeout() time.Time {
 		return time.Time{}
 	}
 	return time.Now().Add(cp.tc.pongWait)
-	
+
 }
 
-
 // callDispatcher sends ocpp call requests
-func (cp *ChargePoint) callDispatcher(){
-	cleanUp := make(chan struct{},1)
+func (cp *ChargePoint) callDispatcher() {
+	cleanUp := make(chan struct{}, 1)
 	for {
 		select {
 		case callReq := <-cp.dispatcherIn:
-				log.Debug("dispatcher in")
-				cp.out <- callReq.data
-				deadline := time.Now().Add(cp.tc.ocppWait)
-				in:
-				for {
-					select {
-					case <- cleanUp:
-						log.Debug("clean up")
+			log.Debug("dispatcher in")
+			cp.out <- callReq.data
+			deadline := time.Now().Add(cp.tc.ocppWait)
+		in:
+			for {
+				select {
+				case <-cleanUp:
+					log.Debug("clean up")
+					break in
+				case <-cp.stopC:
+					log.Debug("charge point is closed")
+					for ch := range cp.dispatcherIn {
+						log.Debug("cancel remaning call requests in queque")
+						close(ch.recvChan)
+					}
+					break in
+				case ocppResp := <-cp.ocppRespCh:
+					if ocppResp.getID() == callReq.id {
+						callReq.recvChan <- ocppResp
 						break in
-					case <- cp.stopC:
-						log.Debug("charge point is closed")
-						for ch := range cp.dispatcherIn{
-							log.Debug("cancel remaning call requests in queque")
-							close(ch.recvChan)
-						}
-						break in
-					case ocppResp := <- cp.ocppRespCh:
-						if ocppResp.getID() == callReq.id {
-							callReq.recvChan <- ocppResp
-								break in
-						}
-					case <-time.After(time.Until(deadline)):
-						log.Debug("ocpp timeout occured")
-						callReq.recvChan <-  &TimeoutError{
-							Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.tc.ocppWait, callReq.id),
-						}
-						break in		
-					} 					
+					}
+				case <-time.After(time.Until(deadline)):
+					log.Debug("ocpp timeout occured")
+					callReq.recvChan <- &TimeoutError{
+						Message: fmt.Sprintf("timeout of %s sec for response to Call with id: %s passed", cp.tc.ocppWait, callReq.id),
+					}
+					break in
 				}
-				log.Debug("broke from loop") 
-		case <- cp.stopC:
+			}
+			log.Debug("broke from loop")
+		case <-cp.stopC:
 			log.Debug("charge point is closed")
 			select {
 			case cleanUp <- struct{}{}:
-			default:	
+			default:
 			}
-			for ch := range cp.dispatcherIn{
+			for ch := range cp.dispatcherIn {
 				log.Debug("cancel remaning call requests in queque")
 				close(ch.recvChan)
 			}
@@ -552,15 +540,10 @@ func (cp *ChargePoint) callDispatcher(){
 	}
 }
 
-
-
-
-
-
 // Call sends a message to peer
 func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	// check if charge point is connected
-	if !cp.IsConnected(){
+	if !cp.IsConnected() {
 		return nil, ErrChargePointNotConnected
 	}
 	// add validator function
@@ -578,16 +561,16 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	raw, _ := json.Marshal(call)
 	recvChan := make(chan interface{}, 1)
 	cr := &callReq{
-		id: id, 
-		data: raw,
+		id:       id,
+		data:     raw,
 		recvChan: recvChan,
 	}
 	select {
-    case cp.dispatcherIn <- cr:
+	case cp.dispatcherIn <- cr:
 		log.Debug("call request added to dispatcher")
-    default:
+	default:
 		return nil, ErrCallQuequeFull
-    }
+	}
 	r, ok := <-recvChan
 	if !ok {
 		return nil, ErrChargePointDisconnected
@@ -605,9 +588,6 @@ func (cp *ChargePoint) Call(action string, p Payload) (Payload, error) {
 	return nil, r.(*TimeoutError)
 }
 
-
-
-
 // NewChargepoint creates a new ChargePoint
 func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *ChargePoint {
 	cp := &ChargePoint{
@@ -620,7 +600,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		Extras:      make(map[string]interface{}),
 		closeC:      make(chan websocket.CloseError, 1),
 		forceWClose: make(chan error, 1),
-		stopC: 		 make(chan struct{}),
+		stopC:       make(chan struct{}),
 		connected:   true,
 	}
 	if isServer {
@@ -630,7 +610,7 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 		cp.tickerC = nil
 		cp.inheritServerTimeoutConfig()
 		go cp.serverReader()
-		go cp.serverWriter()				
+		go cp.serverWriter()
 	} else {
 		cp.dispatcherIn = make(chan *callReq, client.callQuequeSize)
 		cp.inheritClientTimeoutConfig()
@@ -644,33 +624,29 @@ func NewChargePoint(conn *websocket.Conn, id, proto string, isServer bool) *Char
 	return cp
 }
 
-
 func (cp *ChargePoint) setResponseUnmarshaller() {
 	switch cp.proto {
 	case ocppV16:
 		cp.unmarshalResponseFunc = unmarshalResponsePv16
 	case ocppV201:
-		cp.unmarshalResponseFunc = unmarshalResponsePv201	
+		cp.unmarshalResponseFunc = unmarshalResponsePv201
 	}
 }
-
 
 func (cp *ChargePoint) setPayloadValidator() {
 	switch cp.proto {
 	case ocppV16:
 		cp.validatePayloadFunc = validateV16.Struct
 	case ocppV201:
-		cp.validatePayloadFunc = validateV201.Struct	
-	}	
+		cp.validatePayloadFunc = validateV201.Struct
+	}
 }
-
 
 func (cp *ChargePoint) inheritServerTimeoutConfig() {
 	cp.tc.ocppWait = server.ocppWait
 	cp.tc.writeWait = server.writeWait
 	cp.tc.pingWait = server.pingWait
 }
-
 
 func (cp *ChargePoint) inheritClientTimeoutConfig() {
 	cp.tc.ocppWait = client.ocppWait

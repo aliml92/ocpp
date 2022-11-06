@@ -65,21 +65,17 @@ func main()
 	// start csms server with default configurations
 	csms = ocpp.NewServer()
 
-
-
 	csms.AddSubProtocol("ocpp1.6")
 	csms.SetCheckOriginHandler(func(r *http.Request) bool { return true })
 	csms.SetPreUpgradeHandler(customPreUpgradeHandler)
 	csms.SetCallQueueSize(32)	
 
-
 	// register charge-point-initiated action handlers
 	csms.On("BootNotification", BootNotificationHandler)
 	csms.After("BootNotification", SendChangeConfigration)
-    csms.On("Authorize", AuthorizationHandler)
+	csms.On("Authorize", AuthorizationHandler)
 	csms.Start("0.0.0.0:8999", "/ws/", nil)
 	
-
 }
 
 func SendChangeConfigration(cp *ocpp.ChargePoint, payload ocpp.Payload) {

@@ -10,15 +10,14 @@ import (
 )
 
 const (
-	MessageTypeIdCall 		=  2
-	MessageTypeIdCallResult =  3
-	MessageTypeIdCallError  =  4
-	
+	MessageTypeIdCall       = 2
+	MessageTypeIdCallResult = 3
+	MessageTypeIdCallError  = 4
 )
 
-var errInvalidAction =   errors.New("invalid action") 
+var errInvalidAction = errors.New("invalid action")
 
-var reqmapv16, resmapv16, reqmapv201, resmapv201   map[string]func(json.RawMessage) (Payload, error)
+var reqmapv16, resmapv16, reqmapv201, resmapv201 map[string]func(json.RawMessage) (Payload, error)
 
 type ocppError struct {
 	id    string
@@ -38,11 +37,9 @@ type Call struct {
 	Payload       Payload
 }
 
-
 func (c *Call) getID() string {
 	return c.UniqueId
-}  
-
+}
 
 // Create CallResult from a received Call
 func (call *Call) createCallResult(r Payload) []byte {
@@ -69,9 +66,9 @@ func (call *Call) createCallError(err error) []byte {
 		id = "-1"
 	}
 	callError := &CallError{
-		UniqueId:         id,
-		ErrorCode:        code,
-		ErrorDetails:     cause,
+		UniqueId:     id,
+		ErrorCode:    code,
+		ErrorDetails: cause,
 	}
 	switch code {
 	case "ProtocolError":
@@ -98,7 +95,7 @@ type CallResult struct {
 	UniqueId      string
 	Payload       json.RawMessage
 }
- 
+
 func (cr *CallResult) getID() string {
 	return cr.UniqueId
 }
@@ -138,14 +135,13 @@ type OcppMessage interface {
 	getID() string
 }
 
-
-
-// umpack converts json byte to one of the ocpp messages, if not successful 
+// umpack converts json byte to one of the ocpp messages, if not successful
 // returns an error
 // unpack expects ocpp messages in the below forms:
-//    -   [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}] -> Call
-//    -   [<MessageTypeId>, "<UniqueId>", {<Payload>}]             -> CallResult
-//    -   [<MessageTypeId>, "<UniqueId>", "<ErrorCode>", "<ErrorDescription>" , {<ErrorDetails>}] -> CallError
+//   - [<MessageTypeId>, "<UniqueId>", "<Action>", {<Payload>}] -> Call
+//   - [<MessageTypeId>, "<UniqueId>", {<Payload>}]             -> CallResult
+//   - [<MessageTypeId>, "<UniqueId>", "<ErrorCode>", "<ErrorDescription>" , {<ErrorDetails>}] -> CallError
+//
 // if json byte does not conform with these three formats, OcppError is created
 // and is returned as error
 //
@@ -170,19 +166,18 @@ func unpack(b []byte, proto string) (OcppMessage, error) {
 		return nil, e
 	}
 
-
 	// unmarshal [0]json.RawMessage to MessageTypeId
 	err1 := json.Unmarshal(rm[0], &mti)
 	// unmarshal [1]json.RawMessage to UniqueId
 	err2 := json.Unmarshal(rm[1], &ui)
-	if err1 != nil {	
+	if err1 != nil {
 		if err2 != nil {
 			e.id = "-1"
 			e.cause = e.cause + "," + fmt.Sprintf("UniqueId: %v is not valid", rm[1])
 		} else {
 			e.id = ui
 		}
-		return nil, e	
+		return nil, e
 	}
 	if len(ui) > 36 {
 		e = &ocppError{
@@ -194,7 +189,7 @@ func unpack(b []byte, proto string) (OcppMessage, error) {
 	case MessageTypeIdCall:
 		call := &Call{
 			MessageTypeId: mti,
-			UniqueId: ui,
+			UniqueId:      ui,
 		}
 		if e != nil {
 			return call, e
@@ -242,21 +237,21 @@ func unpack(b []byte, proto string) (OcppMessage, error) {
 			code:  "MessageTypeNotSupported",
 			cause: fmt.Sprintf("A message with: %v is not supported by this implementation", mti),
 		}
-		return nil, e									
+		return nil, e
 	}
 	return ocppMsg, nil
 }
 
-// unmarshalRequestPayload unmarshals raw bytes of request type payload 
+// unmarshalRequestPayload unmarshals raw bytes of request type payload
 // to a corresponding struct depending on Action and ocpp protocol
 func unmarshalRequestPayload(actionName string, rawPayload json.RawMessage, proto string) (Payload, error) {
-	var uf func(json.RawMessage) (Payload, error)  // uf unmarshal function for a specific action request
+	var uf func(json.RawMessage) (Payload, error) // uf unmarshal function for a specific action request
 	var ok bool
 	switch proto {
 	case ocppV16:
 		uf, ok = reqmapv16[actionName]
 	case ocppV201:
-		uf, ok = reqmapv201[actionName]	
+		uf, ok = reqmapv201[actionName]
 	}
 	if !ok {
 		e := &ocppError{
@@ -268,9 +263,7 @@ func unmarshalRequestPayload(actionName string, rawPayload json.RawMessage, prot
 	return uf(rawPayload)
 }
 
-
-
-// unmarshalRequestPayloadv16 unmarshals raw request type payload to a ***Req type struct of ocppv16 
+// unmarshalRequestPayloadv16 unmarshals raw request type payload to a ***Req type struct of ocppv16
 func unmarshalRequestPayloadv16[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p T
 	var payload Payload
@@ -295,8 +288,7 @@ func unmarshalRequestPayloadv16[T any](rawPayload json.RawMessage) (Payload, err
 	return payload, nil
 }
 
-
-// unmarshalRequestPayloadv201 unmarshals raw request type payload to a ***Req type struct of ocppv201 
+// unmarshalRequestPayloadv201 unmarshals raw request type payload to a ***Req type struct of ocppv201
 func unmarshalRequestPayloadv201[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p T
 	var payload Payload
@@ -323,28 +315,27 @@ func unmarshalRequestPayloadv201[T any](rawPayload json.RawMessage) (Payload, er
 	return payload, nil
 }
 
-
-// unmarshalResponsePv16 unmarshals raw bytes of request type payload 
-// to a corresponding struct depending on actionName 
+// unmarshalResponsePv16 unmarshals raw bytes of request type payload
+// to a corresponding struct depending on actionName
 func unmarshalResponsePv16(actionName string, rawPayload json.RawMessage) (Payload, error) {
-	uf, ok := resmapv16[actionName]       // uf unmarshal function for a specific action request 
+	uf, ok := resmapv16[actionName] // uf unmarshal function for a specific action request
 	if !ok {
 		return nil, errInvalidAction
 	}
 	return uf(rawPayload)
 }
 
-// unmarshalResponsePv201 unmarshals raw bytes of request type payload 
+// unmarshalResponsePv201 unmarshals raw bytes of request type payload
 // to a corresponding struct depending on actionName
 func unmarshalResponsePv201(mAction string, rawPayload json.RawMessage) (Payload, error) {
-	uf, ok := resmapv201[mAction]          // uf unmarshal function for a specific action request 
+	uf, ok := resmapv201[mAction] // uf unmarshal function for a specific action request
 	if !ok {
 		return nil, errInvalidAction
 	}
 	return uf(rawPayload)
 }
 
-// unmarshalResponsePayloadv16 unmarshals raw response type payload to a ***Conf type struct of ocppv16 
+// unmarshalResponsePayloadv16 unmarshals raw response type payload to a ***Conf type struct of ocppv16
 func unmarshalResponsePayloadv16[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p T
 	var payload Payload
@@ -360,8 +351,7 @@ func unmarshalResponsePayloadv16[T any](rawPayload json.RawMessage) (Payload, er
 	return payload, nil
 }
 
-
-// unmarshalResponsePayloadv201 unmarshals raw response type payload to a ***Res type struct of ocppv201 
+// unmarshalResponsePayloadv201 unmarshals raw response type payload to a ***Res type struct of ocppv201
 func unmarshalResponsePayloadv201[T any](rawPayload json.RawMessage) (Payload, error) {
 	var p T
 	var payload Payload
@@ -377,9 +367,7 @@ func unmarshalResponsePayloadv201[T any](rawPayload json.RawMessage) (Payload, e
 	return payload, nil
 }
 
-
-
-func init(){
+func init() {
 	reqmapv16 = map[string]func(json.RawMessage) (Payload, error){
 		"BootNotification":              unmarshalRequestPayloadv16[v16.BootNotificationReq],
 		"Authorize":                     unmarshalRequestPayloadv16[v16.AuthorizeReq],
@@ -443,136 +431,136 @@ func init(){
 	}
 
 	reqmapv201 = map[string]func(json.RawMessage) (Payload, error){
-		"Authorize":                     	unmarshalRequestPayloadv201[v201.AuthorizeReq],
-		"BootNotification":              	unmarshalRequestPayloadv201[v201.BootNotificationReq],
-		"CancelReservation":             	unmarshalRequestPayloadv201[v201.CancelReservationReq],
-		"CertificateSigned":			 	unmarshalRequestPayloadv201[v201.CertificateSignedReq],
-		"ChangeAvailability":            	unmarshalRequestPayloadv201[v201.ChangeAvailabilityReq],
-		"ClearCache":                    	unmarshalRequestPayloadv201[v201.ClearCacheReq],
-		"ClearChargingProfile":          	unmarshalRequestPayloadv201[v201.ClearChargingProfileReq],
-		"ClearDisplayMessage":           	unmarshalRequestPayloadv201[v201.ClearDisplayMessageReq],
-		"ClearedChargingLimit":          	unmarshalRequestPayloadv201[v201.ClearedChargingLimitReq],
-		"ClearVariableMonitoring":       	unmarshalRequestPayloadv201[v201.ClearVariableMonitoringReq],
-		"CostUpdated":                   	unmarshalRequestPayloadv201[v201.CostUpdatedReq],
-		"CustomerInformation":           	unmarshalRequestPayloadv201[v201.CustomerInformationReq],
-		"DataTransfer":                  	unmarshalRequestPayloadv201[v201.DataTransferReq],
-		"DeleteCertificate":             	unmarshalRequestPayloadv201[v201.DeleteCertificateReq],
-		"FirmwareStatusNotification":    	unmarshalRequestPayloadv201[v201.FirmwareStatusNotificationReq],
-		"Get15118EVCertificate":         	unmarshalRequestPayloadv201[v201.Get15118EVCertificateReq],
-		"GetBaseReport":                 	unmarshalRequestPayloadv201[v201.GetBaseReportReq],
-		"GetCertificateStatus":          	unmarshalRequestPayloadv201[v201.GetCertificateStatusReq],
-		"GetChargingProfiles":            	unmarshalRequestPayloadv201[v201.GetChargingProfilesReq],
-		"GetCompositeSchedule":          	unmarshalRequestPayloadv201[v201.GetCompositeScheduleReq],
-		"GetDisplayMessages":            	unmarshalRequestPayloadv201[v201.GetDisplayMessagesReq],
-		"GetInstalledCertificateIds":      	unmarshalRequestPayloadv201[v201.GetInstalledCertificateIdsReq],
-		"GetLocalListVersion":           	unmarshalRequestPayloadv201[v201.GetLocalListVersionReq],
-		"GetLog":							unmarshalRequestPayloadv201[v201.GetLogReq],
-		"GetMonitoringReport":           	unmarshalRequestPayloadv201[v201.GetMonitoringReportReq],
-		"GetReport":                     	unmarshalRequestPayloadv201[v201.GetReportReq],
-		"GetTransactionStatus":          	unmarshalRequestPayloadv201[v201.GetTransactionStatusReq],
-		"GetVariables":                  	unmarshalRequestPayloadv201[v201.GetVariablesReq],
-		"Heartbeat":                     	unmarshalRequestPayloadv201[v201.HeartbeatReq],
-		"InstallCertificate":            	unmarshalRequestPayloadv201[v201.InstallCertificateReq],
-		"LogStatusNotification":         	unmarshalRequestPayloadv201[v201.LogStatusNotificationReq],
-		"MeterValues":                   	unmarshalRequestPayloadv201[v201.MeterValuesReq],
-		"NotifyChargingLimit":           	unmarshalRequestPayloadv201[v201.NotifyChargingLimitReq],
-		"NotifyCustomerInformation":     	unmarshalRequestPayloadv201[v201.NotifyCustomerInformationReq],
-		"NotifyDisplayMessages":         	unmarshalRequestPayloadv201[v201.NotifyDisplayMessagesReq],
-		"NotifyEVChargingNeeds":         	unmarshalRequestPayloadv201[v201.NotifyEVChargingNeedsReq],
-		"NotifyEVChargingSchedule":        	unmarshalRequestPayloadv201[v201.NotifyEVChargingScheduleReq],
-		"NotifyEvent":                   	unmarshalRequestPayloadv201[v201.NotifyEventReq],
-		"NotifyMonitoringReport":        	unmarshalRequestPayloadv201[v201.NotifyMonitoringReportReq],
-		"NotifyReport":                  	unmarshalRequestPayloadv201[v201.NotifyReportReq],
-		"PublishFirmware":               	unmarshalRequestPayloadv201[v201.PublishFirmwareReq],
+		"Authorize":                          unmarshalRequestPayloadv201[v201.AuthorizeReq],
+		"BootNotification":                   unmarshalRequestPayloadv201[v201.BootNotificationReq],
+		"CancelReservation":                  unmarshalRequestPayloadv201[v201.CancelReservationReq],
+		"CertificateSigned":                  unmarshalRequestPayloadv201[v201.CertificateSignedReq],
+		"ChangeAvailability":                 unmarshalRequestPayloadv201[v201.ChangeAvailabilityReq],
+		"ClearCache":                         unmarshalRequestPayloadv201[v201.ClearCacheReq],
+		"ClearChargingProfile":               unmarshalRequestPayloadv201[v201.ClearChargingProfileReq],
+		"ClearDisplayMessage":                unmarshalRequestPayloadv201[v201.ClearDisplayMessageReq],
+		"ClearedChargingLimit":               unmarshalRequestPayloadv201[v201.ClearedChargingLimitReq],
+		"ClearVariableMonitoring":            unmarshalRequestPayloadv201[v201.ClearVariableMonitoringReq],
+		"CostUpdated":                        unmarshalRequestPayloadv201[v201.CostUpdatedReq],
+		"CustomerInformation":                unmarshalRequestPayloadv201[v201.CustomerInformationReq],
+		"DataTransfer":                       unmarshalRequestPayloadv201[v201.DataTransferReq],
+		"DeleteCertificate":                  unmarshalRequestPayloadv201[v201.DeleteCertificateReq],
+		"FirmwareStatusNotification":         unmarshalRequestPayloadv201[v201.FirmwareStatusNotificationReq],
+		"Get15118EVCertificate":              unmarshalRequestPayloadv201[v201.Get15118EVCertificateReq],
+		"GetBaseReport":                      unmarshalRequestPayloadv201[v201.GetBaseReportReq],
+		"GetCertificateStatus":               unmarshalRequestPayloadv201[v201.GetCertificateStatusReq],
+		"GetChargingProfiles":                unmarshalRequestPayloadv201[v201.GetChargingProfilesReq],
+		"GetCompositeSchedule":               unmarshalRequestPayloadv201[v201.GetCompositeScheduleReq],
+		"GetDisplayMessages":                 unmarshalRequestPayloadv201[v201.GetDisplayMessagesReq],
+		"GetInstalledCertificateIds":         unmarshalRequestPayloadv201[v201.GetInstalledCertificateIdsReq],
+		"GetLocalListVersion":                unmarshalRequestPayloadv201[v201.GetLocalListVersionReq],
+		"GetLog":                             unmarshalRequestPayloadv201[v201.GetLogReq],
+		"GetMonitoringReport":                unmarshalRequestPayloadv201[v201.GetMonitoringReportReq],
+		"GetReport":                          unmarshalRequestPayloadv201[v201.GetReportReq],
+		"GetTransactionStatus":               unmarshalRequestPayloadv201[v201.GetTransactionStatusReq],
+		"GetVariables":                       unmarshalRequestPayloadv201[v201.GetVariablesReq],
+		"Heartbeat":                          unmarshalRequestPayloadv201[v201.HeartbeatReq],
+		"InstallCertificate":                 unmarshalRequestPayloadv201[v201.InstallCertificateReq],
+		"LogStatusNotification":              unmarshalRequestPayloadv201[v201.LogStatusNotificationReq],
+		"MeterValues":                        unmarshalRequestPayloadv201[v201.MeterValuesReq],
+		"NotifyChargingLimit":                unmarshalRequestPayloadv201[v201.NotifyChargingLimitReq],
+		"NotifyCustomerInformation":          unmarshalRequestPayloadv201[v201.NotifyCustomerInformationReq],
+		"NotifyDisplayMessages":              unmarshalRequestPayloadv201[v201.NotifyDisplayMessagesReq],
+		"NotifyEVChargingNeeds":              unmarshalRequestPayloadv201[v201.NotifyEVChargingNeedsReq],
+		"NotifyEVChargingSchedule":           unmarshalRequestPayloadv201[v201.NotifyEVChargingScheduleReq],
+		"NotifyEvent":                        unmarshalRequestPayloadv201[v201.NotifyEventReq],
+		"NotifyMonitoringReport":             unmarshalRequestPayloadv201[v201.NotifyMonitoringReportReq],
+		"NotifyReport":                       unmarshalRequestPayloadv201[v201.NotifyReportReq],
+		"PublishFirmware":                    unmarshalRequestPayloadv201[v201.PublishFirmwareReq],
 		"PublishFirmawareStatusNotification": unmarshalRequestPayloadv201[v201.PublishFirmwareStatusNotificationReq],
-		"ReportChargingProfiles":        	unmarshalRequestPayloadv201[v201.ReportChargingProfilesReq],
-		"RequestStartTransaction":       	unmarshalRequestPayloadv201[v201.RequestStartTransactionReq],
-		"RequestStopTransaction":        	unmarshalRequestPayloadv201[v201.RequestStopTransactionReq],
-		"ReservationStatusUpdate":       	unmarshalRequestPayloadv201[v201.ReservationStatusUpdateReq],
-		"ReserveNow":                    	unmarshalRequestPayloadv201[v201.ReserveNowReq],
-		"Reset":                         	unmarshalRequestPayloadv201[v201.ResetReq],
-		"SecurityEventNotification":     	unmarshalRequestPayloadv201[v201.SecurityEventNotificationReq],
-		"SendLocalList":                 	unmarshalRequestPayloadv201[v201.SendLocalListReq],
-		"SetChargingProfile":            	unmarshalRequestPayloadv201[v201.SetChargingProfileReq],
-		"SetDisplayMessage":             	unmarshalRequestPayloadv201[v201.SetDisplayMessageReq],
-		"SetMonitoringBase":             	unmarshalRequestPayloadv201[v201.SetMonitoringBaseReq],
-		"SetMonitoringLevel":            	unmarshalRequestPayloadv201[v201.SetMonitoringLevelReq],
-		"SetNetworkProfile":             	unmarshalRequestPayloadv201[v201.SetNetworkProfileReq],
-		"SetVariableMonitoring":         	unmarshalRequestPayloadv201[v201.SetVariableMonitoringReq],
-		"SetVariables":                  	unmarshalRequestPayloadv201[v201.SetVariablesReq],
-		"SignCertificate":               	unmarshalRequestPayloadv201[v201.SignCertificateReq],
-		"StatusNotification":            	unmarshalRequestPayloadv201[v201.StatusNotificationReq],
-		"TransactionEvent":			  		unmarshalRequestPayloadv201[v201.TransactionEventReq],
-		"TriggerMessage":                	unmarshalRequestPayloadv201[v201.TriggerMessageReq],
-		"UnlockConnector":               	unmarshalRequestPayloadv201[v201.UnlockConnectorReq],
-		"UnpublishFirmware":             	unmarshalRequestPayloadv201[v201.UnpublishFirmwareReq],
-		"UpdateFirmware":                	unmarshalRequestPayloadv201[v201.UpdateFirmwareReq],
+		"ReportChargingProfiles":             unmarshalRequestPayloadv201[v201.ReportChargingProfilesReq],
+		"RequestStartTransaction":            unmarshalRequestPayloadv201[v201.RequestStartTransactionReq],
+		"RequestStopTransaction":             unmarshalRequestPayloadv201[v201.RequestStopTransactionReq],
+		"ReservationStatusUpdate":            unmarshalRequestPayloadv201[v201.ReservationStatusUpdateReq],
+		"ReserveNow":                         unmarshalRequestPayloadv201[v201.ReserveNowReq],
+		"Reset":                              unmarshalRequestPayloadv201[v201.ResetReq],
+		"SecurityEventNotification":          unmarshalRequestPayloadv201[v201.SecurityEventNotificationReq],
+		"SendLocalList":                      unmarshalRequestPayloadv201[v201.SendLocalListReq],
+		"SetChargingProfile":                 unmarshalRequestPayloadv201[v201.SetChargingProfileReq],
+		"SetDisplayMessage":                  unmarshalRequestPayloadv201[v201.SetDisplayMessageReq],
+		"SetMonitoringBase":                  unmarshalRequestPayloadv201[v201.SetMonitoringBaseReq],
+		"SetMonitoringLevel":                 unmarshalRequestPayloadv201[v201.SetMonitoringLevelReq],
+		"SetNetworkProfile":                  unmarshalRequestPayloadv201[v201.SetNetworkProfileReq],
+		"SetVariableMonitoring":              unmarshalRequestPayloadv201[v201.SetVariableMonitoringReq],
+		"SetVariables":                       unmarshalRequestPayloadv201[v201.SetVariablesReq],
+		"SignCertificate":                    unmarshalRequestPayloadv201[v201.SignCertificateReq],
+		"StatusNotification":                 unmarshalRequestPayloadv201[v201.StatusNotificationReq],
+		"TransactionEvent":                   unmarshalRequestPayloadv201[v201.TransactionEventReq],
+		"TriggerMessage":                     unmarshalRequestPayloadv201[v201.TriggerMessageReq],
+		"UnlockConnector":                    unmarshalRequestPayloadv201[v201.UnlockConnectorReq],
+		"UnpublishFirmware":                  unmarshalRequestPayloadv201[v201.UnpublishFirmwareReq],
+		"UpdateFirmware":                     unmarshalRequestPayloadv201[v201.UpdateFirmwareReq],
 	}
 
 	resmapv201 = map[string]func(json.RawMessage) (Payload, error){
-		"Authorize":                     	unmarshalResponsePayloadv201[v201.AuthorizeRes],
-		"BootNotification":              	unmarshalResponsePayloadv201[v201.BootNotificationRes],
-		"CancelReservation":             	unmarshalResponsePayloadv201[v201.CancelReservationRes],
-		"CertificateSigned":			 	unmarshalResponsePayloadv201[v201.CertificateSignedRes],
-		"ChangeAvailability":            	unmarshalResponsePayloadv201[v201.ChangeAvailabilityRes],
-		"ClearCache":                    	unmarshalResponsePayloadv201[v201.ClearCacheRes],
-		"ClearChargingProfile":          	unmarshalResponsePayloadv201[v201.ClearChargingProfileRes],
-		"ClearDisplayMessage":           	unmarshalResponsePayloadv201[v201.ClearDisplayMessageRes],
-		"ClearedChargingLimit":          	unmarshalResponsePayloadv201[v201.ClearedChargingLimitRes],
-		"ClearVariableMonitoring":       	unmarshalResponsePayloadv201[v201.ClearVariableMonitoringRes],
-		"CostUpdated":                   	unmarshalResponsePayloadv201[v201.CostUpdatedRes],
-		"CustomerInformation":           	unmarshalResponsePayloadv201[v201.CustomerInformationRes],
-		"DataTransfer":                  	unmarshalResponsePayloadv201[v201.DataTransferRes],
-		"DeleteCertificate":             	unmarshalResponsePayloadv201[v201.DeleteCertificateRes],
-		"FirmwareStatusNotification":    	unmarshalResponsePayloadv201[v201.FirmwareStatusNotificationRes],
-		"Get15118EVCertificate":         	unmarshalResponsePayloadv201[v201.Get15118EVCertificateRes],
-		"GetBaseReport":                 	unmarshalResponsePayloadv201[v201.GetBaseReportRes],
-		"GetCertificateStatus":          	unmarshalResponsePayloadv201[v201.GetCertificateStatusRes],
-		"GetChargingProfiles":            	unmarshalResponsePayloadv201[v201.GetChargingProfilesRes],
-		"GetCompositeSchedule":          	unmarshalResponsePayloadv201[v201.GetCompositeScheduleRes],
-		"GetDisplayMessages":            	unmarshalResponsePayloadv201[v201.GetDisplayMessagesRes],
-		"GetInstalledCertificateIds":      	unmarshalResponsePayloadv201[v201.GetInstalledCertificateIdsRes],
-		"GetLocalListVersion":           	unmarshalResponsePayloadv201[v201.GetLocalListVersionRes],
-		"GetLog":							unmarshalResponsePayloadv201[v201.GetLogRes],
-		"GetMonitoringReport":           	unmarshalResponsePayloadv201[v201.GetMonitoringReportRes],
-		"GetReport":                     	unmarshalResponsePayloadv201[v201.GetReportRes],
-		"GetTransactionStatus":          	unmarshalResponsePayloadv201[v201.GetTransactionStatusRes],
-		"GetVariables":                  	unmarshalResponsePayloadv201[v201.GetVariablesRes],
-		"Heartbeat":                     	unmarshalResponsePayloadv201[v201.HeartbeatRes],
-		"InstallCertificate":            	unmarshalResponsePayloadv201[v201.InstallCertificateRes],
-		"LogStatusNotification":         	unmarshalResponsePayloadv201[v201.LogStatusNotificationRes],
-		"MeterValues":                   	unmarshalResponsePayloadv201[v201.MeterValuesRes],
-		"NotifyChargingLimit":           	unmarshalResponsePayloadv201[v201.NotifyChargingLimitRes],
-		"NotifyCustomerInformation":     	unmarshalResponsePayloadv201[v201.NotifyCustomerInformationRes],
-		"NotifyDisplayMessages":         	unmarshalResponsePayloadv201[v201.NotifyDisplayMessagesRes],
-		"NotifyEVChargingNeeds":         	unmarshalResponsePayloadv201[v201.NotifyEVChargingNeedsRes],
-		"NotifyEVChargingSchedule":        	unmarshalResponsePayloadv201[v201.NotifyEVChargingScheduleRes],
-		"NotifyEvent":                   	unmarshalResponsePayloadv201[v201.NotifyEventRes],
-		"NotifyMonitoringReport":        	unmarshalResponsePayloadv201[v201.NotifyMonitoringReportRes],
-		"NotifyReport":                  	unmarshalResponsePayloadv201[v201.NotifyReportRes],
-		"PublishFirmware":               	unmarshalResponsePayloadv201[v201.PublishFirmwareRes],
+		"Authorize":                          unmarshalResponsePayloadv201[v201.AuthorizeRes],
+		"BootNotification":                   unmarshalResponsePayloadv201[v201.BootNotificationRes],
+		"CancelReservation":                  unmarshalResponsePayloadv201[v201.CancelReservationRes],
+		"CertificateSigned":                  unmarshalResponsePayloadv201[v201.CertificateSignedRes],
+		"ChangeAvailability":                 unmarshalResponsePayloadv201[v201.ChangeAvailabilityRes],
+		"ClearCache":                         unmarshalResponsePayloadv201[v201.ClearCacheRes],
+		"ClearChargingProfile":               unmarshalResponsePayloadv201[v201.ClearChargingProfileRes],
+		"ClearDisplayMessage":                unmarshalResponsePayloadv201[v201.ClearDisplayMessageRes],
+		"ClearedChargingLimit":               unmarshalResponsePayloadv201[v201.ClearedChargingLimitRes],
+		"ClearVariableMonitoring":            unmarshalResponsePayloadv201[v201.ClearVariableMonitoringRes],
+		"CostUpdated":                        unmarshalResponsePayloadv201[v201.CostUpdatedRes],
+		"CustomerInformation":                unmarshalResponsePayloadv201[v201.CustomerInformationRes],
+		"DataTransfer":                       unmarshalResponsePayloadv201[v201.DataTransferRes],
+		"DeleteCertificate":                  unmarshalResponsePayloadv201[v201.DeleteCertificateRes],
+		"FirmwareStatusNotification":         unmarshalResponsePayloadv201[v201.FirmwareStatusNotificationRes],
+		"Get15118EVCertificate":              unmarshalResponsePayloadv201[v201.Get15118EVCertificateRes],
+		"GetBaseReport":                      unmarshalResponsePayloadv201[v201.GetBaseReportRes],
+		"GetCertificateStatus":               unmarshalResponsePayloadv201[v201.GetCertificateStatusRes],
+		"GetChargingProfiles":                unmarshalResponsePayloadv201[v201.GetChargingProfilesRes],
+		"GetCompositeSchedule":               unmarshalResponsePayloadv201[v201.GetCompositeScheduleRes],
+		"GetDisplayMessages":                 unmarshalResponsePayloadv201[v201.GetDisplayMessagesRes],
+		"GetInstalledCertificateIds":         unmarshalResponsePayloadv201[v201.GetInstalledCertificateIdsRes],
+		"GetLocalListVersion":                unmarshalResponsePayloadv201[v201.GetLocalListVersionRes],
+		"GetLog":                             unmarshalResponsePayloadv201[v201.GetLogRes],
+		"GetMonitoringReport":                unmarshalResponsePayloadv201[v201.GetMonitoringReportRes],
+		"GetReport":                          unmarshalResponsePayloadv201[v201.GetReportRes],
+		"GetTransactionStatus":               unmarshalResponsePayloadv201[v201.GetTransactionStatusRes],
+		"GetVariables":                       unmarshalResponsePayloadv201[v201.GetVariablesRes],
+		"Heartbeat":                          unmarshalResponsePayloadv201[v201.HeartbeatRes],
+		"InstallCertificate":                 unmarshalResponsePayloadv201[v201.InstallCertificateRes],
+		"LogStatusNotification":              unmarshalResponsePayloadv201[v201.LogStatusNotificationRes],
+		"MeterValues":                        unmarshalResponsePayloadv201[v201.MeterValuesRes],
+		"NotifyChargingLimit":                unmarshalResponsePayloadv201[v201.NotifyChargingLimitRes],
+		"NotifyCustomerInformation":          unmarshalResponsePayloadv201[v201.NotifyCustomerInformationRes],
+		"NotifyDisplayMessages":              unmarshalResponsePayloadv201[v201.NotifyDisplayMessagesRes],
+		"NotifyEVChargingNeeds":              unmarshalResponsePayloadv201[v201.NotifyEVChargingNeedsRes],
+		"NotifyEVChargingSchedule":           unmarshalResponsePayloadv201[v201.NotifyEVChargingScheduleRes],
+		"NotifyEvent":                        unmarshalResponsePayloadv201[v201.NotifyEventRes],
+		"NotifyMonitoringReport":             unmarshalResponsePayloadv201[v201.NotifyMonitoringReportRes],
+		"NotifyReport":                       unmarshalResponsePayloadv201[v201.NotifyReportRes],
+		"PublishFirmware":                    unmarshalResponsePayloadv201[v201.PublishFirmwareRes],
 		"PublishFirmawareStatusNotification": unmarshalResponsePayloadv201[v201.PublishFirmwareStatusNotificationRes],
-		"ReportChargingProfiles":        	unmarshalResponsePayloadv201[v201.ReportChargingProfilesRes],
-		"RequestStartTransaction":       	unmarshalResponsePayloadv201[v201.RequestStartTransactionRes],
-		"RequestStopTransaction":        	unmarshalResponsePayloadv201[v201.RequestStopTransactionRes],
-		"ReservationStatusUpdate":       	unmarshalResponsePayloadv201[v201.ReservationStatusUpdateRes],
-		"ReserveNow":                    	unmarshalResponsePayloadv201[v201.ReserveNowRes],
-		"Reset":                         	unmarshalResponsePayloadv201[v201.ResetRes],
-		"SecurityEventNotification":     	unmarshalResponsePayloadv201[v201.SecurityEventNotificationRes],
-		"SendLocalList":                 	unmarshalResponsePayloadv201[v201.SendLocalListRes],
-		"SetChargingProfile":            	unmarshalResponsePayloadv201[v201.SetChargingProfileRes],
-		"SetDisplayMessage":             	unmarshalResponsePayloadv201[v201.SetDisplayMessageRes],
-		"SetMonitoringBase":             	unmarshalResponsePayloadv201[v201.SetMonitoringBaseRes],
-		"SetMonitoringLevel":            	unmarshalResponsePayloadv201[v201.SetMonitoringLevelRes],
-		"SetNetworkProfile":             	unmarshalResponsePayloadv201[v201.SetNetworkProfileRes],
-		"SetVariableMonitoring":         	unmarshalResponsePayloadv201[v201.SetVariableMonitoringRes],
-		"SetVariables":                  	unmarshalResponsePayloadv201[v201.SetVariablesRes],
-		"SignCertificate":               	unmarshalResponsePayloadv201[v201.SignCertificateRes],
-		"StatusNotification":            	unmarshalResponsePayloadv201[v201.StatusNotificationRes],
-		"TransactionEvent":			  		unmarshalResponsePayloadv201[v201.TransactionEventRes],
-		"TriggerMessage":                	unmarshalResponsePayloadv201[v201.TriggerMessageRes],
-		"UnlockConnector":               	unmarshalResponsePayloadv201[v201.UnlockConnectorRes],
-		"UnpublishFirmware":             	unmarshalResponsePayloadv201[v201.UnpublishFirmwareRes],
-		"UpdateFirmware":                	unmarshalResponsePayloadv201[v201.UpdateFirmwareRes],
+		"ReportChargingProfiles":             unmarshalResponsePayloadv201[v201.ReportChargingProfilesRes],
+		"RequestStartTransaction":            unmarshalResponsePayloadv201[v201.RequestStartTransactionRes],
+		"RequestStopTransaction":             unmarshalResponsePayloadv201[v201.RequestStopTransactionRes],
+		"ReservationStatusUpdate":            unmarshalResponsePayloadv201[v201.ReservationStatusUpdateRes],
+		"ReserveNow":                         unmarshalResponsePayloadv201[v201.ReserveNowRes],
+		"Reset":                              unmarshalResponsePayloadv201[v201.ResetRes],
+		"SecurityEventNotification":          unmarshalResponsePayloadv201[v201.SecurityEventNotificationRes],
+		"SendLocalList":                      unmarshalResponsePayloadv201[v201.SendLocalListRes],
+		"SetChargingProfile":                 unmarshalResponsePayloadv201[v201.SetChargingProfileRes],
+		"SetDisplayMessage":                  unmarshalResponsePayloadv201[v201.SetDisplayMessageRes],
+		"SetMonitoringBase":                  unmarshalResponsePayloadv201[v201.SetMonitoringBaseRes],
+		"SetMonitoringLevel":                 unmarshalResponsePayloadv201[v201.SetMonitoringLevelRes],
+		"SetNetworkProfile":                  unmarshalResponsePayloadv201[v201.SetNetworkProfileRes],
+		"SetVariableMonitoring":              unmarshalResponsePayloadv201[v201.SetVariableMonitoringRes],
+		"SetVariables":                       unmarshalResponsePayloadv201[v201.SetVariablesRes],
+		"SignCertificate":                    unmarshalResponsePayloadv201[v201.SignCertificateRes],
+		"StatusNotification":                 unmarshalResponsePayloadv201[v201.StatusNotificationRes],
+		"TransactionEvent":                   unmarshalResponsePayloadv201[v201.TransactionEventRes],
+		"TriggerMessage":                     unmarshalResponsePayloadv201[v201.TriggerMessageRes],
+		"UnlockConnector":                    unmarshalResponsePayloadv201[v201.UnlockConnectorRes],
+		"UnpublishFirmware":                  unmarshalResponsePayloadv201[v201.UnpublishFirmwareRes],
+		"UpdateFirmware":                     unmarshalResponsePayloadv201[v201.UpdateFirmwareRes],
 	}
 }
