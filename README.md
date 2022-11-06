@@ -141,7 +141,7 @@ Making a Call can be done by excuting `cp.Call` method.
 
 
 
-### Charge Point
+### Charge Point (Client)
 ```go
 package main
 
