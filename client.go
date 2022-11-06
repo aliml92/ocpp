@@ -13,7 +13,7 @@ import (
 var client *Client
 
 type ClientTimeoutConfig struct {
-	// ocpp response timeout in seconds
+	// ocpp response timeout in seconds 
 	OcppWait 	time.Duration 
 
 	// time allowed to write a message to the peer
