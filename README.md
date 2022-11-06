@@ -13,10 +13,25 @@ Go version 1.18+ is required
 ```bash
   go get github.com/aliml92/ocpp
 ```
-    
+
+ ## Features
+
+- ocpp1.6 and ocpp2.0.1 support
+- logging
+- ping/pong customization on `WebSocketPingInterval`
+- server initiated ping activation 
+
+## Roadmap
+
+- add unit/integration tests
+- improve logging
+- add optional validation functionality
+- add better queque implementation
+ 
+
 ## Usage
 
-### Cental System  
+### Cental System  (Server)
 ```go
 package main
 
@@ -68,7 +83,6 @@ func main()
 }
 
 func SendChangeConfigration(cp *ocpp.ChargePoint, payload ocpp.Payload) {
-	var arr [32]ocpp.Payload
 	var req ocpp.Payload = v16.ChangeConfigurationReq{
 		Key: "WebSocketPingInterval",
 		Value: "30",
@@ -126,7 +140,7 @@ func AuthorizationHandler(cp *ocpp.ChargePoint, p ocpp.Payload) ocpp.Payload {
 }
 ```
 `ChargePoint` represents a single Charge Point (CP) connected to Central System
-and after it is created, register CP initiated call handlers using `csms.On` method.
+and after initializing `*ocpp.Server` , register CP initiated call handlers using `csms.On` method.
 Making a Call can be done by excuting `cp.Call` method.
 
 
