@@ -16,17 +16,17 @@ Go version 1.18+ is required
 
  ## Features
 
-- ocpp1.6 and ocpp2.0.1 support
-- logging
-- ping/pong customization on `WebSocketPingInterval`
-- server initiated ping activation 
+- [x] ocpp1.6 and ocpp2.0.1 support
+- [x] logging
+- [x] ping/pong customization on `WebSocketPingInterval`
+- [x] server initiated ping activation 
 
 ## Roadmap
 
-- add unit/integration tests
-- improve logging
-- add optional validation functionality
-- add better queque implementation
+- [ ]   add unit/integration tests
+- [x]   improve logging
+- [ ]   add validation disabling feature
+- [ ]   add better queque implementation
  
 
 ## Usage
