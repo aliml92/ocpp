@@ -23,6 +23,7 @@ Go version 1.18+ is required
 
 ## Roadmap
 
+- [ ]   make the library testable
 - [ ]   add unit/integration tests
 - [x]   improve logging
 - [ ]   add validation disabling feature
