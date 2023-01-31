@@ -58,7 +58,7 @@ type StatusNotificationReq struct {
 
 // temporary type for unmarshalling
 type StopTransactionReq struct {
-	IdTag           string       `json:"idTag" validate:"required,max=20"`
+	IdTag           string       `json:"idTag" validate:"omitempty,max=20"`
 	MeterStop       *int          `json:"meterStop" validate:"required"`
 	Timestamp       string       `json:"timestamp" validate:"required,ISO8601date"`
 	TransactionId   int          `json:"transactionId" validate:"required"`
