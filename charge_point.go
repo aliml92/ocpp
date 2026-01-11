@@ -497,7 +497,12 @@ func (cp *ChargePoint) callDispatcher() {
 		select {
 		case callReq := <-cp.dispatcherIn:
 			log.Debug("dispatcher in")
-			cp.out <- callReq.data
+			select {
+			case cp.out <- callReq.data:
+			case <-cp.stopC:
+				close(callReq.recvChan)
+				goto CleanupDrain
+			}
 			deadline := time.Now().Add(cp.tc.ocppWait)
 		in:
 			for {
@@ -507,11 +512,8 @@ func (cp *ChargePoint) callDispatcher() {
 					break in
 				case <-cp.stopC:
 					log.Debug("charge point is closed")
-					for ch := range cp.dispatcherIn {
-						log.Debug("cancel remaning call requests in queque")
-						close(ch.recvChan)
-					}
-					break in
+					close(callReq.recvChan)
+					goto CleanupDrain
 				case ocppResp := <-cp.ocppRespCh:
 					if ocppResp.getID() == callReq.id {
 						callReq.recvChan <- ocppResp
@@ -532,12 +534,24 @@ func (cp *ChargePoint) callDispatcher() {
 			case cleanUp <- struct{}{}:
 			default:
 			}
-			for ch := range cp.dispatcherIn {
-				log.Debug("cancel remaning call requests in queque")
+			goto CleanupDrain
+		}
+
+	CleanupDrain:
+		log.Debug("charge point is closed, draining queue")
+		for {
+			select {
+			case ch, ok := <-cp.dispatcherIn:
+				if !ok {
+					return
+				}
 				close(ch.recvChan)
+			default:
+				return
 			}
 		}
 	}
+
 }
 
 // Call sends a message to peer
