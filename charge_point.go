@@ -537,18 +537,19 @@ func (cp *ChargePoint) callDispatcher() {
 			goto CleanupDrain
 		}
 
-	CleanupDrain:
-		log.Debug("charge point is closed, draining queue")
-		for {
-			select {
-			case ch, ok := <-cp.dispatcherIn:
-				if !ok {
-					return
-				}
-				close(ch.recvChan)
-			default:
+	}
+
+CleanupDrain:
+	log.Debug("charge point is closed, draining queue")
+	for {
+		select {
+		case ch, ok := <-cp.dispatcherIn:
+			if !ok {
 				return
 			}
+			close(ch.recvChan)
+		default:
+			return
 		}
 	}
 
