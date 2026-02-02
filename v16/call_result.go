@@ -6,13 +6,13 @@ type AuthorizeConf struct {
 
 type BootNotificationConf struct {
 	CurrentTime string `json:"currentTime" validate:"required,ISO8601date"`
-	Interval    int   `json:"interval" validate:"required,gte=0"`
+	Interval    int    `json:"interval" validate:"required,gte=0"`
 	Status      string `json:"status" validate:"required,RegistrationStatus"`
 }
 
 type DataTransferConf struct {
 	Status string `json:"status" validate:"required,DataTransferStatus"`
-	Data   string `json:"data,omitempty"`
+	Data   any    `json:"data,omitempty"`
 }
 
 type DiagnosticsStatusNotificationConf struct{}
@@ -33,7 +33,7 @@ type StartTransactionConf struct {
 type StatusNotificationConf struct{}
 
 type StopTransactionConf struct {
-	IdTagInfo IdTagInfo `json:"idTagInfo" validate:"required"`
+	IdTagInfo *IdTagInfo `json:"idTagInfo" validate:"omitempty"`
 }
 
 type CancelReservationConf struct {
@@ -57,15 +57,15 @@ type ClearChargingProfileConf struct {
 }
 
 type GetCompositeScheduleConf struct {
-	Status           string           `json:"status" validate:"required,GetCompositeScheduleStatus"`
-	ConnectorId      int              `json:"connectorId" validate:"required,gte=0"`
-	ScheduleStart    string           `json:"scheduleStart,omitempty" validate:"omitempty,ISO8601date"`
+	Status           string            `json:"status" validate:"required,GetCompositeScheduleStatus"`
+	ConnectorId      *int              `json:"connectorId" validate:"omitempty,gte=0"`
+	ScheduleStart    string            `json:"scheduleStart,omitempty" validate:"omitempty,ISO8601date"`
 	ChargingSchedule *ChargingSchedule `json:"chargingSchedule,omitempty"`
 }
 
 type GetConfigurationConf struct {
-	ConfigurationKey map[string]string `json:"configurationKey,omitempty"`
-	UnknownKey       []string          `json:"unknownKey,omitempty" validate:"omitempty,max=50"`
+	ConfigurationKey []KeyValue `json:"configurationKey,omitempty"`
+	UnknownKey       []string   `json:"unknownKey,omitempty" validate:"omitempty,dive,max=50"`
 }
 
 type GetDiagnosticsConf struct {

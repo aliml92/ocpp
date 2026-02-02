@@ -43,7 +43,7 @@ type ChargingSchedule struct {
 }
 
 type ChargingSchedulePeriod struct {
-	StartPeriod  string  `json:"startPeriod" validate:"required,ISO8601date"`
+	StartPeriod  *int    `json:"startPeriod" validate:"required"`
 	Limit        float32 `json:"limit" validate:"required,gte=0"`
 	NumberPhases int     `json:"numberPhases,omitempty"`
 }
@@ -64,8 +64,8 @@ type CertificateHashDataType struct {
 
 type FirmwareType struct {
 	Location           string `json:"location" validate:"required,max=512"`
-	RetrieveDateTime   string `json:"retrieveDate" validate:"required,ISO8601date"`
-	InstallDateTime    string `json:"installDate,omitempty" validate:"omitempty,ISO8601date"`
+	RetrieveDateTime   string `json:"retrieveDateTime" validate:"required,ISO8601date"`
+	InstallDateTime    string `json:"installDateTime,omitempty" validate:"omitempty,ISO8601date"`
 	SigningCertificate string `json:"signingCertificate" validate:"required,max=5500"`
 	Signature          string `json:"signature" validate:"required,max=800"`
 }
@@ -74,4 +74,10 @@ type LogParametersType struct {
 	RemoteLocation  string `json:"remoteLocation" validate:"required,max=512"`
 	OldestTimestamp string `json:"oldestTimestamp,omitempty" validate:"omitempty,ISO8601date"`
 	LatestTimestamp string `json:"latestTimestamp,omitempty" validate:"omitempty,ISO8601date"`
+}
+
+type KeyValue struct {
+	Key      string `json:"key" validate:"required,max=50"`
+	Readonly bool   `json:"readonly" validate:"required"`
+	Value    string `json:"value,omitempty" validate:"omitempty,max=500"`
 }
