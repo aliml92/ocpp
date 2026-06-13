@@ -34,7 +34,7 @@ type HeartbeatReq struct{}
 
 type MeterValuesReq struct {
 	ConnectorId   *int         `json:"connectorId" validate:"required,gte=0"`
-	TransactionId int         `json:"transactionId"`
+	TransactionId int          `json:"transactionId"`
 	MeterValue    []MeterValue `json:"meterValue" validate:"required,gt=0,dive"`
 }
 
@@ -59,7 +59,7 @@ type StatusNotificationReq struct {
 // temporary type for unmarshalling
 type StopTransactionReq struct {
 	IdTag           string       `json:"idTag" validate:"omitempty,max=20"`
-	MeterStop       *int          `json:"meterStop" validate:"required"`
+	MeterStop       *int         `json:"meterStop" validate:"required"`
 	Timestamp       string       `json:"timestamp" validate:"required,ISO8601date"`
 	TransactionId   int          `json:"transactionId" validate:"required"`
 	Reason          string       `json:"reason,omitempty" validate:"omitempty,Reason"`
@@ -79,13 +79,13 @@ type ChangeAvailabilityReq struct {
 
 type ChangeConfigurationReq struct {
 	Key   string `json:"key" validate:"required,max=50"`
-	Value string `json:"value" validate:"required,max=50"`
+	Value string `json:"value" validate:"required,max=500"`
 }
 
 type ClearCacheReq struct{}
 
 type ClearChargingProfileReq struct {
-	Id                     string `json:"id,omitempty"`
+	Id                     *int   `json:"id,omitempty"`
 	ConnectorId            *int   `json:"connectorId,omitempty" validate:"omitempty,gte=0"`
 	ChargingProfilePurpose string `json:"chargingProfilePurpose,omitempty" validate:"omitempty,ChargingProfilePurpose"`
 	StackLevel             *int   `json:"stackLevel,omitempty" validate:"omitempty,gte=0"`
@@ -93,7 +93,7 @@ type ClearChargingProfileReq struct {
 
 type GetCompositeScheduleReq struct {
 	ConnectorId      *int   `json:"connectorId,omitempty" validate:"omitempty,gte=0"`
-	Duration         int   `json:"duration" validate:"required,gt=0"`
+	Duration         int    `json:"duration" validate:"required,gt=0"`
 	ChargingRateUnit string `json:"chargingRateUnit,omitempty" validate:"omitempty,ChargingRateUnit"`
 }
 
@@ -103,8 +103,8 @@ type GetConfigurationReq struct {
 
 type GetDiagnosticsReq struct {
 	Location      string `json:"location" validate:"required"`
-	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
-	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
+	Retries       int    `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int    `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 	StartTime     string `json:"startTime,omitempty" validate:"omitempty,ISO8601date"`
 	StopTime      string `json:"stopTime,omitempty" validate:"omitempty,ISO8601date"`
 }
@@ -155,9 +155,9 @@ type UnlockConnectorReq struct {
 
 type UpdateFirmwareReq struct {
 	Location      string `json:"location" validate:"required"`
-	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	Retries       int    `json:"retries,omitempty" validate:"omitempty,gt=0"`
 	RetrieveDate  string `json:"retrieveDate" validate:"required,ISO8601date"`
-	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int    `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 }
 
 // OCPP 1.6 security whitepaper edition 2 implementation
@@ -172,7 +172,7 @@ type DeleteCertificateReq struct {
 
 type ExtendedTriggerMessageReq struct {
 	RequestedMessage string `json:"requestedMessage" validate:"required,MessageTriggerEnumType"`
-	ConnectorId      *int    `json:"connectorId,omitempty" validate:"omitempty,gt=0"`
+	ConnectorId      *int   `json:"connectorId,omitempty" validate:"omitempty,gt=0"`
 }
 
 type GetInstalledCertificateIdsReq struct {
@@ -180,11 +180,11 @@ type GetInstalledCertificateIdsReq struct {
 }
 
 type GetLogReq struct {
-	LogType       string `json:"logType" validate:"required,LogEnumType"`
-	RequestId     int    `json:"requestId" validate:"required"`
-	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
-	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
-	Log           string `json:"log" validate:"required,LogParametersType"`
+	LogType       string            `json:"logType" validate:"required,LogEnumType"`
+	RequestId     int               `json:"requestId" validate:"required"`
+	Retries       int               `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int               `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
+	Log           LogParametersType `json:"log" validate:"required,LogParametersType"`
 }
 
 type InstallCertificateReq struct {
@@ -204,8 +204,7 @@ type SecurityEventNotificationReq struct {
 }
 
 type SignCertificateReq struct {
-	Csr    string `json:"csr" validate:"required,max=5500"`
-	Status string `json:"status" validate:"required,CertificateStatusEnumType"`
+	Csr string `json:"csr" validate:"required,max=5500"`
 }
 
 type SignedFirmwareStatusNotificationReq struct {
@@ -214,8 +213,8 @@ type SignedFirmwareStatusNotificationReq struct {
 }
 
 type SignedUpdateFirmwareReq struct {
-	Retries       int   `json:"retries,omitempty" validate:"omitempty,gt=0"`
-	RetryInterval int   `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
+	Retries       int    `json:"retries,omitempty" validate:"omitempty,gt=0"`
+	RetryInterval int    `json:"retryInterval,omitempty" validate:"omitempty,gt=0"`
 	RequestId     int    `json:"requestId" validate:"required"`
 	Firmware      string `json:"firmware" validate:"required,FirewareType"`
 }
