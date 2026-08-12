@@ -79,13 +79,13 @@ type ChangeAvailabilityReq struct {
 
 type ChangeConfigurationReq struct {
 	Key   string `json:"key" validate:"required,max=50"`
-	Value string `json:"value" validate:"required,max=50"`
+	Value string `json:"value" validate:"required,max=500"`
 }
 
 type ClearCacheReq struct{}
 
 type ClearChargingProfileReq struct {
-	Id                     string `json:"id,omitempty"`
+	Id                     *int   `json:"id,omitempty"`
 	ConnectorId            *int   `json:"connectorId,omitempty" validate:"omitempty,gte=0"`
 	ChargingProfilePurpose string `json:"chargingProfilePurpose,omitempty" validate:"omitempty,ChargingProfilePurpose"`
 	StackLevel             *int   `json:"stackLevel,omitempty" validate:"omitempty,gte=0"`
